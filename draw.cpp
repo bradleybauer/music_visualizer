@@ -324,7 +324,7 @@ void draw(struct audio_data* audio) {
 	static auto start_time = std::chrono::steady_clock::now();
 	auto now = std::chrono::steady_clock::now();
 	double elapsed = (now - start_time).count()/1e9;
-	cout << elapsed << endl;
+	// cout << elapsed << endl;
 
 	// static auto prev_time = std::chrono::steady_clock::now();
 	// auto delta = now - prev_time;

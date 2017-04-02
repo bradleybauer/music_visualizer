@@ -29,8 +29,8 @@ void main() {
 	float t1 = (quad_id+1)/float(numPoints);
 	vec2 P0 = vec2(texture(SL, t0).r, texture(SR, t0).r)*2.-1.;
 	vec2 P1 = vec2(texture(SL, t1).r, texture(SR, t1).r)*2.-1.;
-	P0*=1.6;
-	P1*=1.6;
+	P0*=8.;
+	P1*=8.;
 	// vec2 P0 = vec2(t0, texture(SL, t0).r)*2.-1.;
 	// vec2 P1 = vec2(t1, texture(SL, t1).r)*2.-1.;
 	// P0.y*=1.3;

@@ -168,26 +168,37 @@ void* audioThreadMain(void* data) {
 		// http://stackoverflow.com/questions/4364823/how-do-i-obtain-the-frequencies-of-each-value-in-an-fft
 		return 96000 * peak_index / float(fftLen);
 	};
+	//
+	// pull data as often as possible
+	// read 1024 samples at a time
+	// will need a 3 pcm history buffers so that we can take a large fft
+	// 4 buffers -> 4096 samples -> fft size of 4096
+	// compute fft as often as possible
+	// draw waveform at certain intervals
+	//
+	// auto now = std::chrono::system_clock::now();
+	// auto prev_time_l = now;
+	// auto prev_time_r = now;
+	// auto duration_l = std::chrono::seconds(0);
+	// auto duration_r = std::chrono::seconds(0);
+	// double elapsed = 0.;
+	// double harmonic_l = 0.;
+	// double harmonic_r = 0.;
 	while (1) {
 		fps();
-		// static auto start_time = std::chrono::steady_clock::now();
-		// auto now = std::chrono::steady_clock::now();
-		// double elapsed = (now - start_time).count()/1e9;
 
-		// prev
-		// dura
 		// now
 		// if cur > prev+dura
 		//     prev=cur
 		//     dura = 1./harmonic
 		//     update data
 
-		float harmonic_l = get_harmonic(max_frequency(0));
-		float harmonic_r = get_harmonic(max_frequency(fftLen));
-		static auto prev_time_l = std::chrono::system_clock::now();
-		static auto prev_time_r = std::chrono::system_clock::now();
-		auto duration_l = std::chrono::seconds(1./harmonic_l);
-		auto duration_r = std::chrono::seconds(1./harmonic_r);
+		// harmonic_l = get_harmonic(max_frequency(0));
+		// harmonic_r = get_harmonic(max_frequency(fftLen));
+
+		// now = std::chrono::system_clock::now();
+		// duration_l = std::chrono::seconds(1./harmonic_l).count();
+		// duration_r = std::chrono::seconds(1./harmonic_r).count();
 		
 		if (pa_simple_read(s, buffer, sizeof(buffer), &error) < 0) {
 			cout << "pa_simple_read() failed: " << pa_strerror(error) << endl;
@@ -205,7 +216,6 @@ void* audioThreadMain(void* data) {
 			audio->freq_r[i] = mag(f[2*fftLen+i])/sqrt(fftLen);
 			// I write f[2*fftLen + i] to skip the mirrored half of the first channel's fft
 		}
-
 		if (audio->thread_join) {
 			pa_simple_free(s);
 			break;
