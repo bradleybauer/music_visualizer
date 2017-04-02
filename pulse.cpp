@@ -104,29 +104,41 @@ static float get_harmonic(float freq) {
 	return freq;
 }
 
-static inline double tau(double x) {
-	return 1./4. * log(3.*x*x + 6.*x + 1.) - sqrt(6.)/24. * log((x + 1. - sqrt(2./3.))  /  (x + 1. + sqrt(2./3.)));
+static inline float tau(float x) {
+	return 1.f/4.f * log(3.f*x*x + 6.f*x + 1.f) - sqrt(6.f)/24.f * log((x + 1.f - sqrt(2.f/3.f))  /  (x + 1.f + sqrt(2.f/3.f)));
 }
 
+#include <string.h>
+#define BUFSIZE 1024
+#define NUMBUFS 4
 void* audioThreadMain(void* data) {
 	struct audio_data* audio = (struct audio_data*)data;
-	float buffer[BUFFSIZE*2];
 
-	float fft_window[BUFFSIZE];
-	const float win_arg = 2.f * M_PI / (float(BUFFSIZE) - 1.f);
-	for (int i = 0; i < BUFFSIZE; ++i)
-		fft_window[i] = .5f * (1.f - cos(win_arg * i));
+	const int fftLen = NUMBUFS*BUFSIZE;
+    const int CHANNELS = 2;
+	const int numFFTs = CHANNELS;
+
+	audio->audio_l = (float*)calloc(NUMBUFS*BUFSIZE * 4, sizeof(float));
+	audio->audio_r = audio->audio_l + NUMBUFS*BUFSIZE;
+	audio->freq_l = audio->audio_r + NUMBUFS*BUFSIZE;
+	audio->freq_r = audio->freq_l + NUMBUFS*BUFSIZE;
 
 	fftw::maxthreads=get_max_threads();
-	const int numFFTs = 2;
-	const int fftLen = BUFFSIZE;
 	Complex* f = ComplexAlign(fftLen*numFFTs);
 	mfft1d Forward(fftLen,-1,numFFTs,numFFTs,1);
+
+	float buffer[BUFSIZE*CHANNELS];
+	
+	float fft_window[fftLen];
+	const float win_arg = 2.f * M_PI / (float(fftLen) - 1.f);
+	for (int i = 0; i < fftLen; ++i)
+		fft_window[i] = .5f-.5f*cos(win_arg*i);
 
 	pa_sample_spec ss;
 	ss.channels = 2;
 	ss.rate = 96000;
 	ss.format = PA_SAMPLE_FLOAT32LE;
+
 	pa_buffer_attr pb;
 	pb.fragsize = sizeof(buffer)/2;
 	pb.maxlength = sizeof(buffer);
@@ -199,22 +211,26 @@ void* audioThreadMain(void* data) {
 		// now = std::chrono::system_clock::now();
 		// duration_l = std::chrono::seconds(1./harmonic_l).count();
 		// duration_r = std::chrono::seconds(1./harmonic_r).count();
-		
+
 		if (pa_simple_read(s, buffer, sizeof(buffer), &error) < 0) {
 			cout << "pa_simple_read() failed: " << pa_strerror(error) << endl;
 			exit(EXIT_FAILURE);
 		}
-		for (int i = 0; i < BUFFSIZE; i++) {
-			audio->audio_l[i] = .5f + .5f*buffer[i*2+0];
-			f[i] = Complex((double)buffer[i*2] * fft_window[i]);
-			audio->audio_r[i] = .5f + .5f*buffer[i*2+1];
-			f[fftLen+i] = Complex((double)buffer[i*2+1] * fft_window[i]);
+		memmove(audio->audio_l, audio->audio_l + BUFSIZE, (fftLen-BUFSIZE)*sizeof(float));
+		memmove(audio->audio_r, audio->audio_r + BUFSIZE, (fftLen-BUFSIZE)*sizeof(float));
+		for (int i = 0; i < BUFSIZE; i++) {
+			audio->audio_l[fftLen-BUFSIZE + i] = buffer[i*2+0];
+			audio->audio_r[fftLen-BUFSIZE + i] = buffer[i*2+1];
+		}
+		for (int i = 0; i < fftLen; i++) {
+			f[i]        = Complex(audio->audio_l[i] * fft_window[i]);
+			f[fftLen+i] = Complex(audio->audio_r[i] * fft_window[i]);
 		}
 		Forward.fft(f);
 		for(int i=0; i < fftLen; i++) {
 			audio->freq_l[i] = mag(f[i])/sqrt(fftLen);
 			audio->freq_r[i] = mag(f[2*fftLen+i])/sqrt(fftLen);
-			// I write f[2*fftLen + i] to skip the mirrored half of the first channel's fft
+			// f[2 * ... ] multiply by 2 to skip the mirror
 		}
 		if (audio->thread_join) {
 			pa_simple_free(s);

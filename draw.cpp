@@ -20,8 +20,9 @@ using std::endl;
 static GLFWwindow* window;
 
 #include "audio_data.h"
-static const int POINTS = BUFFSIZE-1; // audio buffer size - 1
-// static const int POINTS = 1;
+#define BUFSIZE 4096
+// static const int POINTS = BUFSIZE-1; // audio buffer size - 1
+static const int POINTS = 1;
 static int maxOutputVertices;
 static const int COORDS_PER_POINT = 1;
 static int pointIndices[POINTS];
@@ -335,7 +336,7 @@ void draw(struct audio_data* audio) {
     glUseProgram(program);
     glBindVertexArray(vao);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	// glUniform1i(numPointsUniform, BUFFSIZE-1);
+	// glUniform1i(numPointsUniform, BUFSIZE-1);
 	   glUniform1i(numPointsUniform, POINTS);
 	glUniform1i(maxOutputVerticesUniform, maxOutputVertices);
 	glUniform2f(resolutionUniform, float(windowWidth), float(windowHeight));
@@ -343,19 +344,19 @@ void draw(struct audio_data* audio) {
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_1D, tex[0]);
-	glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, BUFFSIZE, 0, GL_RED, GL_FLOAT, audio->audio_l);
+	glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, BUFSIZE, 0, GL_RED, GL_FLOAT, audio->audio_l);
 	glUniform1i(tex_loc[0], 0);
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_1D, tex[1]);
-	glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, BUFFSIZE, 0, GL_RED, GL_FLOAT, audio->audio_r);
+	glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, BUFSIZE, 0, GL_RED, GL_FLOAT, audio->audio_r);
 	glUniform1i(tex_loc[1], 1);
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_1D, tex[2]);
-	glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, BUFFSIZE, 0, GL_RED, GL_FLOAT, audio->freq_l);
+	glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, BUFSIZE, 0, GL_RED, GL_FLOAT, audio->freq_l);
 	glUniform1i(tex_loc[2], 2);
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_1D, tex[3]);
-	glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, BUFFSIZE, 0, GL_RED, GL_FLOAT, audio->freq_r);
+	glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, BUFSIZE, 0, GL_RED, GL_FLOAT, audio->freq_r);
 	glUniform1i(tex_loc[3], 3);
 
     glDrawArrays(GL_POINTS, 0, POINTS);
