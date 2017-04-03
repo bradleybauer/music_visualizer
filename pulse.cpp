@@ -1,19 +1,17 @@
 #include <iostream>
+#include <chrono>
 using std::cout;
 using std::endl;
-#include <chrono>
 
 #include "audio_data.h"
 
-#include <pulse/error.h>
-#include <pulse/pulseaudio.h>
-#include <pulse/simple.h>
+#include "pulse_misc.h"
 
 #include "Array.h"
 #include "fftwpp/fftw++.h"
 using namespace utils;
 using namespace fftwpp;
-
+using Array::array1;
 
 // TODO choose the clock in a smarter way
 static void fps() {
@@ -26,58 +24,6 @@ static void fps() {
 		counter = 0;
 		prev_time = now;
     }
-}
-
-pa_mainloop* m_pulseaudio_mainloop;
-void cb(pa_context* pulseaudio_context, const pa_server_info* i, void* data) {
-	struct audio_data* audio = (struct audio_data*)data;
-	audio->source = i->default_sink_name;
-	audio->source += ".monitor";
-	pa_mainloop_quit(m_pulseaudio_mainloop, 0);
-}
-void pulseaudio_context_state_callback(pa_context* pulseaudio_context, void* data) {
-	switch (pa_context_get_state(pulseaudio_context)) {
-	case PA_CONTEXT_UNCONNECTED:
-		// cout << "UNCONNECTED" << endl;
-		break;
-	case PA_CONTEXT_CONNECTING:
-		// cout << "CONNECTING" << endl;
-		break;
-	case PA_CONTEXT_AUTHORIZING:
-		// cout << "AUTHORIZING" << endl;
-		break;
-	case PA_CONTEXT_SETTING_NAME:
-		// cout << "SETTING_NAME" << endl;
-		break;
-	case PA_CONTEXT_READY: // extract default sink name
-		// cout << "READY" << endl;
-		pa_operation_unref(pa_context_get_server_info(pulseaudio_context, cb, data));
-		break;
-	case PA_CONTEXT_FAILED:
-		// cout << "FAILED" << endl;
-		break;
-	case PA_CONTEXT_TERMINATED:
-		// cout << "TERMINATED" << endl;
-		pa_mainloop_quit(m_pulseaudio_mainloop, 0);
-		break;
-	}
-}
-void getPulseDefaultSink(void* data) {
-	pa_mainloop_api* mainloop_api;
-	pa_context* pulseaudio_context;
-	int ret;
-	// Create a mainloop API and connection to the default server
-	m_pulseaudio_mainloop = pa_mainloop_new();
-	mainloop_api = pa_mainloop_get_api(m_pulseaudio_mainloop);
-	pulseaudio_context = pa_context_new(mainloop_api, "APPNAME device list");
-	// This function connects to the pulse server
-	pa_context_connect(pulseaudio_context, NULL, PA_CONTEXT_NOFLAGS, NULL);
-	// This function defines a callback so the server will tell us its state.
-	pa_context_set_state_callback(pulseaudio_context, pulseaudio_context_state_callback, data);
-	// starting a mainloop to get default sink
-	if (pa_mainloop_run(m_pulseaudio_mainloop, &ret) < 0) {
-		cout << "Could not open pulseaudio mainloop to find default device name: %d" << ret << endl;
-	}
 }
 
 static float get_harmonic(float freq) {
@@ -110,22 +56,24 @@ static inline float tau(float x) {
 
 #include <string.h>
 #define BUFSIZE 1024
-#define NUMBUFS 4
+#define NUMBUFS 8
 void* audioThreadMain(void* data) {
 	struct audio_data* audio = (struct audio_data*)data;
 
 	const int fftLen = NUMBUFS*BUFSIZE;
     const int CHANNELS = 2;
-	const int numFFTs = CHANNELS;
 
-	audio->audio_l = (float*)calloc(NUMBUFS*BUFSIZE * 4, sizeof(float));
-	audio->audio_r = audio->audio_l + NUMBUFS*BUFSIZE;
-	audio->freq_l = audio->audio_r + NUMBUFS*BUFSIZE;
-	audio->freq_r = audio->freq_l + NUMBUFS*BUFSIZE;
+	audio->audio_l = (float*)calloc(fftLen * 4, sizeof(float));
+	audio->audio_r = audio->audio_l + fftLen;
+	audio->freq_l = audio->audio_r + fftLen;
+	audio->freq_r = audio->freq_l + fftLen;
 
 	fftw::maxthreads=get_max_threads();
-	Complex* f = ComplexAlign(fftLen*numFFTs);
-	mfft1d Forward(fftLen,-1,numFFTs,numFFTs,1);
+	size_t align = sizeof(Complex);
+	array1<Complex> fl(fftLen,align);
+	array1<Complex> fr(fftLen,align);
+	fft1d Forwardl(-1, fl);
+	fft1d Forwardr(-1, fr);
 
 	float buffer[BUFSIZE*CHANNELS];
 	
@@ -150,17 +98,19 @@ void* audioThreadMain(void* data) {
 		exit(EXIT_FAILURE);
 	}
 	const auto mag = [](Complex& a) {
-		return sqrt(a.real()*a.real()+a.imag()*a.imag());
+		// return sqrt(a.real()*a.real()+a.imag()*a.imag());
+        #define RMS(x, y) sqrt((x*x+y*y)*.5f)
+		return 1.f - 1.f/ (RMS(a.real(), a.imag())/140.f + 1.f);
 	};
-	const auto max_frequency = [&f, mag, fftLen](int offset) {
+	const auto max_frequency = [mag, fftLen](Complex* &f) {
 		// f is fft output for both channels
 		// offset is offset into the array 
 		double max = 0.;
 		int max_i = 0;
 		// test |i|+|r| instead of magnitude
 		for (int i = 0; i < 50; ++i) {
-			if (mag(f[offset+i]) > max) {
-				max = mag(f[offset+i]);
+			if (mag(f[i]) > max) {
+				max = mag(f[i]);
 				max_i = i;
 			}
 		}
@@ -168,8 +118,8 @@ void* audioThreadMain(void* data) {
 		if (max_i == 50) max_i--;
 
 		// more info -> http://dspguru.com/dsp/howtos/how-to-interpolate-fft-peak
-		const auto gfr = [&f, offset](int i){return f[offset + i].real();};
-		const auto gfi = [&f, offset](int i){return f[offset + i].imag();};
+		const auto gfr = [&f](int i){return f[i].real();};
+		const auto gfi = [&f](int i){return f[i].imag();};
 		const int k = max_i;
 		const double ap = (gfr(k + 1) * gfr(k) + gfi(k+1) * gfi(k))  /  (gfr(k) * gfr(k) + gfi(k) * gfi(k));
 		const double dp = -ap / (1 - ap);
@@ -219,24 +169,23 @@ void* audioThreadMain(void* data) {
 		memmove(audio->audio_l, audio->audio_l + BUFSIZE, (fftLen-BUFSIZE)*sizeof(float));
 		memmove(audio->audio_r, audio->audio_r + BUFSIZE, (fftLen-BUFSIZE)*sizeof(float));
 		for (int i = 0; i < BUFSIZE; i++) {
-			audio->audio_l[fftLen-BUFSIZE + i] = buffer[i*2+0];
-			audio->audio_r[fftLen-BUFSIZE + i] = buffer[i*2+1];
+			audio->audio_l[fftLen-BUFSIZE + i] = buffer[i*CHANNELS+0];
+			audio->audio_r[fftLen-BUFSIZE + i] = buffer[i*CHANNELS+1];
 		}
 		for (int i = 0; i < fftLen; i++) {
-			f[i]        = Complex(audio->audio_l[i] * fft_window[i]);
-			f[fftLen+i] = Complex(audio->audio_r[i] * fft_window[i]);
+			fl[i] = Complex(audio->audio_l[i] * fft_window[i]);
+			fr[i] = Complex(audio->audio_r[i] * fft_window[i]);
 		}
-		Forward.fft(f);
-		for(int i=0; i < fftLen; i++) {
-			audio->freq_l[i] = mag(f[i])/sqrt(fftLen);
-			audio->freq_r[i] = mag(f[2*fftLen+i])/sqrt(fftLen);
-			// f[2 * ... ] multiply by 2 to skip the mirror
+		Forwardl.fft(fl);
+		Forwardr.fft(fr);
+		for(int i=0; i < fftLen/2-1; i++) {
+			audio->freq_l[i] = 2.*mag(fl[i]);//sqrt(fftLen);
+			audio->freq_r[i] = 2.*mag(fr[i]);//sqrt(fftLen);
 		}
 		if (audio->thread_join) {
 			pa_simple_free(s);
 			break;
 		}
 	}
-	deleteAlign(f);
 	return 0;
 }
