@@ -1,6 +1,6 @@
 #pragma once
 
-// buffer has 4 * 1024 elements
+const int VISUALIZER_BUFSIZE = 2048;
 struct audio_data {
 	float* audio_l;
 	float* audio_r;

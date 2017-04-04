@@ -10,7 +10,7 @@ using std::endl;
 
 #include "draw.h"
 int main() {
-    initialize_gl();
+    if (!initialize_gl()) { cout << "graphics borked. exiting." << endl; return 0; };
 	struct audio_data audio;
 	audio.thread_join = false;
 	getPulseDefaultSink((void*)&audio);

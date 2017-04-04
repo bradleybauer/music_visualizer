@@ -1,9 +1,9 @@
 #version 330
 precision highp float;
 
-in int _pointIndex;
-out int pointIndex;
+in int _point_index;
+out int point_index;
 
 void main () {
-	pointIndex = _pointIndex;
+	point_index = _point_index;
 }
