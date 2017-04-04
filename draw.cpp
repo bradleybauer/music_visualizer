@@ -119,6 +119,7 @@ void init_desktop() {
 
     glfwMakeContextCurrent(window);
     glfwSetWindowSizeCallback(window, window_size_callback);
+
     glfwSwapInterval(1);
 
     glewExperimental = GL_TRUE;
@@ -186,7 +187,8 @@ in vec2 p;
 out vec4 c;
 // void main() {c=mix(vec4(1.,0.,1.,1.), vec4(0.,1.,1.,1.), texture(t,p).r);}
 // void main() {c=mix(vec4(1.,1.,1.,1.), vec4(0.,0.,0.,1.), texture(t,p).r);}
-void main() {c=mix(vec4(1.,1.,1.,1.), vec4(0.,0.,0.,1.), 1.-texture(t,p).r);}
+// void main() {c=mix(vec4(1.,1.,1.,1.), vec4(0.,0.,0.,1.), 1.-texture(t,p).r);}
+void main() {c=mix(vec4(1.,1.,1.,1.), vec4(0.,0.,0.,1.), 2.*texture(t,p).r);}
 )";
 static bool compile_shaders() {
     const GLchar* vertex_shader = (GLchar*)readShaderFile("vertex.glsl");
@@ -466,12 +468,12 @@ bool init_render() {
 
 void draw(struct audio_data* audio) {
 	// fps();
-	// static auto start_time = std::chrono::steady_clock::now();
-	// auto now = std::chrono::steady_clock::now();
-	// double elapsed = (now - start_time).count()/1e9;
+	static auto start_time = std::chrono::steady_clock::now();
+	auto now = std::chrono::steady_clock::now();
+	double elapsed = (now - start_time).count()/1e9;
 
-    glBindVertexArray(vao);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	// glBindVertexArray(vao);
+	// glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
 	// Render to texture
     glUseProgram(buf_program);
@@ -479,7 +481,7 @@ void draw(struct audio_data* audio) {
 	glUniform1i(num_points_U, POINTS);
 	glUniform1i(max_output_vertices_U, max_output_vertices);
 	glUniform2f(resolution_U, float(wwidth), float(wheight));
-	// glUniform1f(time_U, elapsed);
+	glUniform1f(time_U, elapsed);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, fb);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -497,12 +499,10 @@ void draw(struct audio_data* audio) {
 	// glBindTexture(GL_TEXTURE_1D, tex[X]); 
     #define TEXMACRO(X,Y) \
 		glActiveTexture(GL_TEXTURE0 + X); \
-		glBindTexture(GL_TEXTURE_1D, tex[X]);\
 		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, VISUALIZER_BUFSIZE, 0, GL_RED, GL_FLOAT, audio->Y);\
 		glUniform1i(tex_loc[X], X);
 
-	// TODO crashing at this texture read.
-	// Probably caused by memory interactions with pulse.cpp
+	// TODO crashing at this TexImage. Probably caused by memory interactions with pulse.cpp
 	TEXMACRO(0, audio_l)
 	TEXMACRO(1, audio_r)
 	TEXMACRO(2, freq_l)

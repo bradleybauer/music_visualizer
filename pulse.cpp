@@ -1,6 +1,9 @@
 #include <iostream>
 #include <typeinfo>
 #include <chrono>
+#include <string.h>
+#include <algorithm>
+using std::max;
 namespace chrono = std::chrono;
 using std::cout;
 using std::endl;
@@ -15,11 +18,9 @@ using namespace utils;
 using namespace fftwpp;
 using Array::array1;
 
-// TODO choose the clock in a smarter way
-static void fps() {
+static void fps(chrono::steady_clock::time_point& now) {
 	static auto prev_time = chrono::steady_clock::now();
 	static int counter = 0;
-	auto now = chrono::steady_clock::now();
 	counter++;
     if (now > prev_time + chrono::seconds(1)) {
 		cout << "snd fps: "<< counter << endl;
@@ -35,9 +36,9 @@ static double get_harmonic(double freq) {
 	// double o = freq;
 
 	// bound freq into the interval [20, 60]
-	const double b = log(freq)/log(2.);
-	const double l = log(20.)/log(2.);
-	const double u = log(60.)/log(2.);
+	const double b = log2(freq);
+	const double l = log2(24.);
+	const double u = log2(60.);
 	// a == number of iterations for one of the below loops
 	int a = 0;
 	if (b < l)
@@ -54,10 +55,14 @@ static inline double tau(double x) {
 	return 1./4. * log(3.*x*x + 6.*x + 1.) - sqrt(6.)/24. * log((x + 1. - sqrt(2./3.))  /  (x + 1. + sqrt(2./3.)));
 }
 
-#include <string.h> // memory stuff
-#include <algorithm> // std::max
-using std::max;
 void* audioThreadMain(void* data) {
+	// cout << "{" << endl;
+	// for (double i = 1.; i < 100.; i+=.01)
+	// 	cout << "{" << i << ", " << get_harmonic(i) << "}," << endl;
+	// cout << "}" << endl;
+	// exit(1);
+
+
 	// Variables
 	//
 	// PL length of the pulse audio output buffer
@@ -93,7 +98,7 @@ void* audioThreadMain(void* data) {
 	float fft_window[PL*PN];
 	const float win_arg = 2.f * M_PI / (float(PL*PN) - 1.f);
 	for (int i = 0; i < PL*PN; ++i)
-		fft_window[i] = .5f-.5f*cos(win_arg*i);
+		fft_window[i] = (1.f-cos(win_arg*i))/2.f;
 
 	float buffer[PL*C];
 	pa_sample_spec ss;
@@ -113,7 +118,7 @@ void* audioThreadMain(void* data) {
 	}
 	const auto mag = [](Complex& a) {
 		return sqrt(a.real()*a.real()+a.imag()*a.imag());
-      // #define RMS(x, y) sqrt((x*x+y*y)*.5f)
+		// #define RMS(x, y) sqrt((x*x+y*y)*.5f)
 		// return 1.f - 1.f/ (RMS(a.real(), a.imag())/140.f + 1.f);
 	};
 	auto max_frequency = [mag, SR, PL, PN](array1<Complex>&f) {
@@ -144,21 +149,24 @@ void* audioThreadMain(void* data) {
 		return  peak_index * double(SR) / double(PL*PN);
 	};
 
-	// dura() takes a double representing a second and converts it to the appropriate time unit of
-	// chrono::steady_clock with the appropriate type
+	// dura() converts a second, represented as a double, into the appropriate unit of
+	// time for chrono::steady_clock and with the appropriate arithematic type
 	// using dura() avoids errors like this : chrono::seconds(double initializer)
 	// dura() : <double,seconds> -> clock::<typeof count(), time unit>
 	typedef chrono::steady_clock clock;
 	auto dura = [](double x) -> clock::duration {
 		return clock::duration((clock::rep)(x*double(clock::period::den)/double(clock::period::num)));
 	};
+	// auto dsec = [](chrono::seconds& x) -> chrono::duration<double, std::ratio<1>> {
+	// 	return chrono::duration_cast<chrono::duration<double, std::ratio<1>>>(x);
+	// };
 	auto now = clock::now();
 	auto prev_time_l = now;
 	auto prev_time_r = now;
 	auto duration_l = dura(0);
 	auto duration_r = dura(0);
 	// double fetch = 0;
-	// int kkk = 1;
+	// double hm = SR;
 	while (1) {
 		if (pa_simple_read(s, buffer, sizeof(buffer), &error) < 0) {
 			cout << "pa_simple_read() failed: " << pa_strerror(error) << endl;
@@ -176,8 +184,8 @@ void* audioThreadMain(void* data) {
 		}
 		Forwardl.fft(fl);
 		Forwardr.fft(fr);
-		fl[0];
-		fr[0];
+		fl[0]=Complex(0);
+		fr[0]=Complex(0);
 		for(int i = 0; i < VL; i++) {
 			audio->freq_l[i] = mag(fl[i])/sqrt(PL*PN);
 			audio->freq_r[i] = mag(fr[i])/sqrt(PL*PN);
@@ -186,12 +194,37 @@ void* audioThreadMain(void* data) {
 		// TODO the app crashes sometimes and it might be related to calling memcpy
 		// while opengl is reading from the destination of memcpy.
 
+		// TODO why will this loop not execute at a speedy 60fps?
+		
+		// TODO entirely possible to read a discontinuous waveform into the fft
+		// and visualizer buffers
 		now = clock::now();
 		if (now > prev_time_l + duration_l) {
-			fps();
+			// cout << hm << "\t";
+			// for (int i = 0; i < 100; ++i)
+			// 	if (i==int(hm+20))
+			// 		cout << "*";
+			// 	else
+			// 		cout << " ";
+			// cout << endl;
+			
+			// cout << hm << endl;
+			// hm = get_harmonic(max_frequency(fl));
+			// duration_l = dura(1./hm);
+			// prev_time_l = now;
+			// memcpy(audio->audio_l, pulse_buf_l, VL*sizeof(float));
+
+			// why will this loop not run at 60fps?
+			fps(now);
+			duration_l = dura(1./60.);
 			prev_time_l = now;
-			duration_l = dura(1./get_harmonic(max_frequency(fl)));
 			memcpy(audio->audio_l, pulse_buf_l, VL*sizeof(float));
+
+			// fetch += SR/hm;
+			// if ((!(fetch >= 0))&&(!(fetch <= 0))) fetch = 1.; // NaN
+			// if (fetch > PN*PL-VL) fetch -= PN*PL-VL;
+			// prev_time_l += duration_l;
+			// memcpy(audio->audio_l, pulse_buf_l+(int)fetch, VL*sizeof(float));
 		}
 		if (now > prev_time_r + duration_r) {
 			prev_time_r = now;
@@ -205,37 +238,3 @@ void* audioThreadMain(void* data) {
 	}
 	return 0;
 }
-// fetch+= 96000*(duration_l.count()/1e9);
-// cout << fetch << endl;
-// if ((!(fetch >= 0))&&(!(fetch <= 0))) fetch = 1.; // NaN
-// if (fetch > PN*PL-VL) fetch -= PN*PL-VL;
-/*
-kkk = !kkk;
-if (kkk)
-	for (int lll = 0; lll < VL; ++lll)
-		audio->audio_l[lll]=audio->audio_l[lll]*.5+.5;
-else
-	for (int lll = 0; lll < VL; ++lll)
-		audio->audio_l[lll]=audio->audio_l[lll]*.5-.5;
-*/
-// memcpy(audio->audio_l, pulse_buf_l+PN*PL/2-VL, VL*sizeof(float));
-// memcpy(audio->audio_l, pulse_buf_l+(int)fetch, VL*sizeof(float));
-
-	// auto now = chrono::steady_clock::now();
-	// auto prev_time_l = now;
-	// auto prev_time_r = now;
-	// typedef chrono::duration<double, std::ratio<1>> dseconds;
-	// auto duration_l = dseconds(0.);
-	// auto duration_r = dseconds(0.);
-	// int fetch = 0;
-	// while (1) {
-	// 	now = chrono::steady_clock::now();
-	// 	// TODO I need to choose where in the buffer the next set of samples come from.
-	// 	// I think being able to choose is where my android port get's it's power.
-	// 	if (now > prev_time_l + duration_l) {
-	// 		prev_time_l = now;
-	// 		duration_l = dseconds(1./get_harmonic(max_frequency(fl)));
-	// 		memcpy(audio->audio_l, pulse_buf_l+max(PL,VL)-VL, VL*sizeof(float));
-	// 		// TODO the app crashes sometimes and it might be related to calling memcpy
-	// 		// while opengl is reading from the destination of memcpy.
-	// 	}
