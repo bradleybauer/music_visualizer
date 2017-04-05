@@ -54,6 +54,12 @@ static double get_harmonic(double freq) {
 static inline double tau(double x) {
 	return 1./4. * log(3.*x*x + 6.*x + 1.) - sqrt(6.)/24. * log((x + 1. - sqrt(2./3.))  /  (x + 1. + sqrt(2./3.)));
 }
+// #define RMS(x, y) sqrt((x*x+y*y)*.5f)
+// return 1.f - 1.f/ (RMS(a.real(), a.imag())/140.f + 1.f);
+static inline double smag(Complex a, Complex b) {
+	return a.real()*b.real()+a.imag()*b.imag();
+}
+static double smag(Complex a) { return smag(a,a); }
 
 void* audioThreadMain(void* data) {
 	// cout << "{" << endl;
@@ -116,39 +122,34 @@ void* audioThreadMain(void* data) {
 		cout << "Could not open pulseaudio source: " << audio->source << pa_strerror(error) << ". To find a list of your pulseaudio sources run 'pacmd list-sources'" << endl;
 		exit(EXIT_FAILURE);
 	}
-	const auto mag = [](Complex& a) {
-		return sqrt(a.real()*a.real()+a.imag()*a.imag());
-		// #define RMS(x, y) sqrt((x*x+y*y)*.5f)
-		// return 1.f - 1.f/ (RMS(a.real(), a.imag())/140.f + 1.f);
-	};
-	auto max_frequency = [mag, SR, PL, PN](array1<Complex>&f) {
+	auto max_frequency = [SR, PL, PN](array1<Complex>&f) {
 		// f is fft output for both channels
 		// offset is offset into the array 
 		double max = 0.;
 		int max_i = 0;
 		// test |i|+|r| instead of magnitude
 		for (int i = 0; i < 50; ++i) {
-			if (mag(f[i]) > max) {
-				max = mag(f[i]);
+			const double mag = smag(f[i]);
+			if (mag > max) {
+				max = mag;
 				max_i = i;
 			}
 		}
 		if (max_i == 0) max_i++;
-
 		// more info -> http://dspguru.com/dsp/howtos/how-to-interpolate-fft-peak
 		const int k = max_i;
-		// const double smfk = f[k].real() * f[k].real() + f[k].imag() * f[k].imag();
-		const double smfk = max*max;
-		const double ap = (f[k + 1].real() * f[k].real() + f[k+1].imag() * f[k].imag())  /  smfk;
+		const Complex f0 = f[k];
+		const Complex f1 = f[k-1];
+		const Complex f2 = f[k+1];
+		const double ap = smag(f2,f0)/max;
 		const double dp = -ap / (1 - ap);
-		const double am = (f[k - 1].real() * f[k].real() + f[k - 1].imag() * f[k].imag())  /  smfk;
+		const double am = smag(f1,f0)/max;
 		const double dm = am / (1. - am);
 		const double d =(dp + dm) / 2. + tau(dp * dp) - tau(dm * dm);
 		const double peak_index = double(k) + d;
 		// http://stackoverflow.com/questions/4364823/how-do-i-obtain-the-frequencies-of-each-value-in-an-fft
 		return  peak_index * double(SR) / double(PL*PN);
 	};
-
 	// dura() converts a second, represented as a double, into the appropriate unit of
 	// time for chrono::steady_clock and with the appropriate arithematic type
 	// using dura() avoids errors like this : chrono::seconds(double initializer)
@@ -187,8 +188,8 @@ void* audioThreadMain(void* data) {
 		fl[0]=Complex(0);
 		fr[0]=Complex(0);
 		for(int i = 0; i < VL; i++) {
-			audio->freq_l[i] = mag(fl[i])/sqrt(PL*PN);
-			audio->freq_r[i] = mag(fr[i])/sqrt(PL*PN);
+			audio->freq_l[i] = sqrt(smag(fl[i])/(PL*PN));
+			audio->freq_r[i] = sqrt(smag(fr[i])/(PL*PN));
 		}
 
 		// TODO the app crashes sometimes and it might be related to calling memcpy
