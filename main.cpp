@@ -1,5 +1,5 @@
 #include <iostream>
-#include <cmath>
+#include <thread>
 using std::cout;
 using std::endl;
 
@@ -14,11 +14,14 @@ int main() {
 	struct audio_data audio;
 	audio.thread_join = false;
 	getPulseDefaultSink((void*)&audio);
-	pthread_create(&audio.thread, NULL, audioThreadMain, (void*)&audio);
+	// audio.mut = PTHREAD_MUTEX_INITIALIZER;
+	std::thread audioThread(audioThreadMain, &audio);
     glfwSetTime(0.0);
-    while (should_loop()) { draw(&audio); }
+    while (should_loop()) { 
+		draw(&audio);
+	}
 	audio.thread_join = true;
-	pthread_join(audio.thread, NULL);
+	audioThread.join();
     deinit_drawing();
     glfwTerminate();
     return 0;

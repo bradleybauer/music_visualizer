@@ -11,6 +11,8 @@ struct audio_data {
 	std::string source;
 	bool thread_join;
 	pthread_t thread;
+	pthread_mutex_t mut;
+	pthread_cond_t cond;
 };
 
 void* audioThreadMain(void* data);
