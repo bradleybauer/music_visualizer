@@ -193,9 +193,9 @@ out vec4 c;
 void main() {c=mix(vec4(1.,1.,1.,1.), vec4(0.,0.,0.,1.), 2.*texture(t,p).r);}
 )";
 static bool compile_shaders() {
-    const GLchar* vertex_shader = (GLchar*)readShaderFile("vertex.glsl");
-    const GLchar* fragment_shader = (GLchar*)readShaderFile("image.glsl");
-    const GLchar* geometry_shader = (GLchar*)readShaderFile("geom.glsl");
+    const GLchar* vertex_shader = (GLchar*)readShaderFile("shaders/vertex.glsl");
+    const GLchar* fragment_shader = (GLchar*)readShaderFile("shaders/image.glsl");
+    const GLchar* geometry_shader = (GLchar*)readShaderFile("shaders/geom.glsl");
 
     GLuint vs = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vs, 1, &vertex_shader, NULL);

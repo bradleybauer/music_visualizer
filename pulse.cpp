@@ -224,6 +224,8 @@ void* audioThreadMain(void* data) {
 
 		// TODO add soap opera effects to the audio buffer from the odl buffer to the new buffer.
 
+		const double D = .85;
+
 		now = clock::now();
 		if (now > next_l) {
 			fps(now);
@@ -238,9 +240,9 @@ void* audioThreadMain(void* data) {
 			int b = a + VL;
 			if (b > PN*PL) { r = b-PN*PL; b = PN*PL; }
 			for (int i = 0; i < b-a; ++i)
-				audio->audio_l[i] = pulse_buf_l[i+a];
+				audio->audio_l[i] = pulse_buf_l[i+a]*(1.-D) + D*audio->audio_l[i];
 			for (int i = 0; i < r; ++i)
-				audio->audio_l[i+b-a] = pulse_buf_l[i];
+				audio->audio_l[i+b-a] = pulse_buf_l[i]*(1.-D)+D*audio->audio_l[i+b-a];
 			// memcpy(audio->audio_l, pulse_buf_l + a, (b-a)*sizeof(float));
 			// memcpy(audio->audio_l+(b-a), pulse_buf_l, r*sizeof(float));
 			// hml = .8*hml + .2*get_harmonic(max_frequency(fl));
@@ -267,9 +269,9 @@ void* audioThreadMain(void* data) {
 			int b = a + VL;
 			if (b > PN*PL) { r = b-PN*PL; b = PN*PL; }
 			for (int i = 0; i < b-a; ++i)
-				audio->audio_r[i] = pulse_buf_r[i+a];
+				audio->audio_r[i] = pulse_buf_r[i+a]*(1.-D)+D*audio->audio_r[i];
 			for (int i = 0; i < r; ++i)
-				audio->audio_r[i+b-a] = pulse_buf_r[i];
+				audio->audio_r[i+b-a] = pulse_buf_r[i]*(1.-D)+D*audio->audio_r[i+b-a];
 			// memcpy(audio->audio_l, pulse_buf_l + a, (b-a)*sizeof(float));
 			// memcpy(audio->audio_l+(b-a), pulse_buf_l, r*sizeof(float));
 			// hmr = .8*hmr + .2*get_harmonic(max_frequency(fr));
