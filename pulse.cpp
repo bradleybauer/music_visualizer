@@ -150,7 +150,7 @@ void* audioThreadMain(void* data) {
 		 return x*double(SR)/double(PL*PN);
 	};
 	// more info -> http://dspguru.com/dsp/howtos/how-to-interpolate-fft-peak
-	auto max_frequency1 = [&](array1<Complex>&f) {
+	auto max_frequency = [&](array1<Complex>&f) {
 		const int k = max_index(f);
 		const double y1 = sqrt(smag(f[k-1]));
 		const double y2 = sqrt(smag(f[k]));
@@ -158,57 +158,6 @@ void* audioThreadMain(void* data) {
 		const double d = (y3 - y1) / (2 * (2 * y2 - y1 - y3));
 		const double kp  =  k + d;
 		return bin_to_freq(kp);
-	};
-	auto max_frequency2 = [&](array1<Complex>&f) {
-		const int k = max_index(f);
-		const double y1 = sqrt(smag(f[k-1]));
-		const double y2 = sqrt(smag(f[k]));
-		const double y3 = sqrt(smag(f[k+1]));
-		const double d = (y3 - y1) / (y1 + y2 + y3);
-		double kp =  k + d;
-		return bin_to_freq(kp);
-	};
-	auto max_frequency3 = [&](array1<Complex>&f) {
-		const int k = max_index(f);
-		const Complex f1 = f[k-1];
-		const Complex f2 = f[k];
-		const Complex f3 = f[k+1];
-		const double sm_max = smag(f2);
-		const double ap = smag(f3,f2)/sm_max;
-		const double dp = -ap / (1. - ap);
-		const double am = smag(f1,f2)/sm_max;
-		const double dm =  am / (1. - am);
-		const double d = (dp + dm) / 2. + tau(dp * dp) - tau(dm * dm);
-		const double kp = k + d;
-		return bin_to_freq(kp);
-	};
-	auto max_frequency4 = [&](array1<Complex>&f) {
-		const int k = max_index(f);
-		const double y1 = sqrt(smag(f[k-1]));
-		const double y2 = sqrt(smag(f[k]));
-		const double y3 = sqrt(smag(f[k+1]));
-		double kp;
-		if (y1 > y3) {
-			double a = y2/y1;
-			double dd = a/(1 + a);
-			kp = k-1+dd;
-		} else {
-			double a = y3/y2;
-			double dd = a/(1 + a);
-			kp=k+dd;
-		}
-		return bin_to_freq(kp);
-	};
-	auto max_frequency = [&](array1<Complex>&f) {
-		// 1 > 2
-		// 1 > 3
-		double d = 0.;
-		d = max_frequency1(f);
-		// d += max_frequency2(f);
-		// d += max_frequency3(f);
-		// d += max_frequency4(f);
-		// return d/4.;
-		return d;
 	};
 	// dura() converts a second, represented as a double, into the appropriate unit of
 	// time for chrono::steady_clock and with the appropriate arithematic type
