@@ -3,6 +3,7 @@
 #include <chrono>
 #include <string.h>
 #include <algorithm>
+#include <cmath>
 namespace chrono = std::chrono;
 using std::cout;
 using std::endl;
@@ -143,14 +144,11 @@ void* audioThreadMain(void* data) {
 		if (max_i == 0) max_i++;
 		return max_i;
 	};
-	// TODO write locks
-	// but, if I block the thread, will that cause pulse audio to spit out a discontinuous waveform?
-	// http://stackoverflow.com/questions/4364823/how-do-i-obtain-the-frequencies-of-each-value-in-an-fft
 	auto bin_to_freq = [SR, PL, PN](double x) {
 		 return x*double(SR)/double(PL*PN);
 	};
-	// more info -> http://dspguru.com/dsp/howtos/how-to-interpolate-fft-peak
 	auto max_frequency = [&](array1<Complex>&f) {
+		// more info -> http://dspguru.com/dsp/howtos/how-to-interpolate-fft-peak
 		const int k = max_index(f);
 		const double y1 = sqrt(smag(f[k-1]));
 		const double y2 = sqrt(smag(f[k]));
@@ -158,6 +156,12 @@ void* audioThreadMain(void* data) {
 		const double d = (y3 - y1) / (2 * (2 * y2 - y1 - y3));
 		const double kp  =  k + d;
 		return bin_to_freq(kp);
+	};
+	auto sign = [](double x) { return copysign(1.,x); };
+	auto move_index = [PN,PL](double& p, double amount) {
+		p += amount;
+		if (p < 0.) { p += PN*PL; }
+		else if (p > PN*PL) { p -= PN*PL; }
 	};
 	// dura() converts a second, represented as a double, into the appropriate unit of
 	// time for chrono::steady_clock and with the appropriate arithematic type
@@ -180,6 +184,25 @@ void* audioThreadMain(void* data) {
 	static float tl[VL]; // Temporary buffer to allow the waveform in audio->audio_[lr] to change at a rate
 	static float tr[VL]; // greater than hm[lr]. We want to avoid the perception of low fps in the waveform.
 	int I = 0; // The index of the writer in the audio repository
+	auto adjust_reader = [&](double& r, double w, double hm) {
+		const double L = PL*PN;
+		const double a = w-r;
+		const double b = fabs(a)-L/2;
+		// f(r) = ||w-r|-L/2|
+		//      = |b(a)|
+		// df(b(a(r)))/dr = dfdb*dbda*dadr
+		const double dfdb = sign(b);
+		const double dbda = sign(a);
+		const double dadr = sign(r);
+		const double dfdr = dfdb*dbda*dadr;
+		if (fabs(fabs(w-r) - L/2) > SR/hm) {
+			// let w be the point on the opposite side of the ring buffer of w's initial position
+			move_index(w, L/2);
+			// move in the opposite direction of the gradient the number of steps needed to cross the point w using a step size of SR/hml
+			move_index(r, -dfdr*ceil(fabs(w-r)/(SR/hm))*SR/hm);
+			cout << "oops" << endl;
+		}
+	};
 	const auto fill_buffer = [PL, PN](double rl, float* dst, float* src) {
 		// Map [a,b] from src to [0,b-a] in dst,
 		// then map [0,a] from src to [b-a, VL] in dst;
@@ -220,44 +243,31 @@ void* audioThreadMain(void* data) {
 			audio->freq_l[i] = sqrt(smag(fl[i])/(PL*PN));
 			audio->freq_r[i] = sqrt(smag(fr[i])/(PL*PN));
 		}
-
-		// TODO the app crashes sometimes and it might be related to calling memcpy
-		// TODO entirely possible to read a discontinuous waveform into the fft
-		// and visualizer buffers
-		// to ensure that there is a continuous waveform in the buffers I should make sure that
-		// I never read across the begin/end of the buffer (which is circular)
-
 		// Kind of the soap opera effect. I could also add smoothing between each frame of graphics for extra soap.
 		const double D = .85;
+		// const double D = .051;
 		for (int i = 0; i < VL; ++i) {
 			audio->audio_l[i] = audio->audio_l[i]*(1.-D)+D*tl[i];
 			audio->audio_r[i] = audio->audio_r[i]*(1.-D)+D*tr[i];
 		}
 		now = clock::now();
 		if (now > next_l) {
-			fps(now);
-			rl += SR/hml;
-			// double dist = rl - PL*I;
-			// if (dist < 0) { dist += PN*PL; }
-			// if (dist > PN*PL) { dist -= PN*PL; }
-			// if (PL*I - dist > VL) {
-			// 	rl = PL*I;
-			// 	cout << fabs(PL*I - rl - PL*PN/2)  << " > " <<VL << endl;
-			// }
-			if (rl < 0) { rl += PN*PL; }
-			if (rl > PN*PL) { rl -= PN*PL; }
-			fill_buffer(rl, tl, pulse_buf_l);
+			move_index(rl, SR/hml);
+			adjust_reader(rl, PL*I, hml);
 			hml = get_harmonic(max_frequency(fl));
 			next_l += dura(1./hml);
+			audio->mtx.lock();
+			fill_buffer(rl, tl, pulse_buf_l);
+			audio->mtx.unlock();
 		}
 		if (now > next_r) {
-			rr += SR/hmr;
-			if (rr > PN*PL) { rr -= PN*PL; }
-
-			fill_buffer(rr, tr, pulse_buf_r);
-
+			move_index(rr, SR/hml);
+			adjust_reader(rr, PL*I, hmr);
 			hmr = get_harmonic(max_frequency(fr));
 			next_r += dura(1./hmr);
+			audio->mtx.lock();
+			fill_buffer(rr, tr, pulse_buf_r);
+			audio->mtx.unlock();
 		}
 		I++;
 		I%=PN;
@@ -269,3 +279,26 @@ void* audioThreadMain(void* data) {
 	}
 	return 0;
 }
+// I'm trying to ensure that my app never displays a discontinuous waveform.
+// Assuming that pulse audio always returns continuous waveforms, all I have to do 
+// is make sure that I never display a section of the waveform that crosses the begin/end
+// of the audio's circular buffer. I also take locks uhh, to prevent, reading data as it is written.
+//
+// If I start mpd while the youtube music player is running, then the pulse server... well, for some
+// reason the read point in the circular buffer gets too close to the write pointer.
+// I use the number of samples between the write and read pointers to determine if the waveform
+// is going to be discontinuous or not. It seems to work well.
+// But... sometimes the app gets in a weird state, where it cannot move the read pointer far
+// enough away... I'm just testing what happens when I ask the pulse server to deliver data
+// to multiple instances of my app.. I guess I'm just trying to put my app into the weird
+// state again to see if I can think of a way to fix it. But, maybe I already have fixed it.
+// I don't know, I tweaked a few of the above lines just before I started this video.
+//
+// Let me launch a few more instance of my app. It's tripping up more often now. lol, much faster
+// now.
+//
+// The app is pulling discontinuous waveforms. If pulse is delivering smooth waves, then the above
+// if block should prevent reading uh, not smooth waves.
+//
+//
+

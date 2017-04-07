@@ -87,13 +87,25 @@ void main() {
 	float t0 = (quad_id+0)/float(num_points);
 	float t1 = (quad_id+1)/float(num_points);
 
-	float sl0 = texture(SL, t0).r*1.;
-	float sr0 = texture(SR, t0).r*1.;
-	float sl1 = texture(SL, t1).r*1.;
-	float sr1 = texture(SR, t1).r*1.;
-
+	// float sl0 = texture(SL, t0).r*1.8;
+	// float sr0 = texture(SR, t0).r*1.8;
+	// float sl1 = texture(SL, t1).r*1.8;
+	// float sr1 = texture(SR, t1).r*1.8;
+	// sl0+=(t0*2.-1.)*.5;
+	// sl1+=(t1*2.-1.)*.5;
+	// sr0+=(t0*2.-1.)*.5;
+	// sr1+=(t1*2.-1.)*.5;
 	// vec2 P0 = vec2(sl0, sr0);
 	// vec2 P1 = vec2(sl1, sr1);
+	// quad(P0, P1, t0, t1);
+	
+	// float sl0 = texture(SL, t0).r*1.8;
+	// float sr0 = texture(SR, t0).r*1.8;
+	// float sl1 = texture(SL, t1).r*1.8;
+	// float sr1 = texture(SR, t1).r*1.8;
+	// vec2 P0 = vec2(sl0, sr0);
+	// vec2 P1 = vec2(sl1, sr1);
+	// quad(P0, P1, t0, t1);
 
 	// t0/=2.;
 	// t1/=2.;
@@ -103,6 +115,8 @@ void main() {
 	// P1-=.1;
 	// quad(P0, P1, t0, t1);
 
+	float sl0 = texture(SL, t0).r;
+	float sl1 = texture(SL, t1).r;
 	vec2 P0 = vec2(t0*2.-1., sl0);
 	vec2 P1 = vec2(t1*2.-1., sl1);
 	quad(P0, P1, t0, t1);
@@ -115,8 +129,4 @@ void main() {
 	
 	// quad(vec2(sl0,t0+.7),vec2(sl1,t1+.7), t0, t1);
 	// quad(vec2(t0+.7,sr0),vec2(t1+.7,sr1), t0, t1);
-
-	// P0 = vec2(t0*2.-1., texture(FR, t0).r-1.);
-	// P1 = vec2(t1*2.-1., texture(FR, t1).r-1.);
-	// quad(P0, P1, t0, t1);
 }

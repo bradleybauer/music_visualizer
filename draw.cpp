@@ -5,13 +5,14 @@
 #include <vector>
 #include <iostream>
 #include <chrono>
-#include <cmath>
 using std::cout;
 using std::endl;
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
+
 #include "draw.h"
 #include "audio_data.h"
+
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
 static GLFWwindow* window;
 
 static const int POINTS = VISUALIZER_BUFSIZE-1; // audio buffer size - 1
@@ -439,6 +440,7 @@ bool init_render() {
 		glUniform1i(tex_loc[X], X);                                       \
 		glActiveTexture(GL_TEXTURE0 + X);                                 \
 		glBindTexture(GL_TEXTURE_1D, tex[X]);                             \
+		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, VISUALIZER_BUFSIZE, 0, GL_RED, GL_FLOAT, NULL);\
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);     \
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);     \
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); \
@@ -498,14 +500,15 @@ void draw(struct audio_data* audio) {
 	// glBindTexture(GL_TEXTURE_1D, tex[X]); 
     #define TEXMACRO(X,Y) \
 		glActiveTexture(GL_TEXTURE0 + X); \
-		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, VISUALIZER_BUFSIZE, 0, GL_RED, GL_FLOAT, audio->Y);\
+		glTexSubImage1D(GL_TEXTURE_1D, 0, 0, VISUALIZER_BUFSIZE, GL_RED, GL_FLOAT, audio->Y);\
 		glUniform1i(tex_loc[X], X);
 
-	// TODO crashing at this TexImage. Probably caused by memory interactions with pulse.cpp
+	audio->mtx.lock();
 	TEXMACRO(0, audio_l)
 	TEXMACRO(1, audio_r)
 	TEXMACRO(2, freq_l)
 	TEXMACRO(3, freq_r)
+	audio->mtx.unlock();
 
     glDrawArrays(GL_POINTS, 0, POINTS);
 

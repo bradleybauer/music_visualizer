@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mutex>
 const int VISUALIZER_BUFSIZE = 2048;
 struct audio_data {
 	float* audio_l;
@@ -10,9 +11,7 @@ struct audio_data {
 	// float freq_history_r[];
 	std::string source;
 	bool thread_join;
-	pthread_t thread;
-	pthread_mutex_t mut;
-	pthread_cond_t cond;
+	std::mutex mtx;
 };
 
 void* audioThreadMain(void* data);
