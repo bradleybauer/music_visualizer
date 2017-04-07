@@ -157,7 +157,7 @@ void* audioThreadMain(void* data) {
 		const double kp  =  k + d;
 		return bin_to_freq(kp);
 	};
-	auto sign = [](double x) { return copysign(1.,x); };
+	auto sign = [](double x) { return std::copysign(1.,x); };
 	auto move_index = [PN,PL](double& p, double amount) {
 		p += amount;
 		if (p < 0.) { p += PN*PL; }
@@ -184,25 +184,32 @@ void* audioThreadMain(void* data) {
 	static float tl[VL]; // Temporary buffer to allow the waveform in audio->audio_[lr] to change at a rate
 	static float tr[VL]; // greater than hm[lr]. We want to avoid the perception of low fps in the waveform.
 	int I = 0; // The index of the writer in the audio repository
-	auto adjust_reader = [&](double& r, double w, double hm) {
+/*
+	auto adjust_reader = [PL,PN,SR, sign, move_index](double& r, double W, double hm) {
+		double w = W;
 		const double L = PL*PN;
 		const double a = w-r;
 		const double b = fabs(a)-L/2;
-		// f(r) = ||w-r|-L/2|
+		const double c = fabs(b);
+		// minimize c(r)
+		// c(r) = ||w-r|-L/2| ---> take the min distance, either forward or backward, from r needed to get to w. Then check how close this distance is to L/2. We want to make this distance L/2. We want to make this distance L/2.
 		//      = |b(a)|
-		// df(b(a(r)))/dr = dfdb*dbda*dadr
-		const double dfdb = sign(b);
-		const double dbda = sign(a);
-		const double dadr = sign(r);
-		const double dfdr = dfdb*dbda*dadr;
-		if (fabs(fabs(w-r) - L/2) > SR/hm) {
+		// dc(b(a(r)))/dr = dcdb*dbda*dadr
+		const double dcdb = sign(b);
+		const double dcda = sign(a)*dcdb;
+		const double dcdr = sign(r)*dcda;
+		// if c(r) is greater than a threshold then minimize c(r). I do not know what the threshold should be
+		// // TODO test which w-r (or c) lead to breaks in the wave form visually. Then try and avoid those.
+		// // I do not know if c>(PN*PL-VL)/2 is the correct way to test if the visualizer is going to pull a non smooth wave
+		if (c > (PN*PL-VL)/2) {
 			// let w be the point on the opposite side of the ring buffer of w's initial position
 			move_index(w, L/2);
-			// move in the opposite direction of the gradient the number of steps needed to cross the point w using a step size of SR/hml
-			move_index(r, -dfdr*ceil(fabs(w-r)/(SR/hm))*SR/hm);
-			cout << "oops" << endl;
+			// move in the opposite direction of the gradient the number of steps needed to cross w using a step size of SR/hml
+			move_index(r, -dcdr*ceil(fabs(w-r)/(SR/hm/2))*SR/hm/2);
+			// cout << " TODO make a forward and backward dist function: moved p: " << ceil(fabs(w-r)/(SR/hm/2)) << "*SR/hm/2 = " << ceil(fabs(w-r)/(SR/hm/2))*SR/hm/2 << " | new w-r: " << fabs(W-r) << endl;
 		}
 	};
+*/
 	const auto fill_buffer = [PL, PN](double rl, float* dst, float* src) {
 		// Map [a,b] from src to [0,b-a] in dst,
 		// then map [0,a] from src to [b-a, VL] in dst;
@@ -252,8 +259,11 @@ void* audioThreadMain(void* data) {
 		}
 		now = clock::now();
 		if (now > next_l) {
+			// TODO check if the amount of time that has passed can fit more than one count of SR/hml
 			move_index(rl, SR/hml);
-			adjust_reader(rl, PL*I, hml);
+			// cout << SR/hml << endl;
+			// adjust_reader(rl, PL*I, hml);
+			// cout << fabs(PL*I-rl) <<","<<endl;
 			hml = get_harmonic(max_frequency(fl));
 			next_l += dura(1./hml);
 			audio->mtx.lock();
@@ -262,7 +272,7 @@ void* audioThreadMain(void* data) {
 		}
 		if (now > next_r) {
 			move_index(rr, SR/hml);
-			adjust_reader(rr, PL*I, hmr);
+			// adjust_reader(rr, PL*I, hmr);
 			hmr = get_harmonic(max_frequency(fr));
 			next_r += dura(1./hmr);
 			audio->mtx.lock();
