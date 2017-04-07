@@ -11,10 +11,7 @@ using std::endl;
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include "draw.h"
-// #include <pthread.h>
 #include "audio_data.h"
-
-
 static GLFWwindow* window;
 
 static const int POINTS = VISUALIZER_BUFSIZE-1; // audio buffer size - 1
@@ -505,9 +502,7 @@ void draw(struct audio_data* audio) {
 		glUniform1i(tex_loc[X], X);
 
 	// TODO crashing at this TexImage. Probably caused by memory interactions with pulse.cpp
-	// pthread_mutex_lock(&audio->mut);
 	TEXMACRO(0, audio_l)
-	// pthread_mutex_unlock(&audio->mut);
 	TEXMACRO(1, audio_r)
 	TEXMACRO(2, freq_l)
 	TEXMACRO(3, freq_r)

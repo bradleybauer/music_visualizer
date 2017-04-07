@@ -3,7 +3,6 @@
 #include <chrono>
 #include <string.h>
 #include <algorithm>
-using std::max;
 namespace chrono = std::chrono;
 using std::cout;
 using std::endl;
@@ -32,6 +31,7 @@ static bool fps(chrono::steady_clock::time_point& now) {
 }
 
 // TODO could this function be approximated by some modulus operation?
+// TODO This is not nailing down the absolute best frequency to choose the loop rate for
 static double get_harmonic(double freq) {
 	if (freq < 1.f) freq = 1.f;
 	else if (freq > 1000.f) freq = 1000.f;
@@ -49,7 +49,7 @@ static double get_harmonic(double freq) {
 		a = floor(b - l); // round towards -inf
 	else if (b > u)
 		a = ceil(b - u); // round towards +inf
-	freq = pow(2, b - a);
+	freq = pow(2.0, b - a);
 
 	// while (o > 61.f) o /= 2.f; // dividing frequency by two does not change the flipbook image
 	// while (o < 20.f) o *= 2.f; // multiplying frequency by two produces the ghosting effect 
@@ -63,16 +63,18 @@ static inline double tau(double x) {
 static inline double smag(Complex a, Complex b) {
 	return a.real()*b.real()+a.imag()*b.imag();
 }
-static double smag(Complex a) { return smag(a,a); }
+static inline double smag(Complex a) { return smag(a,a); }
+
+// wow
+// template <int...I>
+// constexpr auto
+// make_compile_time_sequence(std::index_sequence<I...>)
+// {
+// 	return std::array<int,sizeof...(I)>{{cos(I)...}};
+// }
+// constexpr auto array_1_20 = make_compile_time_sequence(std::make_index_sequence<40>{});
 
 void* audioThreadMain(void* data) {
-	// cout << "{" << endl;
-	// for (double i = 1.; i < 100.; i+=.01)
-	// 	cout << "{" << i << ", " << get_harmonic(i) << "}," << endl;
-	// cout << "}" << endl;
-	// exit(1);
-
-
 	// Variables
 	//
 	// PL length of the pulse audio output buffer
@@ -90,9 +92,11 @@ void* audioThreadMain(void* data) {
 	const int C = 2;
 	const int SR = 96000;
 
+	// Audio repository
 	float* pulse_buf_l = (float*)calloc(PN*PL*C, sizeof(float));
 	float* pulse_buf_r = pulse_buf_l + PN*PL;
 
+	// Audio presentation buffers
 	struct audio_data* audio = (struct audio_data*)data;
 	audio->audio_l = (float*)calloc(VL*C*2, sizeof(float));
 	audio->audio_r = audio->audio_l + VL;
@@ -104,9 +108,9 @@ void* audioThreadMain(void* data) {
 	array1<Complex> fr(PL*PN,sizeof(Complex));
 	fft1d Forwardl(-1, fl);
 	fft1d Forwardr(-1, fr);
-	
+	// TODO use template programming to compute the window at compile time.
 	float fft_window[PL*PN];
-	const float win_arg = 2.f * M_PI / (float(PL*PN) - 1.f);
+	constexpr float win_arg = 2.f * M_PI / (float(PL*PN) - 1.f);
 	for (int i = 0; i < PL*PN; ++i)
 		fft_window[i] = (1.f-cos(win_arg*i))/2.f;
 
@@ -126,12 +130,9 @@ void* audioThreadMain(void* data) {
 		cout << "Could not open pulseaudio source: " << audio->source << pa_strerror(error) << ". To find a list of your pulseaudio sources run 'pacmd list-sources'" << endl;
 		exit(EXIT_FAILURE);
 	}
-	auto max_frequency = [SR, PL, PN](array1<Complex>&f) {
-		// f is fft output for both channels
-		// offset is offset into the array 
+	auto max_index = [](array1<Complex>&f) {
 		double max = 0.;
 		int max_i = 0;
-		// test |i|+|r| instead of magnitude
 		for (int i = 0; i < 50; ++i) {
 			const double mag = smag(f[i]);
 			if (mag > max) {
@@ -140,19 +141,74 @@ void* audioThreadMain(void* data) {
 			}
 		}
 		if (max_i == 0) max_i++;
-		// more info -> http://dspguru.com/dsp/howtos/how-to-interpolate-fft-peak
-		const int k = max_i;
-		const Complex f0 = f[k];
+		return max_i;
+	};
+	// TODO write locks
+	// but, if I block the thread, will that cause pulse audio to spit out a discontinuous waveform?
+	// http://stackoverflow.com/questions/4364823/how-do-i-obtain-the-frequencies-of-each-value-in-an-fft
+	auto bin_to_freq = [SR, PL, PN](double x) {
+		 return x*double(SR)/double(PL*PN);
+	};
+	// more info -> http://dspguru.com/dsp/howtos/how-to-interpolate-fft-peak
+	auto max_frequency1 = [&](array1<Complex>&f) {
+		const int k = max_index(f);
+		const double y1 = sqrt(smag(f[k-1]));
+		const double y2 = sqrt(smag(f[k]));
+		const double y3 = sqrt(smag(f[k+1]));
+		const double d = (y3 - y1) / (2 * (2 * y2 - y1 - y3));
+		const double kp  =  k + d;
+		return bin_to_freq(kp);
+	};
+	auto max_frequency2 = [&](array1<Complex>&f) {
+		const int k = max_index(f);
+		const double y1 = sqrt(smag(f[k-1]));
+		const double y2 = sqrt(smag(f[k]));
+		const double y3 = sqrt(smag(f[k+1]));
+		const double d = (y3 - y1) / (y1 + y2 + y3);
+		double kp =  k + d;
+		return bin_to_freq(kp);
+	};
+	auto max_frequency3 = [&](array1<Complex>&f) {
+		const int k = max_index(f);
 		const Complex f1 = f[k-1];
-		const Complex f2 = f[k+1];
-		const double ap = smag(f2,f0)/max;
+		const Complex f2 = f[k];
+		const Complex f3 = f[k+1];
+		const double sm_max = smag(f2);
+		const double ap = smag(f3,f2)/sm_max;
 		const double dp = -ap / (1. - ap);
-		const double am = smag(f1,f0)/max;
+		const double am = smag(f1,f2)/sm_max;
 		const double dm =  am / (1. - am);
 		const double d = (dp + dm) / 2. + tau(dp * dp) - tau(dm * dm);
-		const double peak_index = double(k) + d;
-		// http://stackoverflow.com/questions/4364823/how-do-i-obtain-the-frequencies-of-each-value-in-an-fft
-		return  peak_index * double(SR) / double(PL*PN);
+		const double kp = k + d;
+		return bin_to_freq(kp);
+	};
+	auto max_frequency4 = [&](array1<Complex>&f) {
+		const int k = max_index(f);
+		const double y1 = sqrt(smag(f[k-1]));
+		const double y2 = sqrt(smag(f[k]));
+		const double y3 = sqrt(smag(f[k+1]));
+		double kp;
+		if (y1 > y3) {
+			double a = y2/y1;
+			double dd = a/(1 + a);
+			kp = k-1+dd;
+		} else {
+			double a = y3/y2;
+			double dd = a/(1 + a);
+			kp=k+dd;
+		}
+		return bin_to_freq(kp);
+	};
+	auto max_frequency = [&](array1<Complex>&f) {
+		// 1 > 2
+		// 1 > 3
+		double d = 0.;
+		d = max_frequency1(f);
+		// d += max_frequency2(f);
+		// d += max_frequency3(f);
+		// d += max_frequency4(f);
+		// return d/4.;
+		return d;
 	};
 	// dura() converts a second, represented as a double, into the appropriate unit of
 	// time for chrono::steady_clock and with the appropriate arithematic type
@@ -168,42 +224,44 @@ void* audioThreadMain(void* data) {
 	auto now = clock::now();
 	auto next_l = now + dura(1./60.);
 	auto next_r = next_l;
-	double pl = 0;
-	double pr = 0;
-	double hml = 60.;
-	double hmr = 60.;
-	int I = 0;
+	double rl = 0; // Position in audio repository to read from
+	double rr = 0;
+	double hml = 60.; // Harmonic frequency of the dominant frequency of the audio.
+	double hmr = 60.; // we capture an image of the waveform at this rate
+	static float tl[VL]; // Temporary buffer to allow the waveform in audio->audio_[lr] to change at a rate
+	static float tr[VL]; // greater than hm[lr]. We want to avoid the perception of low fps in the waveform.
+	int I = 0; // The index of the writer in the audio repository
+	const auto fill_buffer = [PL, PN](double rl, float* dst, float* src) {
+		// Map [a,b] from src to [0,b-a] in dst,
+		// then map [0,a] from src to [b-a, VL] in dst;
+		int a = (int)rl; // read position
+		int b = a + VL;
+		int r = 0;
+		if (b > PN*PL) { r = b-PN*PL; b = PN*PL; }
+		for (int i = 0; i < b-a; ++i)
+			dst[i] = src[i+a];
+		for (int i = 0; i < r; ++i)
+			dst[i+b-a] = src[i];
+	};
 	// TODO provide option to disable the adaptive buffer rate.
 	while (1) {
 		if (pa_simple_read(s, buffer, sizeof(buffer), &error) < 0) {
 			cout << "pa_simple_read() failed: " << pa_strerror(error) << endl;
 			exit(EXIT_FAILURE);
 		}
-		// TODO instead of moving memory. why don't I use a ring buffer type of system?
-		// TODO if I do use a ring buffer, there is a good chance that
-		// memmove(pulse_buf_l, pulse_buf_l+PL, (PN*PL-1)*sizeof(float));
-		// memmove(pulse_buf_r, pulse_buf_r+PL, (PN*PL-1)*sizeof(float));
-		// for (int i = 0; i < PL; i++) {
-		// 	pulse_buf_l[PL*(PN-1) + i] = buffer[i*C+0];
-		// 	pulse_buf_r[PL*(PN-1) + i] = buffer[i*C+1];
-		// }
-		// for (int i = 0; i < PL*PN; i++) {
-		// 	fl[i] = Complex(pulse_buf_l[i] * fft_window[i]);
-		// 	fr[i] = Complex(pulse_buf_r[i] * fft_window[i]);
-		// }
 		for (int i = 0; i < PL; i++) {
 			pulse_buf_l[PL*I + i] = buffer[i*C+0];
 			pulse_buf_r[PL*I + i] = buffer[i*C+1];
 		}
 		int J = I+1;
 		J%=PN;
-		for (int i = PL*J; i < PL*PN; i++) {
-			fl[i-PL*J] = Complex(pulse_buf_l[i] * fft_window[i-PL*J]);
-			fr[i-PL*J] = Complex(pulse_buf_r[i] * fft_window[i-PL*J]);
-		}
 		for (int i = 0; i < PL*J; i++) {
 			fl[i+PL*(PN-J)] = Complex(pulse_buf_l[i] * fft_window[i+PL*(PN-J)]);
 			fr[i+PL*(PN-J)] = Complex(pulse_buf_r[i] * fft_window[i+PL*(PN-J)]);
+		}
+		for (int i = PL*J; i < PL*PN; i++) {
+			fl[i-PL*J] = Complex(pulse_buf_l[i] * fft_window[i-PL*J]);
+			fr[i-PL*J] = Complex(pulse_buf_r[i] * fft_window[i-PL*J]);
 		}
 		Forwardl.fft(fl);
 		Forwardr.fft(fr);
@@ -215,66 +273,40 @@ void* audioThreadMain(void* data) {
 		}
 
 		// TODO the app crashes sometimes and it might be related to calling memcpy
-		// while opengl is reading from the destination of memcpy.
-
-		// TODO why will this loop not execute at a speedy 60fps?
-		
 		// TODO entirely possible to read a discontinuous waveform into the fft
 		// and visualizer buffers
+		// to ensure that there is a continuous waveform in the buffers I should make sure that
+		// I never read across the begin/end of the buffer (which is circular)
 
-		// TODO add soap opera effects to the audio buffer from the odl buffer to the new buffer.
-
+		// Kind of the soap opera effect. I could also add smoothing between each frame of graphics for extra soap.
 		const double D = .85;
-
+		for (int i = 0; i < VL; ++i) {
+			audio->audio_l[i] = audio->audio_l[i]*(1.-D)+D*tl[i];
+			audio->audio_r[i] = audio->audio_r[i]*(1.-D)+D*tr[i];
+		}
 		now = clock::now();
 		if (now > next_l) {
 			fps(now);
-
-			// pl = (pl+2.*SR/hml)*.9+ .1*pl;
-			pl += SR/hml;
-			if (pl > PN*PL) { pl -= PN*PL; }
-			int R = (int)pl;
-			int a = R-VL;
-			if (a < 0) a += PN*PL;
-			int r = 0;
-			int b = a + VL;
-			if (b > PN*PL) { r = b-PN*PL; b = PN*PL; }
-			for (int i = 0; i < b-a; ++i)
-				audio->audio_l[i] = pulse_buf_l[i+a]*(1.-D) + D*audio->audio_l[i];
-			for (int i = 0; i < r; ++i)
-				audio->audio_l[i+b-a] = pulse_buf_l[i]*(1.-D)+D*audio->audio_l[i+b-a];
-			// memcpy(audio->audio_l, pulse_buf_l + a, (b-a)*sizeof(float));
-			// memcpy(audio->audio_l+(b-a), pulse_buf_l, r*sizeof(float));
-			// hml = .8*hml + .2*get_harmonic(max_frequency(fl));
+			rl += SR/hml;
+			// double dist = rl - PL*I;
+			// if (dist < 0) { dist += PN*PL; }
+			// if (dist > PN*PL) { dist -= PN*PL; }
+			// if (PL*I - dist > VL) {
+			// 	rl = PL*I;
+			// 	cout << fabs(PL*I - rl - PL*PN/2)  << " > " <<VL << endl;
+			// }
+			if (rl < 0) { rl += PN*PL; }
+			if (rl > PN*PL) { rl -= PN*PL; }
+			fill_buffer(rl, tl, pulse_buf_l);
 			hml = get_harmonic(max_frequency(fl));
 			next_l += dura(1./hml);
-
-			// int R = PL*(I-2);
-			// int a = R-VL/2;
-			// if (a < 0) a += PN*PL;
-			// int r = 0;
-			// int b = a + VL;
-			// if (b > PN*PL) { r = b-PN*PL; b = PN*PL; }
-			// for (int i = a; i < b; i++) audio->audio_l[i-a] = pulse_buf_l[i];
-			// for (int i = 0; i < r; i++) audio->audio_l[i+a-r] = pulse_buf_l[i];
 		}
 		if (now > next_r) {
-			// pr = (pr+2.*SR/hmr)*.9+ .1*pr;
-			pr += SR/hmr;
-			if (pr > PN*PL) { pr -= PN*PL; }
-			int R = (int)pr;
-			int a = R-VL;
-			if (a < 0) a += PN*PL;
-			int r = 0;
-			int b = a + VL;
-			if (b > PN*PL) { r = b-PN*PL; b = PN*PL; }
-			for (int i = 0; i < b-a; ++i)
-				audio->audio_r[i] = pulse_buf_r[i+a]*(1.-D)+D*audio->audio_r[i];
-			for (int i = 0; i < r; ++i)
-				audio->audio_r[i+b-a] = pulse_buf_r[i]*(1.-D)+D*audio->audio_r[i+b-a];
-			// memcpy(audio->audio_l, pulse_buf_l + a, (b-a)*sizeof(float));
-			// memcpy(audio->audio_l+(b-a), pulse_buf_l, r*sizeof(float));
-			// hmr = .8*hmr + .2*get_harmonic(max_frequency(fr));
+			rr += SR/hmr;
+			if (rr > PN*PL) { rr -= PN*PL; }
+
+			fill_buffer(rr, tr, pulse_buf_r);
+
 			hmr = get_harmonic(max_frequency(fr));
 			next_r += dura(1./hmr);
 		}

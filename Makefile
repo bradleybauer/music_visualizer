@@ -1,8 +1,8 @@
 CXX = g++
 LIB = -lglfw -lm -lGL -lGLEW -lGLU -lfftw3 -lfftw3_omp -lpulse-simple -lpthread -lpulse
 INCLUDE = -I/usr/include/libdrm -I/usr/include/GL -I/usr/include/pulse -Ifftwpp
-CXXFLAGS = -Wall -c -O3 -std=c++14 -Wno-switch $(INCLUDE)
-# CXXFLAGS = -Wall -c -O0 -g -std=c++14 -Wno-switch $(INCLUDE)
+CXXFLAGS = -Wall -c -Ofast -std=c++17 -Wno-switch $(INCLUDE)
+# CXXFLAGS = -Wall -c -O0 -g -std=c++17 -Wno-switch $(INCLUDE)
 LDFLAGS = $(LIB)
 EXE = main
 

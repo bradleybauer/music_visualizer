@@ -7,7 +7,7 @@ flags = [
 '-fexceptions',
 '-x',
 'c++', # bradley this line fixes ycm for awesome vis project
-'-std=c++14',
+'-std=c++17',
 '-Wno-switch',
 '-I',
 '.',
