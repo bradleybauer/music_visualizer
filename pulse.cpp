@@ -31,10 +31,6 @@ void* audioThreadMain(void* data) {
 	// C  channel count of audio
 	// SR requested sample rate of the audio
 	// SRF sample rate of audio given to FFT
-	//
-	// The FFT is L in size
-	// I discard all but the first VL outputs of the FFT
-	// Coincidentally, VL == FFTLEN/2
 	const int PL = 512;
 	const int PN = 16;
 	const int L = PL*PN;
@@ -50,7 +46,7 @@ void* audioThreadMain(void* data) {
 	// I've compared the 4096sample FFT over 24000hz data to the 8192sample FFT over 48000hz data
 	// and they are surprisingly similar. I couldn't tell a difference really.
 	// I've also compared resampling with ffmpeg to my current impl. Hard to notice a difference, if at all.
-	// Ofcourse the user wants to change all this. That's for another day.
+	// Ofcourse the user would want to change all this. That's for another day.
 
 	// Audio repositories
 	double* pulse_buf_l = (double*)calloc(L*C, sizeof(double));
@@ -109,10 +105,10 @@ void* audioThreadMain(void* data) {
 		// #define RMS(x, y) sqrt((x*x+y*y)*.5f)
 		// return 1.f - 1.f/ (RMS(a.real(), a.imag())/140.f + 1.f);
 	};
-	auto max_index = [&mag](array1<Complex>&f) {
+	auto max_bin = [&mag](array1<Complex>&f) {
 		double max = 0.;
 		int max_i = 0;
-		// catch frequencies from 12 to 586
+		// catch frequencies from 6 to 586
 		for (int i = 0; i < 100; ++i) {
 			const double mmag = mag(f[i]);
 			if (mmag > max) {
@@ -123,9 +119,6 @@ void* audioThreadMain(void* data) {
 		if (max_i == 0)
 			max_i++;
 		return max_i;
-	};
-	auto bin_to_freq = [SRF, FFTLEN](double x) {
-		 return x*double(SRF)/double(FFTLEN);
 	};
 	auto sign = [](double x) {
 		return std::copysign(1.,x);
@@ -160,7 +153,7 @@ void* audioThreadMain(void* data) {
 		const double c = fabs(b);
 		// minimize c(r)
 		// c(r) = ||w-r|-L/2| 
-		//      = |b(a)|
+		//      = |b(a(r))|
 		//
 		// c'(r) = dc(b(a(r)))/dr = dcdb*dbda*dadr
 		// c'(r) = sign(b)*sign(a)*(-1)
@@ -200,13 +193,13 @@ void* audioThreadMain(void* data) {
 	};
 	auto max_frequency = [&](array1<Complex>&f) {
 		// more info -> http://dspguru.com/dsp/howtos/how-to-interpolate-fft-peak
-		const int k = max_index(f);
+		const int k = max_bin(f);
 		const double y1 = mag(f[k-1]);
 		const double y2 = mag(f[k]);
 		const double y3 = mag(f[k+1]);
 		const double d = (y3 - y1) / (2 * (2 * y2 - y1 - y3));
 		const double kp  =  k + d;
-		return bin_to_freq(kp);
+		return kp * double(SRF)/double(FFTLEN);
 	};
 	auto get_harmonic = [](double freq) {
 		// TODO could this function be approximated by some modulus operation?
@@ -238,7 +231,7 @@ void* audioThreadMain(void* data) {
 	auto now = chrono::steady_clock::now();
 	auto next_l = now + dura(1./60.);
 	auto next_r = next_l;
-	double rl = 0;    // Position in audio repository to read from
+	double rl = 0; // Position in audio repository to read from
 	double rr = rl;
 	double hml = 60.; // Harmonic frequency of the dominant frequency of the audio.
 	double hmr = hml; // we capture an image of the waveform at this rate
@@ -291,7 +284,7 @@ void* audioThreadMain(void* data) {
 		}
 
 		// Execute FFT
-		int B = PL*W/(SR/SRF);
+		int B = PL*W/(SR/SRF); // SR/SRF == 2, due to the downsample
 		int A = std::max(B-FFTLEN, 0); 
 	 	int rem = std::max(FFTLEN-B, 0);
 		for (int i = FFTLEN-1; i >= rem; --i) {
@@ -308,8 +301,8 @@ void* audioThreadMain(void* data) {
 		// Fill presentation buffers
 		audio->mtx.lock();
 		for(int i = 0; i < VL; i++) {
-			audio->freq_l[i] = mag(fl[i])/sqrtf(L);
-			audio->freq_r[i] = mag(fr[i])/sqrtf(L);
+			audio->freq_l[i] = mag(fl[i])/sqrtf(FFTLEN);
+			audio->freq_r[i] = mag(fr[i])/sqrtf(FFTLEN);
 		}
 		// Smooth and upsample the wave
 		const double D = .85;
