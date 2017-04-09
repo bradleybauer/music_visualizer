@@ -3,6 +3,10 @@
 #include <pulse/pulseaudio.h>
 #include <pulse/simple.h>
 
+// Setup pulse audio connection.
+// code from github: karlstav/cava
+// thanks !
+
 pa_mainloop* m_pulseaudio_mainloop;
 void cb(pa_context* pulseaudio_context, const pa_server_info* i, void* data) {
 	struct audio_data* audio = (struct audio_data*)data;

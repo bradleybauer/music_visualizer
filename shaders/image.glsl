@@ -41,8 +41,8 @@ void main() {
         alpha *= exp(-xy.y*xy.y/(2.0*sigma*sigma))/2.0/len*param;
     // }
 
-	float uIntensity = .2;
-	float uIntensityBase = .08;
+	float uIntensity = .5;
+	float uIntensityBase = .09;
 	alpha = pow(alpha,1.0-uIntensityBase)*(0.01+min(0.99,uIntensity*3.0));
 	C = vec4(fg, alpha);
 }
