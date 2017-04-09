@@ -1,4 +1,3 @@
-#pragma once
 #include <pulse/error.h>
 #include <pulse/pulseaudio.h>
 #include <pulse/simple.h>
@@ -17,26 +16,26 @@ void cb(pa_context* pulseaudio_context, const pa_server_info* i, void* data) {
 void pulseaudio_context_state_callback(pa_context* pulseaudio_context, void* data) {
 	switch (pa_context_get_state(pulseaudio_context)) {
 	case PA_CONTEXT_UNCONNECTED:
-		// cout << "UNCONNECTED" << endl;
+		// std::cout << "UNCONNECTED" << std::endl;
 		break;
 	case PA_CONTEXT_CONNECTING:
-		// cout << "CONNECTING" << endl;
+		// std::cout << "CONNECTING" << std::endl;
 		break;
 	case PA_CONTEXT_AUTHORIZING:
-		// cout << "AUTHORIZING" << endl;
+		// std::cout << "AUTHORIZING" << std::endl;
 		break;
 	case PA_CONTEXT_SETTING_NAME:
-		// cout << "SETTING_NAME" << endl;
+		// std::cout << "SETTING_NAME" << std::endl;
 		break;
 	case PA_CONTEXT_READY: // extract default sink name
-		// cout << "READY" << endl;
+		// std::cout << "READY" << std::endl;
 		pa_operation_unref(pa_context_get_server_info(pulseaudio_context, cb, data));
 		break;
 	case PA_CONTEXT_FAILED:
-		// cout << "FAILED" << endl;
+		// std::cout << "FAILED" << std::endl;
 		break;
 	case PA_CONTEXT_TERMINATED:
-		// cout << "TERMINATED" << endl;
+		// std::cout << "TERMINATED" << std::endl;
 		pa_mainloop_quit(m_pulseaudio_mainloop, 0);
 		break;
 	}
@@ -55,7 +54,7 @@ void getPulseDefaultSink(void* data) {
 	pa_context_set_state_callback(pulseaudio_context, pulseaudio_context_state_callback, data);
 	// starting a mainloop to get default sink
 	if (pa_mainloop_run(m_pulseaudio_mainloop, &ret) < 0) {
-		cout << "Could not open pulseaudio mainloop to find default device name: %d" << ret << endl;
+		std::cout << "Could not open pulseaudio mainloop to find default device name: %d" << ret << std::endl;
 	}
 }
 

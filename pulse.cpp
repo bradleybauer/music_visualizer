@@ -1,15 +1,17 @@
 #include <iostream>
 #include <chrono>
+#include <thread>
 #include <string.h>
-namespace chrono = std::chrono;
-using std::cout;
-using std::endl;
 #include "audio_data.h"
 #include "pulse_misc.h"
 #include "Array.h"
-using Array::array1;
 #include "fftwpp/fftw++.h"
+
+using Array::array1;
 using namespace fftwpp;
+namespace chrono = std::chrono;
+using std::cout;
+using std::endl;
 
 // wow
 // template <int...I>
@@ -20,7 +22,15 @@ using namespace fftwpp;
 // }
 // constexpr auto array_1_20 = make_compile_time_sequence(std::make_index_sequence<40>{});
 
+
+
 void* audioThreadMain(void* data) {
+
+	// TODO would alsa be more stable?
+	// TODO use template programming to compute the window at compile time.
+	// TODO how much time does pa_simple_read take to finish? If the app is in the error state, then how much time does it take?
+	// TODO could the get_harmonic function be approximated by some modulus operation?
+	// It does is not nailing down the absolute best frequency to choose the loop rate for
 
 	// Constants
 	//
@@ -77,7 +87,6 @@ void* audioThreadMain(void* data) {
 	array1<Complex> fr(FFTLEN,sizeof(Complex));
 	fft1d Forwardl(-1, fl);
 	fft1d Forwardr(-1, fr);
-	// TODO use template programming to compute the window at compile time.
 	double FFTwindow[FFTLEN];
 	for (int i = 1; i < FFTLEN; ++i)
 		FFTwindow[i] = (1.-cos(2.*M_PI*i/double(FFTLEN)))/2.;
@@ -127,8 +136,6 @@ void* audioThreadMain(void* data) {
 		p += amount;
 		if (p < 0.) { p += L; }
 		else if (p > L) { p -= L; }
-		// TODO this is for debugging. input should never be outside of a certain range
-		// if (p < 0. || p > L) { cout << "move_index input outside of valid range. " << p << endl; exit(-1); }
 	};
 	auto fill_buffer = [VL, L](double rl, double* dst, double* src) {
 		// Map [a,b] from src to [0,b-a] in dst,
@@ -201,16 +208,17 @@ void* audioThreadMain(void* data) {
 		const double kp  =  k + d;
 		return kp * double(SRF)/double(FFTLEN);
 	};
-	auto get_harmonic = [](double freq) {
-		// TODO could this function be approximated by some modulus operation?
-		// TODO This is not nailing down the absolute best frequency to choose the loop rate for
-		if (freq < 1.f) freq = 1.f;
-		else if (freq > 1000.f) freq = 1000.f;
-		else if ((!(freq >= 0.f))&&(!(freq <= 0.f))) freq = 1.f; // NaN
-
-		// double o = freq;
-
+	auto clamp = [](double x, double l, double h) {
+		if (x <= l) x = l;
+		else if (x >= h) x = h;
+		else x = (l+h)/2.;
+		return x;
+	};
+	auto get_harmonic = [SRF, FFTLEN, &clamp](double freq) {
 		// bound freq into the interval [24, 60]
+
+		freq = clamp(freq, 1., double(SRF)/double(FFTLEN)*100.);
+
 		const double b = log2(freq);
 		const double l = log2(24.);
 		const double u = log2(60.);
@@ -222,8 +230,9 @@ void* audioThreadMain(void* data) {
 			a = ceil(b - u); // round towards +inf
 		freq = pow(2.0, b - a);
 
+		// double o = freq;
 		// while (o > 61.f) o /= 2.f; // dividing frequency by two does not change the flipbook image
-		// while (o < 20.f) o *= 2.f; // multiplying frequency by two produces the ghosting effect 
+		// while (o < 24.f) o *= 2.f; // multiplying frequency by two produces the ghosting effect 
 		return freq;
 	};
 
@@ -318,7 +327,10 @@ void* audioThreadMain(void* data) {
 			pa_simple_free(s);
 			break;
 		}
+
 		fps(now);
+		// Turning this on causes the indices to get all fd up
+		// std::this_thread::sleep_for(std::chrono::milliseconds(13));
 
 	}
 	return 0;

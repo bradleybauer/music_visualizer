@@ -91,7 +91,7 @@ void main() {
 	float sl1 = texture(SL, t1).r;
 	float sr1 = texture(SR, t1).r;
 
-	const float stretch = 350.;
+	const float stretch = 200.;
 	float fl0 = texture(FL, pow(stretch, t0-1.)-(1.-t0)/stretch).r;
 	float fr0 = texture(FL, pow(stretch, t0-1.)-(1.-t0)/stretch).r;
 	float fl1 = texture(FR, pow(stretch, t1-1.)-(1.-t1)/stretch).r;
@@ -113,8 +113,8 @@ void main() {
 	// quad(P0, P1, t0, t1);
 
 
-	P0 = vec2(t0*2.-1., log2(20.*fl0+0.001)/20.-.7);
-	P1 = vec2(t1*2.-1., log2(20.*fl1+0.001)/20.-.7);
+	P0 = vec2(t0*2.-1., log2(fl0+0.002)/18.-.5);
+	P1 = vec2(t1*2.-1., log2(fl1+0.002)/18.-.5);
 	quad(P0, P1, t0, t1);
 	// P0 = vec2(-t0, log2(20.*fr0+0.001)/15.-.5);
 	// P1 = vec2(-t1, log2(20.*fr1+0.001)/15.-.5);
