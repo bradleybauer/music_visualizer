@@ -22,8 +22,6 @@ using std::endl;
 // }
 // constexpr auto array_1_20 = make_compile_time_sequence(std::make_index_sequence<40>{});
 
-
-
 void* audioThreadMain(void* data) {
 
 	// TODO would alsa be more stable?
@@ -240,6 +238,7 @@ void* audioThreadMain(void* data) {
 	auto now = chrono::steady_clock::now();
 	auto next_l = now + dura(1./60.);
 	auto next_r = next_l;
+	auto prev = next_r; // Compute the fft only once every 1/60 of a second
 	double rl = 0; // Position in audio repository to read from
 	double rr = rl;
 	double hml = 60.; // Harmonic frequency of the dominant frequency of the audio.
@@ -247,11 +246,13 @@ void* audioThreadMain(void* data) {
 
 	while (1) {
 
+	// auto sss = std::chrono::steady_clock::now();
 		// Read Datums
 		if (pa_simple_read(s, buffer, sizeof(buffer), &error) < 0) {
 			cout << "pa_simple_read() failed: " << pa_strerror(error) << endl;
 			exit(EXIT_FAILURE);
 		}
+	// cout << std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now()-sss).count()<<endl;
 
 		// Fill audio repositories
 		for (int i = 0; i < PL; i++) {
@@ -293,23 +294,26 @@ void* audioThreadMain(void* data) {
 		}
 
 		// Execute FFT
-		int B = PL*W/(SR/SRF); // SR/SRF == 2, due to the downsample
-		int A = std::max(B-FFTLEN, 0); 
-	 	int rem = std::max(FFTLEN-B, 0);
-		for (int i = FFTLEN-1; i >= rem; --i) {
-			fl[i] = Complex(tfl[i + A - rem] * FFTwindow[i]);
-			fr[i] = Complex(tfr[i + A - rem] * FFTwindow[i]);
+		if (now > prev) {
+			prev += dura(1./60.);
+			int B = PL*W/(SR/SRF); // SR/SRF == 2, due to the downsample
+			int A = std::max(B-FFTLEN, 0); 
+			int rem = std::max(FFTLEN-B, 0);
+			for (int i = FFTLEN-1; i >= rem; --i) {
+				fl[i] = Complex(tfl[i + A - rem] * FFTwindow[i]);
+				fr[i] = Complex(tfr[i + A - rem] * FFTwindow[i]);
+			}
+			for (int i = rem-1; i >= 0; --i) {
+				fl[i] = Complex(tfl[i + FFTLEN-rem] * FFTwindow[i]);
+				fr[i] = Complex(tfr[i + FFTLEN-rem] * FFTwindow[i]);
+			}
+			Forwardl.fft(fl);
+			Forwardr.fft(fr);
 		}
-		for (int i = rem-1; i >= 0; --i) {
-			fl[i] = Complex(tfl[i + FFTLEN-rem] * FFTwindow[i]);
-			fr[i] = Complex(tfr[i + FFTLEN-rem] * FFTwindow[i]);
-		}
-		Forwardl.fft(fl);
-		Forwardr.fft(fr);
 
 		// Fill presentation buffers
 		audio->mtx.lock();
-		for(int i = 0; i < VL; i++) {
+		for(int i = 0; i < FFTLEN/2; i++) {
 			audio->freq_l[i] = mag(fl[i])/sqrtf(FFTLEN);
 			audio->freq_r[i] = mag(fr[i])/sqrtf(FFTLEN);
 		}
