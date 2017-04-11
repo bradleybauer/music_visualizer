@@ -54,7 +54,7 @@ void* audioThreadMain(void* data) {
 	// I've compared the 4096sample FFT over 24000hz data to the 8192sample FFT over 48000hz data
 	// and they are surprisingly similar. I couldn't tell a difference really.
 	// I've also compared resampling with ffmpeg to my current impl. Hard to notice a difference, if at all.
-	// Ofcourse the user would want to change all this. That's for another day.
+	// Of course the user might would want to change all this. That's for another day.
 
 	// Audio repositories
 	double* pulse_buf_l = (double*)calloc(L*C, sizeof(double));
@@ -71,9 +71,6 @@ void* audioThreadMain(void* data) {
 	// helps give the impression that the wave data updates at 60fps
 	double* tl = (double*)calloc(VL*2+2, sizeof(double));
 	double* tr = tl+VL+1;
-
-	// The index of the writer in the audio repositories
-	int W = 0; // It is also the index of the newest sample in the buffer (index of the discontinuity)
 
 	// FFT setup
 	fftw::maxthreads=get_max_threads();
@@ -103,15 +100,15 @@ void* audioThreadMain(void* data) {
 	}
 
 	// Functions
-	auto mag = [](Complex a) {
+	constexpr auto mag = [](Complex a) {
 		return sqrt(a.real()*a.real()+a.imag()*a.imag());
-		// #define RMS(x, y) sqrt((x*x+y*y)*.5f)
+		// #define RMS(x, y) sqrt((x*x+y*y)*1./2.)
 		// return 1.f - 1.f/ (RMS(a.real(), a.imag())/140.f + 1.f);
 	};
 	auto max_bin = [&mag](array1<Complex>&f) {
 		double max = 0.;
 		int max_i = 0;
-		// catch frequencies from 6 to 586
+		// catch frequencies from 5.86 to 586
 		for (int i = 0; i < 100; ++i) {
 			const double mmag = mag(f[i]);
 			if (mmag > max) {
@@ -123,20 +120,20 @@ void* audioThreadMain(void* data) {
 			max_i++;
 		return max_i;
 	};
-	auto sign = [](double x) {
+	constexpr auto sign = [](double x) {
 		return std::copysign(1.,x);
 	};
-	auto move_index = [L](double& p, double amount) {
+	constexpr auto move_index = [L](double& p, double amount) {
 		p += amount;
 		if (p < 0.) { p += L; }
 		else if (p > L) { p -= L; }
 	};
-	auto dist_forward = [L](double from, double to) {
+	constexpr auto dist_forward = [L](double from, double to) {
 		double d = to-from;
 		if (d < 0) d+=L;
 		return d;
 	};
-	auto adjust_reader = [&](double& r, double w, double hm) {
+	constexpr auto adjust_reader = [&](double& r, double w, double hm) {
 		const double a = w-r;
 		const double b = fabs(a)-L/2;
 		const double c = fabs(b);
@@ -147,7 +144,7 @@ void* audioThreadMain(void* data) {
 		// c'(r) = dc(b(a(r)))/dr = dcdb*dbda*dadr
 		// c'(r) = sign(b)*sign(a)*(-1)
 		//
-		// c(r) = the number of samples such that c(r + c(r)) == 0
+		// c(r) = happens to be the number of samples n such that c(r +- n) == 0
 		// c'(r) = is the direction r should move to decrease c(r)
 		// so c(r + c'(r)*c(r)) == 0
 		// see mathematica notebook in this directory
@@ -161,7 +158,7 @@ void* audioThreadMain(void* data) {
 		grid = ceil(c/grid)*grid;
 		move_index(r, -dcdr*grid);
 	};
-	auto fps = [](chrono::steady_clock::time_point& now) {
+	constexpr auto fps = [](chrono::steady_clock::time_point& now) {
 		static auto prev_time = chrono::steady_clock::now();
 		static int counter = 0;
 		counter++;
@@ -173,7 +170,7 @@ void* audioThreadMain(void* data) {
 		}
 		return false;
 	};
-	auto dura = [](double x) -> chrono::steady_clock::duration {
+	constexpr auto dura = [](double x) -> chrono::steady_clock::duration {
 		// dura() converts a second, represented as a double, into the appropriate unit of
 		// time for chrono::steady_clock and with the appropriate arithematic type
 		// using dura() avoids errors like this : chrono::seconds(double initializer)
@@ -190,7 +187,7 @@ void* audioThreadMain(void* data) {
 		const double kp  =  k + d;
 		return kp * double(SRF)/double(FFTLEN);
 	};
-	auto clamp = [](double x, double l, double h) {
+	constexpr auto clamp = [](double x, double l, double h) {
 		if (x <= l) x = l;
 		else if (x >= h) x = h;
 		return x;
@@ -222,10 +219,11 @@ void* audioThreadMain(void* data) {
 	auto next_l = now + dura(1./60.);
 	auto next_r = next_l;
 	auto prev = next_r; // Compute the fft only once every 1/60 of a second
-	double rl = 0; // Position in audio repository to read from
+	double rl = 0; // Index of a reader in the audio repositories (left channel)
 	double rr = rl;
 	double hml = 60.; // Harmonic frequency of the dominant frequency of the audio.
 	double hmr = hml; // we capture an image of the waveform at this rate
+	int W = 0; // The index of the writer in the audio repositories, of the newest sample in the buffers, and of a discontinuity in the waveform
 
 	while (1) {
 
@@ -286,8 +284,8 @@ void* audioThreadMain(void* data) {
 		// Fill presentation buffers
 		audio->mtx.lock();
 		for(int i = 0; i < FFTLEN/2; i++) {
-			audio->freq_l[i] = mag(fl[i])/sqrtf(FFTLEN);
-			audio->freq_r[i] = mag(fr[i])/sqrtf(FFTLEN);
+			audio->freq_l[i] = mag(fl[i]/double(FFTLEN));
+			audio->freq_r[i] = mag(fr[i]/double(FFTLEN));
 		}
 		// Smooth and upsample the wave
 		// const double D = .85;
@@ -304,7 +302,7 @@ void* audioThreadMain(void* data) {
 			break;
 		}
 
-		fps(now);
+		// fps(now);
 		// Turning this on causes the indices to get all fd up
 		// std::this_thread::sleep_for(std::chrono::milliseconds(13));
 
