@@ -72,10 +72,6 @@ void* audioThreadMain(void* data) {
 	double* tl = (double*)calloc(VL*2+2, sizeof(double));
 	double* tr = tl+VL+1;
 
-	// Resampling buffers
-	double* tfl = (double*)malloc(FFTLEN*2*sizeof(double)); // Temporary buffer for resampling
-	double* tfr = tfl+FFTLEN;
-
 	// The index of the writer in the audio repositories
 	int W = 0; // It is also the index of the newest sample in the buffer (index of the discontinuity)
 
@@ -134,18 +130,6 @@ void* audioThreadMain(void* data) {
 		p += amount;
 		if (p < 0.) { p += L; }
 		else if (p > L) { p -= L; }
-	};
-	auto fill_buffer = [VL, L](double rl, double* dst, double* src) {
-		// Map [a,b] from src to [0,b-a] in dst,
-		// then map [0,a] from src to [b-a, VL] in dst;
-		int a = (int)rl; // read position
-		int b = a + VL;
-		int r = 0;
-		if (b > L) { r = b-L; b = L; }
-		for (int i = 0; i < b-a; ++i)
-			dst[i] = src[i+a];
-		for (int i = 0; i < r; ++i)
-			dst[i+b-a] = src[i];
 	};
 	auto dist_forward = [L](double from, double to) {
 		double d = to-from;
@@ -209,7 +193,6 @@ void* audioThreadMain(void* data) {
 	auto clamp = [](double x, double l, double h) {
 		if (x <= l) x = l;
 		else if (x >= h) x = h;
-		else x = (l+h)/2.;
 		return x;
 	};
 	auto get_harmonic = [SRF, FFTLEN, &clamp](double freq) {
@@ -271,9 +254,10 @@ void* audioThreadMain(void* data) {
 				cout << "oopsl" << endl;
 				pa_simple_flush(s, &error);
 			}
+			for (int i = 0; i < VL; ++i)
+				tl[i] = pulse_buf_l[(i+int(rl))%L];
 			hml = get_harmonic(max_frequency(fl));
 			next_l += dura(1./hml);
-			fill_buffer(rl, tl, pulse_buf_l);
 		}
 		if (now > next_r) {
 			move_index(rr, SR/hmr);
@@ -282,30 +266,18 @@ void* audioThreadMain(void* data) {
 				cout << "oopsr" << endl;
 				pa_simple_flush(s, &error);
 			}
+			for (int i = 0; i < VL; ++i)
+				tr[i] = pulse_buf_r[(i+int(rr))%L];
 			hmr = get_harmonic(max_frequency(fr));
 			next_r += dura(1./hmr);
-			fill_buffer(rr, tr, pulse_buf_r);
 		}
 
-		// Down sample for the FFT
-		for (int i = 0; i < FFTLEN; i++) {
-			tfl[i] = pulse_buf_l[i*2];
-			tfr[i] = pulse_buf_r[i*2];
-		}
-
-		// Execute FFT
+		// Preprocess audio and execute the FFT
 		if (now > prev) {
-			prev += dura(1./60.);
-			int B = PL*W/(SR/SRF); // SR/SRF == 2, due to the downsample
-			int A = std::max(B-FFTLEN, 0); 
-			int rem = std::max(FFTLEN-B, 0);
-			for (int i = FFTLEN-1; i >= rem; --i) {
-				fl[i] = Complex(tfl[i + A - rem] * FFTwindow[i]);
-				fr[i] = Complex(tfr[i + A - rem] * FFTwindow[i]);
-			}
-			for (int i = rem-1; i >= 0; --i) {
-				fl[i] = Complex(tfl[i + FFTLEN-rem] * FFTwindow[i]);
-				fr[i] = Complex(tfr[i + FFTLEN-rem] * FFTwindow[i]);
+			prev = now + dura(1./60.);
+			for (int i = 0; i < FFTLEN; ++i) {
+				fl[i] = Complex(FFTwindow[i] * pulse_buf_l[(i*2+PL*W)%L]);
+				fr[i] = Complex(FFTwindow[i] * pulse_buf_r[(i*2+PL*W)%L]);
 			}
 			Forwardl.fft(fl);
 			Forwardr.fft(fr);
@@ -318,9 +290,9 @@ void* audioThreadMain(void* data) {
 			audio->freq_r[i] = mag(fr[i])/sqrtf(FFTLEN);
 		}
 		// Smooth and upsample the wave
-		const double D = .85;
-		// const double D = .051;
-		// const double D = .5;
+		// const double D = .85;
+		const double D = .05;
+		// const double D = .2;
 		for (int i = 0; i < VL; ++i) {
 			audio->audio_l[i] = audio->audio_l[i]*(1.-D)+D*(tl[i/2]+tl[(i+1)/2])/2.;
 			audio->audio_r[i] = audio->audio_r[i]*(1.-D)+D*(tr[i/2]+tr[(i+1)/2])/2.;

@@ -1,10 +1,6 @@
 (fftw-3.3.4 fftw_wisdom #x458a31c8 #x92381c4c #x4f974889 #xcd46f97e
-  (fftw_codelet_q1fv_8_avx 0 #x11bdd #x11bdd #x0 #x1ae5a961 #x74a7bee2 #x84d9f259 #x4ebb9c1e)
-  (fftw_dft_vrank_geq1_register 0 #x11bdd #x11bdd #x0 #x95b29cf8 #xeec8bdd3 #xcbffebb9 #x33378087)
-  (fftw_codelet_t1fv_8_avx 0 #x11bdd #x11bdd #x0 #xb6061b52 #x024ecc84 #x9f697aa5 #x8d79910b)
   (fftw_codelet_q1fv_8_avx 0 #x11bdd #x11bdd #x0 #x2df462ee #xb5b759fa #xf3f93231 #x881ca507)
-  (fftw_dft_vrank_geq1_register 0 #x11bdd #x11bdd #x0 #xfb2561e4 #xcfe9ec89 #xd68e3173 #x9c78f7b9)
-  (fftw_codelet_n1fv_32_avx 0 #x11bdd #x11bdd #x0 #xfe0b5f2d #xa27c8cc3 #x406a6f6b #xdf4b94ce)
+  (fftw_dft_vrank_geq1_register 0 #x11bdd #x11bdd #x0 #x95b29cf8 #xeec8bdd3 #xcbffebb9 #x33378087)
+  (fftw_codelet_t2fv_8_avx 0 #x11bdd #x11bdd #x0 #xf4a86f02 #x98982262 #x5f8b51c8 #xdbe1eb10)
   (fftw_codelet_n1fv_64_avx 0 #x11bdd #x11bdd #x0 #x81d798ad #xb9d475ca #xb2f0e19f #xb8f15895)
-  (fftw_codelet_t1fv_8_avx 0 #x11bdd #x11bdd #x0 #xf4a86f02 #x98982262 #x5f8b51c8 #xdbe1eb10)
 )

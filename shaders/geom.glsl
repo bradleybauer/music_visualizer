@@ -81,6 +81,7 @@ void quad(vec2 P0, vec2 P1, float t0, float t1) {
 	EndPrimitive();
 }
 
+// I like having like a micro fft (micro in height) at the bottom of the window
 void main() {
 	int quad_id = point_index[0];
 	float t0 = (quad_id+0)/float(num_points);
@@ -91,11 +92,11 @@ void main() {
 	float sl1 = texture(SL, t1).r;
 	float sr1 = texture(SR, t1).r;
 
-	const float stretch = 200.;
-	float fl0 = texture(FL, pow(stretch, t0-1.)-(1.-t0)/stretch).r;
-	float fl1 = texture(FL, pow(stretch, t1-1.)-(1.-t1)/stretch).r;
-	float fr0 = texture(FR, pow(stretch, t0-1.)-(1.-t0)/stretch).r;
-	float fr1 = texture(FR, pow(stretch, t1-1.)-(1.-t1)/stretch).r;
+	// const float stretch = 200.;
+	// float fl0 = texture(FL, pow(stretch, t0-1.)-(1.-t0)/stretch).r;
+	// float fl1 = texture(FL, pow(stretch, t1-1.)-(1.-t1)/stretch).r;
+	// float fr0 = texture(FR, pow(stretch, t0-1.)-(1.-t0)/stretch).r;
+	// float fr1 = texture(FR, pow(stretch, t1-1.)-(1.-t1)/stretch).r;
 
 	vec2 P0;
 	vec2 P1;
@@ -104,18 +105,17 @@ void main() {
 	// sl1+=(t1*2.-1.)*.5;
 	// sr0+=(t0*2.-1.)*.5;
 	// sr1+=(t1*2.-1.)*.5;
-	// vec2 P0 = vec2(sl0, sr0);
-	// vec2 P1 = vec2(sl1, sr1);
-	// quad(P0, P1, t0, t1);
-	
 	// P0 = vec2(sl0, sr0);
 	// P1 = vec2(sl1, sr1);
 	// quad(P0, P1, t0, t1);
-
-
-	P0 = vec2(t0*2.-1., log2(fl0+0.002)/18.-.5);
-	P1 = vec2(t1*2.-1., log2(fl1+0.002)/18.-.5);
+	
+	P0 = vec2(sl0, sr0)*1.5;
+	P1 = vec2(sl1, sr1)*1.5;
 	quad(P0, P1, t0, t1);
+
+	// P0 = vec2(t0*2.-1., log2(fl0+0.002)/18.-.5);
+	// P1 = vec2(t1*2.-1., log2(fl1+0.002)/18.-.5);
+	// quad(P0, P1, t0, t1);
 	// P0 = vec2(-t0, log2(20.*fr0+0.001)/15.-.5);
 	// P1 = vec2(-t1, log2(20.*fr1+0.001)/15.-.5);
 	// quad(P0, P1, t0, t1);
@@ -127,18 +127,15 @@ void main() {
 	// P1 = vec2(-t1, fr1-.5);
 	// quad(P0, P1, t0, t1);
 
-	// P0 = vec2(t0, 1.-fl0-1.);
-	// P1 = vec2(t1, 1.-fl1-1.);
-	// quad(P0, P1, t0, t1);
-	// P0 = vec2(-P0.x, 1.-fr0-1.);
-	// P1 = vec2(-P1.x, 1.-fr1-1.);
+	// P0 = vec2(t0*2.-1., fr0-1.);
+	// P1 = vec2(t1*2.-1., fr1-1.);
 	// quad(P0, P1, t0, t1);
 
-	sl0=sl0*.8+.3;
-	sl1=sl1*.8+.3;
-	P0 = vec2(t0*2.-1., sl0);
-	P1 = vec2(t1*2.-1., sl1);
-	quad(P0, P1, t0, t1);
+	// sl0=sl0*.8+.3;
+	// sl1=sl1*.8+.3;
+	// P0 = vec2(t0*2.-1., sl0);
+	// P1 = vec2(t1*2.-1., sl1);
+	// quad(P0, P1, t0, t1);
 
 	// quad(vec2(sl0,t0+.7),vec2(sl1,t1+.7), t0, t1);
 	// quad(vec2(t0+.7,sr0),vec2(t1+.7,sr1), t0, t1);
