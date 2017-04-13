@@ -88,8 +88,8 @@ void main() {
 	float t1 = (quad_id+1)/float(num_points);
 
 	float sl0 = texture(SL, t0).r;
-	float sr0 = texture(SR, t0).r;
 	float sl1 = texture(SL, t1).r;
+	float sr0 = texture(SR, t0).r;
 	float sr1 = texture(SR, t1).r;
 
 	// const float stretch = 200.;

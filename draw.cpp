@@ -188,6 +188,8 @@ uniform sampler2D t;
 uniform vec2 R;
 in vec2 p;
 out vec4 c;
+vec4 fg=vec4(0.,0.,0.,1.);
+vec4 bg=vec4(1.);
 // void main() {c=mix(vec4(1.,0.,1.,1.), vec4(0.,1.,1.,1.), texture(t,p).r);}
 // void main() {c=mix(vec4(1.,1.,1.,1.), vec4(0.,0.,0.,1.), texture(t,p).r);}
 // void main() {c=mix(vec4(1.,1.,1.,1.), vec4(0.,0.,0.,1.), 1.-texture(t,p).r);}
@@ -199,7 +201,10 @@ void main() {
 	U.y*=max(1.,R.y/R.x);
 	U.y = clamp(U.y,-1.,1.);
 	U=U*.5+.5;
-	c=mix(vec4(1.,1.,1.,1.), vec4(0.,0.,0.,1.), 2.*texture(t,U).r);
+	float C = 2.*texture(t,U).r;
+	if (U.x==1.||U.x==0.) c=bg;
+	else if (U.y==1.||U.y==0.) c=bg;
+	else c=mix(bg, fg, 2.*C);
 
 	// vec2 U = gl_FragCoord.xy/R;
 	// U.x*=max(1.,R.x/R.y);
