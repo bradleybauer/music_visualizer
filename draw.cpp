@@ -40,6 +40,7 @@ static GLuint img_program;
 static GLint num_points_U;
 static GLint max_output_vertices_U;
 static GLint resolution_U;
+static GLint resolution_buf_U;
 static GLint time_U;
 
 static void fps() {
@@ -179,16 +180,40 @@ void main() {
     EndPrimitive();
 }
 )";
+// TODO Kali transform the lissajous texture coord in the buffer shader.. lol wow! :)
 static std::string FRAG = R"(
 #version 330
 precision highp float;
 uniform sampler2D t;
+uniform vec2 R;
 in vec2 p;
 out vec4 c;
 // void main() {c=mix(vec4(1.,0.,1.,1.), vec4(0.,1.,1.,1.), texture(t,p).r);}
 // void main() {c=mix(vec4(1.,1.,1.,1.), vec4(0.,0.,0.,1.), texture(t,p).r);}
 // void main() {c=mix(vec4(1.,1.,1.,1.), vec4(0.,0.,0.,1.), 1.-texture(t,p).r);}
-void main() {c=mix(vec4(1.,1.,1.,1.), vec4(0.,0.,0.,1.), 2.*texture(t,p).r);}
+void main() {
+	vec2 U = gl_FragCoord.xy/R;
+	U = U*2.-1.;
+	U.x*=max(1.,R.x/R.y);
+	U.x = clamp(U.x,-1.,1.);
+	U.y*=max(1.,R.y/R.x);
+	U.y = clamp(U.y,-1.,1.);
+	U=U*.5+.5;
+	c=mix(vec4(1.,1.,1.,1.), vec4(0.,0.,0.,1.), 2.*texture(t,U).r);
+
+	// vec2 U = gl_FragCoord.xy/R;
+	// U.x*=max(1.,R.x/R.y);
+	// U.y*=max(1.,R.y/R.x);
+	// for (int i = 0; i < 5; ++i) {
+	// 	U=abs(U)/dot(U,U) - vec2(1.0,.51);
+	// }
+	// U.x = clamp(U.x,-1.,1.);
+	// U.y = clamp(U.y,-1.,1.);
+	// U=U*.5+.5;
+	// c=mix(vec4(1.,1.,1.,1.), vec4(0.,0.,0.,1.), 2.*texture(t,U).r);
+
+	// c=mix(vec4(1.,1.,1.,1.), vec4(0.,0.,0.,1.), 2.*texture(t,p).r);
+}
 )";
 static bool compile_shaders() {
     const GLchar* vertex_shader = (GLchar*)readShaderFile("shaders/vertex.glsl");
@@ -431,6 +456,7 @@ bool init_render() {
 	num_points_U = glGetUniformLocation(buf_program, "num_points");
 	max_output_vertices_U = glGetUniformLocation(buf_program, "max_output_vertices");
 	resolution_U = glGetUniformLocation(buf_program, "R");
+	resolution_buf_U = glGetUniformLocation(img_program, "R");
 	time_U = glGetUniformLocation(buf_program, "T");
 
 	glGenTextures(4, tex);
@@ -494,7 +520,7 @@ void draw(struct audio_data* audio) {
 	//
 	// glUniform1i(textureLoc, int) sets what texture unit the sampler reads from
 	//
-    // A texture binding created with glBindTexture remains active until a different texture is
+	// A texture binding created with glBindTexture remains active until a different texture is
 	// bound to the same target, or until the bound texture is deleted with glDeleteTextures.
 	// So I do not need to rebind
 	// glBindTexture(GL_TEXTURE_1D, tex[X]); 
@@ -516,8 +542,9 @@ void draw(struct audio_data* audio) {
     glUseProgram(img_program);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0); // bind window manager's fbo
-    glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT);
 
+	glUniform2f(resolution_buf_U, float(wwidth), float(wheight));
 	glUniform1i(fbtex_loc, 0);
 	glActiveTexture(GL_TEXTURE0);
 

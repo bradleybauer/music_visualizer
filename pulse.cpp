@@ -22,6 +22,8 @@ using std::endl;
 // }
 // constexpr auto array_1_20 = make_compile_time_sequence(std::make_index_sequence<40>{});
 
+// TODO search these terms
+// use pavucontrol to adjust latency
 void* audioThreadMain(void* data) {
 
 	// TODO would alsa be more stable?
@@ -82,6 +84,7 @@ void* audioThreadMain(void* data) {
 	for (int i = 1; i < FFTLEN; ++i)
 		FFTwindow[i] = (1.-cos(2.*M_PI*i/double(FFTLEN)))/2.;
 
+	getPulseDefaultSink((void*)audio);
 	// Pulse setup
 	float buffer[PL*C];
 	pa_sample_spec ss;
