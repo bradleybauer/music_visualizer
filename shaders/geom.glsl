@@ -102,8 +102,8 @@ void main() {
 	vec2 P0;
 	vec2 P1;
 
-	P0 = vec2(sl0, sr0)*1.5;
-	P1 = vec2(sl1, sr1)*1.5;
+	P0 = vec2(sl0, sr0);
+	P1 = vec2(sl1, sr1);
 	quad(P0, P1, t0, t1);
 
 	// P0 = vec2(t0*2.-1., log2(10.*fl0+0.002)/18.0-.5);
