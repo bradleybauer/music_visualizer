@@ -13,7 +13,6 @@ namespace chrono = std::chrono;
 using std::cout;
 using std::endl;
 
-// wow
 // template <int...I>
 // constexpr auto
 // make_compile_time_sequence(std::index_sequence<I...>)
@@ -230,13 +229,13 @@ void* audioThreadMain(void* data) {
 
 	while (1) {
 
-	// auto sss = std::chrono::steady_clock::now();
+		// auto sss = std::chrono::steady_clock::now();
 		// Read Datums
 		if (pa_simple_read(s, buffer, sizeof(buffer), &error) < 0) {
 			cout << "pa_simple_read() failed: " << pa_strerror(error) << endl;
 			exit(EXIT_FAILURE);
 		}
-	// cout << std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now()-sss).count()<<endl;
+		// cout << std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now()-sss).count()<<endl;
 
 		// Fill audio repositories
 		for (int i = 0; i < PL; i++) {
@@ -253,7 +252,6 @@ void* audioThreadMain(void* data) {
 			if (dist_forward(rl,PL*W) < VL) {
 				adjust_reader(rl, PL*W, hml);
 				cout << "oopsl" << endl;
-				pa_simple_flush(s, &error);
 			}
 			for (int i = 0; i < VL; ++i)
 				tl[i] = pulse_buf_l[(i+int(rl))%L];
@@ -265,7 +263,6 @@ void* audioThreadMain(void* data) {
 			if (dist_forward(rr,PL*W) < VL) {
 				adjust_reader(rr, PL*W, hmr);
 				cout << "oopsr" << endl;
-				pa_simple_flush(s, &error);
 			}
 			for (int i = 0; i < VL; ++i)
 				tr[i] = pulse_buf_r[(i+int(rr))%L];

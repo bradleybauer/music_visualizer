@@ -50,7 +50,7 @@ void quad(vec2 P0, vec2 P1, float t0, float t1) {
 	// If the segment is too short, just draw a square
     if (dl < EPS)
         dir = vec2(1.0, 0.0);
-    else 
+    else
 		dir = normalize(dir);
     vec2 norm = vec2(-dir.y, dir.x);
 
@@ -82,6 +82,7 @@ void quad(vec2 P0, vec2 P1, float t0, float t1) {
 }
 
 // I like having like a micro fft (micro in height) at the bottom of the window
+// it has a nice asthetic
 void main() {
 	int quad_id = point_index[0];
 	float t0 = (quad_id+0)/float(num_points);
