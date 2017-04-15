@@ -190,7 +190,7 @@ out vec4 c;
 // vec4 bg=vec4(0.,0.,0.,1.);
 // vec4 fg=vec4(1.);
 vec4 fg=vec4(1.,0.,1.,1.);
-vec4 bg=vec4(0.,1.,1.,1.);
+vec4 bg=vec4(0.,204./255.,1.,1.);
 void main() {
 	vec2 U = gl_FragCoord.xy/R;
 	U = U*2.-1.;
