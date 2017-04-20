@@ -48,11 +48,11 @@ void quad(vec2 P0, vec2 P1, float t0, float t1) {
 	vec2 dir = P1-P0;
 	float dl = length(dir);
 	// If the segment is too short, just draw a square
-    if (dl < EPS)
-        dir = vec2(1.0, 0.0);
-    else
-		dir = normalize(dir);
-    vec2 norm = vec2(-dir.y, dir.x);
+	if (dl < EPS)
+		dir = vec2(1.0, 0.0);
+	else
+	 	dir = normalize(dir);
+	vec2 norm = vec2(-dir.y, dir.x);
 
 	uvl = vec4(dl+param, -param, dl, t0);
 	gl_Position = vec4(P0+(-dir-norm)*param, 0., 1.);
@@ -93,9 +93,9 @@ void main() {
 	float sr0 = texture(SR, t0).r;
 	float sr1 = texture(SR, t1).r;
 
-	// const float stretch = 200.;
-	// float fl0 = texture(FL, pow(stretch, t0-1.)-(1.-t0)/stretch).r;
-	// float fl1 = texture(FL, pow(stretch, t1-1.)-(1.-t1)/stretch).r;
+	const float stretch = 200.;
+	float fl0 = texture(FL, pow(stretch, t0-1.)-(1.-t0)/stretch).r;
+	float fl1 = texture(FL, pow(stretch, t1-1.)-(1.-t1)/stretch).r;
 	// float fr0 = texture(FR, pow(stretch, t0-1.)-(1.-t0)/stretch).r;
 	// float fr1 = texture(FR, pow(stretch, t1-1.)-(1.-t1)/stretch).r;
 

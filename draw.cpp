@@ -1,4 +1,5 @@
-/* https://open.gl/geometry
+/* POC graphics module
+ * https://open.gl/geometry
  * https://www.khronos.org/opengl/wiki/Geometry_Shader
  * http://www.informit.com/articles/article.aspx?p=2120983&seqNum=2
  */
@@ -19,6 +20,7 @@ static const int POINTS = VISUALIZER_BUFSIZE-1; // audio buffer size - 1
 // static const int POINTS = 1;
 static int max_output_vertices;
 static const int COORDS_PER_POINT = 1;
+// TODO extra temporary
 static int point_indices[POINTS];
 
 // window dimensions
@@ -32,6 +34,9 @@ static GLuint tex_loc[4]; // texture uniform locations
 static GLuint fb;         // frameuffer
 static GLuint fbtex;      // framebuffer texture
 static GLuint fbtex_loc;  // framebuffer texture location in display program
+static GLuint prev_pixels;
+static GLuint prev_pixels_loc;
+static GLubyte last_pixels[4*1920*1080];
 
 static GLuint buf_program;
 static GLuint img_program;
@@ -83,6 +88,9 @@ static unsigned char *readShaderFile(const char *filename) {
 	fclose(file);
 	return buffer;
 }
+
+// Vim tip ']p' -> reindented paste
+
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
@@ -98,13 +106,21 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
 	//
 	// if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE)
 }
+#include <string.h>
 static void window_size_callback(GLFWwindow* window, int width, int height) {
 	wwidth = width;
 	wheight  = height;
 	glViewport(0, 0, wwidth, wheight);
 
 	// Resize framebuffer texture
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, fbtex);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, wwidth, wheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	// Resize prev_pixels texture
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, prev_pixels);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, wwidth, wheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	memset(last_pixels, 0, sizeof(last_pixels));
 }
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
 }
@@ -183,14 +199,16 @@ void main() {
 static std::string FRAG = R"(
 #version 330
 precision highp float;
-uniform sampler2D t;
+uniform sampler2D t0;
+uniform sampler2D t1;
 uniform vec2 R;
 in vec2 p;
 out vec4 c;
-// vec4 bg=vec4(0.,0.,0.,1.);
-// vec4 fg=vec4(1.);
-vec4 fg=vec4(1.,0.,1.,1.);
-vec4 bg=vec4(0.,204./255.,1.,1.);
+vec4 fg=vec4(0.,0.,0.,1.);
+vec4 bg=vec4(1.);
+// vec4 bg=vec4(1.,1.,1.,1.);
+// vec4 fg=vec4(0.,204./255.,1.,1.);
+const float MIX = .7;
 void main() {
 	vec2 U = gl_FragCoord.xy/R;
 	U = U*2.-1.;
@@ -199,10 +217,11 @@ void main() {
 	U.y*=max(1.,R.y/R.x);
 	U.y = clamp(U.y,-1.,1.);
 	U=U*.5+.5;
-	float C = 2.*texture(t,U).r;
-	if (U.x==1.||U.x==0.) c=bg;
-	else if (U.y==1.||U.y==0.) c=bg;
-	else c=mix(bg, fg, 2.*C);
+	vec4 C;
+	if (U.x==1.||U.x==0.) C=bg;
+	else if (U.y==1.||U.y==0.) C=bg;
+	else C = mix(bg, fg, 1.5*texture(t0, U).r);
+	c=mix(C, texture(t1, p), MIX);
 
 	// vec2 U = gl_FragCoord.xy/R;
 	// U.x*=max(1.,R.x/R.y);
@@ -215,7 +234,9 @@ void main() {
 	// U=U*.5+.5;
 	// c=mix(vec4(1.,1.,1.,1.), vec4(0.,0.,0.,1.), 2.*texture(t,U).r);
 
-	// c=mix(vec4(1.,1.,1.,1.), vec4(0.,0.,0.,1.), 2.*texture(t,p).r);
+	// c=mix(bg, fg, texture(t0,p).r);
+	// c=mix(mix(bg, fg, 2.*texture(t0,p).r), texture(t1,p), MIX);
+	// c=mix(bg, fg, 2.*texture(t0,p).r);
 }
 )";
 static bool compile_shaders() {
@@ -486,18 +507,28 @@ bool init_render() {
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, wwidth, wheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
 	glGenFramebuffers(1, &fb);
 	glBindFramebuffer(GL_FRAMEBUFFER, fb);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbtex, 0);
+
+	glActiveTexture(GL_TEXTURE1);
+	glGenTextures(1, &prev_pixels);
+	glBindTexture(GL_TEXTURE_2D, prev_pixels);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, wwidth, wheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
 	// location of the sampler2D in the fragment shader
-	fbtex_loc = glGetUniformLocation(img_program, "t");
+	fbtex_loc = glGetUniformLocation(img_program, "t0");
+	prev_pixels_loc = glGetUniformLocation(img_program, "t1");
 	// glDeleteFramebuffers(1, &fb);
 
 	return ret;
 }
 
 void draw(struct audio_data* audio) {
-	// fps();
+	fps();
 	static auto start_time = std::chrono::steady_clock::now();
 	auto now = std::chrono::steady_clock::now();
 	double elapsed = (now - start_time).count()/1e9;
@@ -528,7 +559,7 @@ void draw(struct audio_data* audio) {
 	// So I do not need to rebind
 	// glBindTexture(GL_TEXTURE_1D, tex[X]);
 	#define TEXMACRO(X,Y) \
-		glActiveTexture(GL_TEXTURE0 + X); \
+		glActiveTexture(GL_TEXTURE0 + X);\
 		glTexSubImage1D(GL_TEXTURE_1D, 0, 0, VISUALIZER_BUFSIZE, GL_RED, GL_FLOAT, audio->Y);\
 		glUniform1i(tex_loc[X], X);
 
@@ -549,9 +580,15 @@ void draw(struct audio_data* audio) {
 
 	glUniform2f(resolution_buf_U, float(wwidth), float(wheight));
 	glUniform1i(fbtex_loc, 0);
-	glActiveTexture(GL_TEXTURE0);
+	glUniform1i(prev_pixels_loc, 1);
+	glActiveTexture(GL_TEXTURE1);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, wwidth, wheight, GL_RGBA, GL_UNSIGNED_BYTE, last_pixels);
 
 	glDrawArrays(GL_POINTS, 0, 1);
+
+	glReadPixels(0, 0, wwidth, wheight, GL_RGBA, GL_UNSIGNED_BYTE, last_pixels);
+	// for (int i = 0; i < wwidth*wheight; ++i)
+	// 	if (last_pixels[i*4] < 10) {last_pixels[i*4]=0;last_pixels[i*4+1]=0;last_pixels[i*4+2]=0;};
 
 	glfwSwapBuffers(window);
 	glfwPollEvents();

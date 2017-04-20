@@ -21,8 +21,6 @@ using std::endl;
 // }
 // constexpr auto array_1_20 = make_compile_time_sequence(std::make_index_sequence<40>{});
 
-// TODO search these terms
-// use pavucontrol to adjust latency
 void* audioThreadMain(void* data) {
 
 	// TODO would alsa be more stable?
