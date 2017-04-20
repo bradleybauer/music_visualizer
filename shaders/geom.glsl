@@ -93,9 +93,9 @@ void main() {
 	float sr0 = texture(SR, t0).r;
 	float sr1 = texture(SR, t1).r;
 
-	const float stretch = 200.;
-	float fl0 = texture(FL, pow(stretch, t0-1.)-(1.-t0)/stretch).r;
-	float fl1 = texture(FL, pow(stretch, t1-1.)-(1.-t1)/stretch).r;
+	// const float stretch = 200.;
+	// float fl0 = texture(FL, pow(stretch, t0-1.)-(1.-t0)/stretch).r;
+	// float fl1 = texture(FL, pow(stretch, t1-1.)-(1.-t1)/stretch).r;
 	// float fr0 = texture(FR, pow(stretch, t0-1.)-(1.-t0)/stretch).r;
 	// float fr1 = texture(FR, pow(stretch, t1-1.)-(1.-t1)/stretch).r;
 

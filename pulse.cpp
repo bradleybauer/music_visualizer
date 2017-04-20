@@ -225,6 +225,9 @@ void* audioThreadMain(void* data) {
 	double hmr = hml; // we capture an image of the waveform at this rate
 	int W = 0; // The index of the writer in the audio repositories, of the newest sample in the buffers, and of a discontinuity in the waveform
 
+	double maxl = 1.;
+	double maxr = 1.;
+
 	while (1) {
 
 		// auto sss = std::chrono::steady_clock::now();
@@ -253,6 +256,13 @@ void* audioThreadMain(void* data) {
 			}
 			for (int i = 0; i < VL; ++i)
 				tl[i] = pulse_buf_l[(i+int(rl))%L];
+			// double MAX = 0.;
+			// for (int i = 0; i < VL; ++i)
+			// 	MAX = fabs(tl[i]) > MAX ? fabs(tl[i]) : MAX;
+			// if (MAX>0.) {
+			// 	for (int i = 0; i < VL; ++i)
+			// 		tl[i] = tl[i]/MAX;
+			// }
 			hml = get_harmonic(max_frequency(fl));
 			next_l += dura(1./hml);
 		}
@@ -264,6 +274,13 @@ void* audioThreadMain(void* data) {
 			}
 			for (int i = 0; i < VL; ++i)
 				tr[i] = pulse_buf_r[(i+int(rr))%L];
+			// double MAX = 0.;
+			// for (int i = 0; i < VL; ++i)
+			// 	MAX = fabs(tr[i]) > MAX ? fabs(tr[i]) : MAX;
+			// if (MAX>0.) {
+			// 	for (int i = 0; i < VL; ++i)
+			// 		tr[i] = tr[i]/MAX;
+			// }
 			hmr = get_harmonic(max_frequency(fr));
 			next_r += dura(1./hmr);
 		}
@@ -287,12 +304,36 @@ void* audioThreadMain(void* data) {
 		}
 		// Smooth and upsample the wave
 		// const double D = .85;
-		const double D = .05;
+		// const double D = .05;
+		const double D = .07;
 		// const double D = .2;
+		// const double Pl = pow(maxl, 0.1);
+		// const double Pr = pow(maxr, 0.1);
 		for (int i = 0; i < VL; ++i) {
-			audio->audio_l[i] = audio->audio_l[i]*(1.-D)+D*(tl[i/2]+tl[(i+1)/2])/2.;
-			audio->audio_r[i] = audio->audio_r[i]*(1.-D)+D*(tr[i/2]+tr[(i+1)/2])/2.;
+			const double al = (tl[i/2]+tl[(i+1)/2])/2.;
+			const double ar = (tr[i/2]+tr[(i+1)/2])/2.;
+			// audio->audio_l[i] = audio->audio_l[i]*(1.-D)+D*(Pl*al + (1.-Pl)*sin(6.288*i/double(VL)));
+			// audio->audio_r[i] = audio->audio_r[i]*(1.-D)+D*(Pr*ar + (1.-Pr)*cos(6.288*i/double(VL)));
+			audio->audio_l[i] = audio->audio_l[i]*(1.-D)+D*al;
+			audio->audio_r[i] = audio->audio_r[i]*(1.-D)+D*ar;
 		}
+		// double MAX = 0.;
+		// double C = .9;
+		// for (int i = 0; i < VL; ++i)
+		// 	MAX = fabs(audio->audio_l[i]) > MAX ? fabs(audio->audio_l[i]) : MAX;
+		// maxl = maxl*C+(1.-C)*MAX;
+		// MAX=0.;
+		// for (int i = 0; i < VL; ++i)
+		// 	MAX = fabs(audio->audio_r[i]) > MAX ? fabs(audio->audio_r[i]) : MAX;
+		// maxr = maxr*C+(1.-C)*MAX;
+		// if (maxl>0.) {
+		// 	for (int i = 0; i < VL; ++i)
+		// 		audio->audio_l[i] = audio->audio_l[i]/maxl * .7;
+		// }
+		// if (maxr>0.) {
+		// 	for (int i = 0; i < VL; ++i)
+		// 		audio->audio_r[i] = audio->audio_r[i]/maxr * .7;
+		// }
 		audio->mtx.unlock();
 
 		if (audio->thread_join) {
