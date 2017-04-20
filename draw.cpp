@@ -204,12 +204,25 @@ uniform sampler2D t1;
 uniform vec2 R;
 in vec2 p;
 out vec4 c;
-vec4 fg=vec4(0.,0.,0.,1.);
-vec4 bg=vec4(1.);
+vec4 bg=vec4(0,0,0,1);
+vec4 fg=vec4(1.);
 // vec4 bg=vec4(1.,1.,1.,1.);
 // vec4 fg=vec4(0.,204./255.,1.,1.);
-const float MIX = .7;
+const float MIX = .9;
 void main() {
+	// vec2 U = gl_FragCoord.xy/R;
+	// U = U*2.-1.;
+	// U.x*=max(1.,R.x/R.y);
+	// U.x = clamp(U.x,-1.,1.);
+	// U.y*=max(1.,R.y/R.x);
+	// U.y = clamp(U.y,-1.,1.);
+	// U=U*.5+.5;
+	// vec4 C;
+	// if (U.x==1.||U.x==0.) C=bg;
+	// else if (U.y==1.||U.y==0.) C=bg;
+	// else C = mix(bg, 4.*fg, texture(t0, U).r);
+	// c=mix(C, texture(t1, p), MIX);
+
 	vec2 U = gl_FragCoord.xy/R;
 	U = U*2.-1.;
 	U.x*=max(1.,R.x/R.y);
@@ -217,11 +230,7 @@ void main() {
 	U.y*=max(1.,R.y/R.x);
 	U.y = clamp(U.y,-1.,1.);
 	U=U*.5+.5;
-	vec4 C;
-	if (U.x==1.||U.x==0.) C=bg;
-	else if (U.y==1.||U.y==0.) C=bg;
-	else C = mix(bg, fg, 1.5*texture(t0, U).r);
-	c=mix(C, texture(t1, p), MIX);
+	c=mix(mix(bg, 4.*fg, texture(t0, U).r), texture(t1, p), MIX);
 
 	// vec2 U = gl_FragCoord.xy/R;
 	// U.x*=max(1.,R.x/R.y);
@@ -587,8 +596,6 @@ void draw(struct audio_data* audio) {
 	glDrawArrays(GL_POINTS, 0, 1);
 
 	glReadPixels(0, 0, wwidth, wheight, GL_RGBA, GL_UNSIGNED_BYTE, last_pixels);
-	// for (int i = 0; i < wwidth*wheight; ++i)
-	// 	if (last_pixels[i*4] < 10) {last_pixels[i*4]=0;last_pixels[i*4+1]=0;last_pixels[i*4+2]=0;};
 
 	glfwSwapBuffers(window);
 	glfwPollEvents();

@@ -213,6 +213,9 @@ void* audioThreadMain(void* data) {
 		// while (o < 24.f) o *= 2.f; // multiplying frequency by two produces the ghosting effect 
 		return freq;
 	};
+	auto mix = [](double x, double y, double m) {
+		return x*(1.-m) + y*m;
+	};
 
 	// Time Management
 	auto now = chrono::steady_clock::now();
@@ -227,6 +230,11 @@ void* audioThreadMain(void* data) {
 
 	double maxl = 1.;
 	double maxr = 1.;
+	// double maxl2 = 1.;
+	// double maxr2 = 1.;
+	double* sinArray = (double*)malloc(VL*sizeof(double));
+	for (int i = 0; i < VL; ++i)
+		sinArray[i] = sin(6.288*i/double(VL));
 
 	while (1) {
 
@@ -256,13 +264,15 @@ void* audioThreadMain(void* data) {
 			}
 			for (int i = 0; i < VL; ++i)
 				tl[i] = pulse_buf_l[(i+int(rl))%L];
+
 			// double MAX = 0.;
 			// for (int i = 0; i < VL; ++i)
 			// 	MAX = fabs(tl[i]) > MAX ? fabs(tl[i]) : MAX;
-			// if (MAX>0.) {
-			// 	for (int i = 0; i < VL; ++i)
-			// 		tl[i] = tl[i]/MAX;
-			// }
+			// maxl2 = mix(maxl2, MAX, .5);
+			// // if (maxl!=0.)
+			// // 	for (int i = 0; i < VL; ++i)
+			// // 		tl[i]/=maxl;
+
 			hml = get_harmonic(max_frequency(fl));
 			next_l += dura(1./hml);
 		}
@@ -274,13 +284,15 @@ void* audioThreadMain(void* data) {
 			}
 			for (int i = 0; i < VL; ++i)
 				tr[i] = pulse_buf_r[(i+int(rr))%L];
+
 			// double MAX = 0.;
 			// for (int i = 0; i < VL; ++i)
 			// 	MAX = fabs(tr[i]) > MAX ? fabs(tr[i]) : MAX;
-			// if (MAX>0.) {
-			// 	for (int i = 0; i < VL; ++i)
-			// 		tr[i] = tr[i]/MAX;
-			// }
+			// maxr2 = mix(maxr2, MAX, .5);
+			// // if (maxr!=0.)
+			// // 	for (int i = 0; i < VL; ++i)
+			// // 		tr[i]/=maxr;
+
 			hmr = get_harmonic(max_frequency(fr));
 			next_r += dura(1./hmr);
 		}
@@ -304,36 +316,37 @@ void* audioThreadMain(void* data) {
 		}
 		// Smooth and upsample the wave
 		// const double D = .85;
-		// const double D = .05;
-		const double D = .07;
+		const double D = .06;
 		// const double D = .2;
-		// const double Pl = pow(maxl, 0.1);
-		// const double Pr = pow(maxr, 0.1);
+		const double Pl = pow(maxl,.1);
+		const double Pr = pow(maxr,.1);
 		for (int i = 0; i < VL; ++i) {
 			const double al = (tl[i/2]+tl[(i+1)/2])/2.;
 			const double ar = (tr[i/2]+tr[(i+1)/2])/2.;
-			// audio->audio_l[i] = audio->audio_l[i]*(1.-D)+D*(Pl*al + (1.-Pl)*sin(6.288*i/double(VL)));
-			// audio->audio_r[i] = audio->audio_r[i]*(1.-D)+D*(Pr*ar + (1.-Pr)*cos(6.288*i/double(VL)));
-			audio->audio_l[i] = audio->audio_l[i]*(1.-D)+D*al;
-			audio->audio_r[i] = audio->audio_r[i]*(1.-D)+D*ar;
+			audio->audio_l[i] = mix(audio->audio_l[i], mix(sinArray[i], al, Pl), D);
+			audio->audio_r[i] = mix(audio->audio_r[i], mix(sinArray[(i+VL/4)%VL], ar, Pr), D);
+			// audio->audio_l[i] = mix(audio->audio_l[i], mix(sinArray[i], al, pow(maxl2, 0.005)), D);
+			// audio->audio_r[i] = mix(audio->audio_r[i], mix(sinArray[(i+VL/4)%VL], ar, pow(maxr2, 0.005)), D);
+			// audio->audio_l[i] = mix(audio->audio_l[i], al, D);
+			// audio->audio_r[i] = mix(audio->audio_r[i], ar, D);
 		}
-		// double MAX = 0.;
-		// double C = .9;
-		// for (int i = 0; i < VL; ++i)
-		// 	MAX = fabs(audio->audio_l[i]) > MAX ? fabs(audio->audio_l[i]) : MAX;
-		// maxl = maxl*C+(1.-C)*MAX;
-		// MAX=0.;
-		// for (int i = 0; i < VL; ++i)
-		// 	MAX = fabs(audio->audio_r[i]) > MAX ? fabs(audio->audio_r[i]) : MAX;
-		// maxr = maxr*C+(1.-C)*MAX;
-		// if (maxl>0.) {
-		// 	for (int i = 0; i < VL; ++i)
-		// 		audio->audio_l[i] = audio->audio_l[i]/maxl * .7;
-		// }
-		// if (maxr>0.) {
-		// 	for (int i = 0; i < VL; ++i)
-		// 		audio->audio_r[i] = audio->audio_r[i]/maxr * .7;
-		// }
+		double MAX = 0.;
+		double C = .2;
+		for (int i = 0; i < VL; ++i)
+			MAX = fabs(audio->audio_l[i]) > MAX ? fabs(audio->audio_l[i]) : MAX;
+		maxl = mix(maxl, MAX, C);
+		MAX=0.;
+		for (int i = 0; i < VL; ++i)
+			MAX = fabs(audio->audio_r[i]) > MAX ? fabs(audio->audio_r[i]) : MAX;
+		maxr = mix(maxr, MAX, C);
+		if (maxl!=0.)
+			for (int i = 0; i < VL; ++i)
+				audio->audio_l[i] = audio->audio_l[i]/maxl*.8;
+				// audio->audio_l[i] = audio->audio_l[i]/maxl*mix(1.,maxl2, .5)*.8;
+		if (maxr!=0.)
+			for (int i = 0; i < VL; ++i)
+				audio->audio_r[i] = audio->audio_r[i]/maxr*.8;
+				// audio->audio_r[i] = audio->audio_r[i]/maxr*mix(1.,maxr2, .5)*.8;
 		audio->mtx.unlock();
 
 		if (audio->thread_join) {
