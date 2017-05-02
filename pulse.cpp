@@ -230,11 +230,12 @@ void* audioThreadMain(void* data) {
 
 	double maxl = 1.;
 	double maxr = 1.;
-	// double maxl2 = 1.;
-	// double maxr2 = 1.;
+	#define R1
+#ifdef R1
 	double* sinArray = (double*)malloc(VL*sizeof(double));
 	for (int i = 0; i < VL; ++i)
 		sinArray[i] = sin(6.288*i/double(VL));
+#endif
 
 	while (1) {
 
@@ -265,13 +266,15 @@ void* audioThreadMain(void* data) {
 			for (int i = 0; i < VL; ++i)
 				tl[i] = pulse_buf_l[(i+int(rl))%L];
 
-			// double MAX = 0.;
-			// for (int i = 0; i < VL; ++i)
-			// 	MAX = fabs(tl[i]) > MAX ? fabs(tl[i]) : MAX;
-			// maxl2 = mix(maxl2, MAX, .5);
-			// // if (maxl!=0.)
-			// // 	for (int i = 0; i < VL; ++i)
-			// // 		tl[i]/=maxl;
+#ifndef R1
+			double MAX = 0.;
+			for (int i = 0; i < VL; ++i)
+				MAX = fabs(tl[i]) > MAX ? fabs(tl[i]) : MAX;
+			maxl = mix(maxl, MAX, .5);
+			if (maxl!=0.)
+				for (int i = 0; i < VL; ++i)
+					tl[i]/=maxl;
+#endif
 
 			hml = get_harmonic(max_frequency(fl));
 			next_l += dura(1./hml);
@@ -285,13 +288,15 @@ void* audioThreadMain(void* data) {
 			for (int i = 0; i < VL; ++i)
 				tr[i] = pulse_buf_r[(i+int(rr))%L];
 
-			// double MAX = 0.;
-			// for (int i = 0; i < VL; ++i)
-			// 	MAX = fabs(tr[i]) > MAX ? fabs(tr[i]) : MAX;
-			// maxr2 = mix(maxr2, MAX, .5);
-			// // if (maxr!=0.)
-			// // 	for (int i = 0; i < VL; ++i)
-			// // 		tr[i]/=maxr;
+#ifndef R1
+			double MAX = 0.;
+			for (int i = 0; i < VL; ++i)
+				MAX = fabs(tr[i]) > MAX ? fabs(tr[i]) : MAX;
+			maxr = mix(maxr, MAX, .5);
+			if (maxr!=0.)
+				for (int i = 0; i < VL; ++i)
+					tr[i]/=maxr;
+#endif
 
 			hmr = get_harmonic(max_frequency(fr));
 			next_r += dura(1./hmr);
@@ -316,22 +321,30 @@ void* audioThreadMain(void* data) {
 		}
 		// Smooth and upsample the wave
 		// const double D = .85;
-		const double D = .06;
-		// const double D = .2;
+		// const double D = .06;
+		const double D = .2;
+#ifdef R1
 		const double Pl = pow(maxl,.1);
 		const double Pr = pow(maxr,.1);
+#endif
 		for (int i = 0; i < VL; ++i) {
 			const double al = (tl[i/2]+tl[(i+1)/2])/2.;
 			const double ar = (tr[i/2]+tr[(i+1)/2])/2.;
-			audio->audio_l[i] = mix(audio->audio_l[i], mix(sinArray[i], al, Pl), D);
-			audio->audio_r[i] = mix(audio->audio_r[i], mix(sinArray[(i+VL/4)%VL], ar, Pr), D);
-			// audio->audio_l[i] = mix(audio->audio_l[i], mix(sinArray[i], al, pow(maxl2, 0.005)), D);
-			// audio->audio_r[i] = mix(audio->audio_r[i], mix(sinArray[(i+VL/4)%VL], ar, pow(maxr2, 0.005)), D);
-			// audio->audio_l[i] = mix(audio->audio_l[i], al, D);
-			// audio->audio_r[i] = mix(audio->audio_r[i], ar, D);
+#ifdef R1
+			// audio->audio_l[i] = mix(audio->audio_l[i], al, D)+.001*sinArray[i]*(1.-Pl);
+			// audio->audio_r[i] = mix(audio->audio_r[i], ar, D)+.001*sinArray[shift by 4th buff size to make cosine]*(1.-Pr);
+			audio->audio_l[i] = mix(audio->audio_l[i], al, D);
+			audio->audio_r[i] = mix(audio->audio_r[i], ar, D);
+#else
+			audio->audio_l[i] = mix(audio->audio_l[i], al, D);
+			audio->audio_r[i] = mix(audio->audio_r[i], ar, D);
+#endif
 		}
-		double MAX = 0.;
-		double C = .2;
+
+#ifdef R1
+		// Renormalize the wave based on it's amplitude in the visual buffer.
+		double MAX = -16.;
+		const double C = .5;
 		for (int i = 0; i < VL; ++i)
 			MAX = fabs(audio->audio_l[i]) > MAX ? fabs(audio->audio_l[i]) : MAX;
 		maxl = mix(maxl, MAX, C);
@@ -341,12 +354,12 @@ void* audioThreadMain(void* data) {
 		maxr = mix(maxr, MAX, C);
 		if (maxl!=0.)
 			for (int i = 0; i < VL; ++i)
-				audio->audio_l[i] = audio->audio_l[i]/maxl*.8;
-				// audio->audio_l[i] = audio->audio_l[i]/maxl*mix(1.,maxl2, .5)*.8;
+				audio->audio_l[i] = audio->audio_l[i]/maxl*.7;
 		if (maxr!=0.)
 			for (int i = 0; i < VL; ++i)
-				audio->audio_r[i] = audio->audio_r[i]/maxr*.8;
-				// audio->audio_r[i] = audio->audio_r[i]/maxr*mix(1.,maxr2, .5)*.8;
+				audio->audio_r[i] = audio->audio_r[i]/maxr*.7;
+#endif
+
 		audio->mtx.unlock();
 
 		if (audio->thread_join) {

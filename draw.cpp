@@ -30,12 +30,12 @@ static int wheight = 400;
 static GLuint vbo;        // vertex buffer object
 static GLuint vao;        // vertex array object
 static GLuint tex[4];     // textures
-static GLuint tex_loc[4]; // texture uniform locations
+static GLint tex_loc[4]; // texture uniform locations
 static GLuint fb;         // frameuffer
 static GLuint fbtex;      // framebuffer texture
-static GLuint fbtex_loc;  // framebuffer texture location in display program
+static GLint fbtex_loc;  // framebuffer texture location in display program
 static GLuint prev_pixels;
-static GLuint prev_pixels_loc;
+static GLint prev_pixels_loc;
 static GLubyte last_pixels[4*1920*1080];
 
 static GLuint buf_program;
@@ -120,7 +120,7 @@ static void window_size_callback(GLFWwindow* window, int width, int height) {
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, prev_pixels);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, wwidth, wheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-	memset(last_pixels, 0, sizeof(last_pixels));
+	memset(last_pixels, 255, sizeof(last_pixels));
 }
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
 }
@@ -202,13 +202,24 @@ precision highp float;
 uniform sampler2D t0;
 uniform sampler2D t1;
 uniform vec2 R;
+uniform float T;
 in vec2 p;
 out vec4 c;
-vec4 bg=vec4(0,0,0,1);
-vec4 fg=vec4(1.);
-// vec4 bg=vec4(1.,1.,1.,1.);
+// vec4 bg=vec4(0.);
 // vec4 fg=vec4(0.,204./255.,1.,1.);
-const float MIX = .9;
+//
+vec4 bg=vec4(1.);
+vec4 fg=vec4(0.,204./255.,1.,1.);
+//
+// vec4 bg=vec4(1.);
+// vec4 fg=vec4(204./255.,0.,.1,1.);
+//
+// vec4 bg=vec4(0.);
+// vec4 fg=vec4(1.,1.,.1,1.);
+//
+// vec4 bg=vec4(0);
+// vec4 fg=vec4(1);
+const float MIX = .88;
 void main() {
 	// vec2 U = gl_FragCoord.xy/R;
 	// U = U*2.-1.;
@@ -230,241 +241,88 @@ void main() {
 	U.y*=max(1.,R.y/R.x);
 	U.y = clamp(U.y,-1.,1.);
 	U=U*.5+.5;
-	c=mix(mix(bg, 4.*fg, texture(t0, U).r), texture(t1, p), MIX);
+	if (U.x==1.||U.x==0.) c=bg;
+	else if (U.y==1.||U.y==0.) c=bg;
+	else c = mix(mix(bg, fg, 8.*texture(t0, U).r), texture(t1, p), MIX);
 
 	// vec2 U = gl_FragCoord.xy/R;
+	// U=U*2.-1.;
 	// U.x*=max(1.,R.x/R.y);
 	// U.y*=max(1.,R.y/R.x);
-	// for (int i = 0; i < 5; ++i) {
-	// 	U=abs(U)/dot(U,U) - vec2(1.0,.51);
+	// for (int i = 0; i < 10; ++i) {
+	// 	U=abs(U)/dot(U,U) - vec2(.5+.5*cos(T/10.), .5+.5*sin(T/10.));
 	// }
 	// U.x = clamp(U.x,-1.,1.);
 	// U.y = clamp(U.y,-1.,1.);
 	// U=U*.5+.5;
-	// c=mix(vec4(1.,1.,1.,1.), vec4(0.,0.,0.,1.), 2.*texture(t,U).r);
+	// c=mix(mix(bg, 4.*fg, texture(t0, U).r), texture(t1, p), MIX);
 
 	// c=mix(bg, fg, texture(t0,p).r);
 	// c=mix(mix(bg, fg, 2.*texture(t0,p).r), texture(t1,p), MIX);
 	// c=mix(bg, fg, 2.*texture(t0,p).r);
 }
 )";
-static bool compile_shaders() {
-	const GLchar* vertex_shader = (GLchar*)readShaderFile("shaders/vertex.glsl");
-	const GLchar* fragment_shader = (GLchar*)readShaderFile("shaders/image.glsl");
-	const GLchar* geometry_shader = (GLchar*)readShaderFile("shaders/geom.glsl");
-
-	GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vs, 1, &vertex_shader, NULL);
-	glCompileShader(vs);
-
+static bool compile_shader(char* s, GLuint& sn, GLenum stype) {
+	sn = glCreateShader(stype);
+	glShaderSource(sn, 1, &s, NULL);
+	glCompileShader(sn);
 	GLint isCompiled = 0;
-	glGetShaderiv(vs, GL_COMPILE_STATUS, &isCompiled);
-	if(isCompiled == GL_FALSE)
-	{
+	glGetShaderiv(sn, GL_COMPILE_STATUS, &isCompiled);
+	if(isCompiled == GL_FALSE) {
 		GLint maxLength = 0;
-		glGetShaderiv(vs, GL_INFO_LOG_LENGTH, &maxLength);
-
-		// The maxLength includes the NULL character
+		glGetShaderiv(sn, GL_INFO_LOG_LENGTH, &maxLength);
 		std::vector<GLchar> errorLog(maxLength);
-		glGetShaderInfoLog(vs, maxLength, &maxLength, &errorLog[0]);
-
+		glGetShaderInfoLog(sn, maxLength, &maxLength, &errorLog[0]);
 		for (auto c : errorLog)
 			cout << c;
 		cout << endl;
-
-		glDeleteShader(vs); // Don't leak the shader.
+		glDeleteShader(sn);
 		return false;
 	}
-
-
-	GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fs, 1, &fragment_shader, NULL);
-	glCompileShader(fs);
-
-	isCompiled = 0;
-	glGetShaderiv(fs, GL_COMPILE_STATUS, &isCompiled);
-	if(isCompiled == GL_FALSE)
-	{
-		GLint maxLength = 0;
-		glGetShaderiv(fs, GL_INFO_LOG_LENGTH, &maxLength);
-
-		// The maxLength includes the NULL character
-		std::vector<GLchar> errorLog(maxLength);
-		glGetShaderInfoLog(fs, maxLength, &maxLength, &errorLog[0]);
-
-		for (auto c : errorLog)
-			cout << c;
-		cout << endl;
-
-		glDeleteShader(fs); // Don't leak the shader.
-		return false;
-	}
-
-	GLuint gs = glCreateShader(GL_GEOMETRY_SHADER);
-	glShaderSource(gs, 1, &geometry_shader, NULL);
-	glCompileShader(gs);
-
-	isCompiled = 0;
-	glGetShaderiv(gs, GL_COMPILE_STATUS, &isCompiled);
-	if(isCompiled == GL_FALSE)
-	{
-		GLint maxLength = 0;
-		glGetShaderiv(gs, GL_INFO_LOG_LENGTH, &maxLength);
-
-		// The maxLength includes the NULL character
-		std::vector<GLchar> errorLog(maxLength);
-		glGetShaderInfoLog(gs, maxLength, &maxLength, &errorLog[0]);
-
-		for (auto c : errorLog)
-			cout << c;
-		cout << endl;
-
-		glDeleteShader(gs); // Don't leak the shader.
-		return false;
-	}
-
-	buf_program = glCreateProgram();
-	glAttachShader(buf_program, gs);
-	glAttachShader(buf_program, fs);
-	glAttachShader(buf_program, vs);
-	glLinkProgram(buf_program);
+	return true;
+}
+static bool link_program(GLuint &pn, GLuint &vs, GLuint &gs, GLuint fs) {
+	pn = glCreateProgram();
+	glAttachShader(pn, gs);
+	glAttachShader(pn, fs);
+	glAttachShader(pn, vs);
+	glLinkProgram(pn);
 	GLint isLinked = 0;
-	glGetProgramiv(buf_program, GL_LINK_STATUS, (int *)&isLinked);
-	if(isLinked == GL_FALSE)
-	{
+	glGetProgramiv(pn, GL_LINK_STATUS, (int *)&isLinked);
+	if(isLinked == GL_FALSE) {
 		GLint maxLength = 0;
-		glGetProgramiv(buf_program, GL_INFO_LOG_LENGTH, &maxLength);
-
-		//The maxLength includes the NULL character
+		glGetProgramiv(pn, GL_INFO_LOG_LENGTH, &maxLength);
 		std::vector<GLchar> infoLog(maxLength);
-		glGetProgramInfoLog(buf_program, maxLength, &maxLength, &infoLog[0]);
-
+		glGetProgramInfoLog(pn, maxLength, &maxLength, &infoLog[0]);
 		for (auto c : infoLog)
 			cout << c;
 		cout << endl;
-
-		//We don't need the buf_program anymore.
-		glDeleteProgram(buf_program);
-		//Don't leak shaders either.
+		glDeleteProgram(pn);
 		glDeleteShader(vs);
 		glDeleteShader(fs);
 		glDeleteShader(gs);
-
 		return false;
 	}
-
 	return true;
 }
 // TODO parametarize gl state?
 // TODO if the user makes multiple shaders, then how do I clean up one shader to prepare
 // to display the next
-bool compile_display_shader() {
-	// Create fullscreen shader to display output
-	GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-	char* s0 = (char*)VERT.data();
-	glShaderSource(vs, 1, &s0, NULL);
-	glCompileShader(vs);
-
-	GLint isCompiled = 0;
-	glGetShaderiv(vs, GL_COMPILE_STATUS, &isCompiled);
-	if(isCompiled == GL_FALSE) {
-		GLint maxLength = 0;
-		glGetShaderiv(vs, GL_INFO_LOG_LENGTH, &maxLength);
-
-		// The maxLength includes the NULL character
-		std::vector<GLchar> errorLog(maxLength);
-		glGetShaderInfoLog(vs, maxLength, &maxLength, &errorLog[0]);
-
-		for (auto c : errorLog)
-			cout << c;
-		cout << endl;
-
-		glDeleteShader(vs); // Don't leak the shader.
-		return false;
-	}
-
-
-	char* s1 = (char*)FRAG.data();
-	GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fs, 1, &s1, NULL);
-	glCompileShader(fs);
-
-	isCompiled = 0;
-	glGetShaderiv(fs, GL_COMPILE_STATUS, &isCompiled);
-	if(isCompiled == GL_FALSE) {
-		GLint maxLength = 0;
-		glGetShaderiv(fs, GL_INFO_LOG_LENGTH, &maxLength);
-
-		// The maxLength includes the NULL character
-		std::vector<GLchar> errorLog(maxLength);
-		glGetShaderInfoLog(fs, maxLength, &maxLength, &errorLog[0]);
-
-		for (auto c : errorLog)
-			cout << c;
-		cout << endl;
-
-		glDeleteShader(fs); // Don't leak the shader.
-		return false;
-	}
-
-
-	char* s2 = (char*)GEOM.data();
-	GLuint gs = glCreateShader(GL_GEOMETRY_SHADER);
-	glShaderSource(gs, 1, &s2, NULL);
-	glCompileShader(gs);
-
-	isCompiled = 0;
-	glGetShaderiv(gs, GL_COMPILE_STATUS, &isCompiled);
-	if(isCompiled == GL_FALSE) {
-		GLint maxLength = 0;
-		glGetShaderiv(gs, GL_INFO_LOG_LENGTH, &maxLength);
-
-		// The maxLength includes the NULL character
-		std::vector<GLchar> errorLog(maxLength);
-		glGetShaderInfoLog(gs, maxLength, &maxLength, &errorLog[0]);
-
-		for (auto c : errorLog)
-			cout << c;
-		cout << endl;
-
-		glDeleteShader(gs); // Don't leak the shader.
-		return false;
-	}
-
-	img_program = glCreateProgram();
-	glAttachShader(img_program, gs);
-	glAttachShader(img_program, fs);
-	glAttachShader(img_program, vs);
-	glLinkProgram(img_program);
-	GLint isLinked = 0;
-	glGetProgramiv(img_program, GL_LINK_STATUS, (int *)&isLinked);
-	if(isLinked == GL_FALSE) {
-		GLint maxLength = 0;
-		glGetProgramiv(img_program, GL_INFO_LOG_LENGTH, &maxLength);
-
-		//The maxLength includes the NULL character
-		std::vector<GLchar> infoLog(maxLength);
-		glGetProgramInfoLog(img_program, maxLength, &maxLength, &infoLog[0]);
-
-		for (auto c : infoLog)
-			cout << c;
-		cout << endl;
-
-		//We don't need the program anymore.
-		glDeleteProgram(img_program);
-		//Don't leak shaders either.
-		glDeleteShader(vs);
-		glDeleteShader(fs);
-		glDeleteShader(gs);
-
-		return false;
-	}
-
-	return true;
-}
-
 bool init_render() {
-	const bool ret = compile_shaders() && compile_display_shader();
+	bool ret = true;
+	const GLchar* vertex_shader = (GLchar*)readShaderFile("shaders/vertex.glsl");
+	const GLchar* fragment_shader = (GLchar*)readShaderFile("shaders/image.glsl");
+	const GLchar* geometry_shader = (GLchar*)readShaderFile("shaders/geom.glsl");
+	GLuint vs, gs, fs;
+	ret = compile_shader((char*)vertex_shader, vs, GL_VERTEX_SHADER);
+	ret = compile_shader((char*)geometry_shader, gs, GL_GEOMETRY_SHADER);
+	ret = compile_shader((char*)fragment_shader, fs, GL_FRAGMENT_SHADER);
+	ret = link_program(buf_program, vs, gs, fs);
+	ret = compile_shader((char*)VERT.data(), vs, GL_VERTEX_SHADER);
+	ret = compile_shader((char*)GEOM.data(), gs, GL_GEOMETRY_SHADER);
+	ret = compile_shader((char*)FRAG.data(), fs, GL_FRAGMENT_SHADER);
+	ret = link_program(img_program, vs, gs, fs);
+	if (!ret) return ret;
 
 	glGetIntegerv(GL_MAX_GEOMETRY_OUTPUT_VERTICES, &max_output_vertices);
 	glDisable(GL_DEPTH_TEST);
@@ -551,6 +409,9 @@ void draw(struct audio_data* audio) {
 	glUniform1i(num_points_U, POINTS);
 	glUniform1i(max_output_vertices_U, max_output_vertices);
 	glUniform2f(resolution_U, float(wwidth), float(wheight));
+
+	// TODOOOOOO
+	time_U = glGetUniformLocation(buf_program, "T");
 	glUniform1f(time_U, elapsed);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, fb);
@@ -592,6 +453,10 @@ void draw(struct audio_data* audio) {
 	glUniform1i(prev_pixels_loc, 1);
 	glActiveTexture(GL_TEXTURE1);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, wwidth, wheight, GL_RGBA, GL_UNSIGNED_BYTE, last_pixels);
+
+	// TODOOOOOO
+	time_U = glGetUniformLocation(img_program, "T");
+	glUniform1f(time_U, elapsed);
 
 	glDrawArrays(GL_POINTS, 0, 1);
 

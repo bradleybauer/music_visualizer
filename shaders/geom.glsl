@@ -81,8 +81,11 @@ void quad(vec2 P0, vec2 P1, float t0, float t1) {
 	EndPrimitive();
 }
 
+// TODO 
 // I like having like a micro fft (micro in height) at the bottom of the window
 // it has a nice asthetic
+// Can I map the lissajous curve onto the sphere nicely? that probably would visualize really nice
+// think about a path traced sphere with the lissajous mapped onto it... mouth waters
 void main() {
 	int quad_id = point_index[0];
 	float t0 = (quad_id+0)/float(num_points);
