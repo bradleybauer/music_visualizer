@@ -57,8 +57,8 @@ void* audioThreadMain(void* data) {
 	const int C = 2;
 	const int SR = 48000;
 	const int SRF = SR / 2;
-	// The FFT looks best when it has 8192/48000, or 4096/24000, time granularity. However, I like
-	//   the wave to be 96000hz just because then it fits on the screen nice.
+	// I think the FFT looks best when it has 8192/48000, or 4096/24000, time granularity. However, I
+	//   like the wave to be 96000hz just because then it fits on the screen nice.
 	// To have both an FFT on 24000hz data and to display 96000hz waveform data, I ask
 	//   pulseaudio to output 48000hz and then resample accordingly.
 	// I've compared the 4096 sample FFT over 24000hz data to the 8192 sample FFT over 48000hz data

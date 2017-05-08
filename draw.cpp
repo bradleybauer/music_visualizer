@@ -1,15 +1,15 @@
-/* Proof Off Concept graphics module
- *
- * Useful links about geometry shaders
+/* Useful links about geometry shaders
  * https://open.gl/geometry
  * https://www.khronos.org/opengl/wiki/Geometry_Shader
  * http://www.informit.com/articles/article.aspx?p=2120983&seqNum=2
  */
-#include <vector>
+
 #include <iostream>
-#include <chrono>
+#include <vector>
+using std::vector;
 using std::cout;
 using std::endl;
+#include <chrono>
 
 #include "draw.h"
 #include "audio_data.h"
@@ -18,11 +18,9 @@ using std::endl;
 #include <GLFW/glfw3.h>
 static GLFWwindow* window;
 
-static const int POINTS = VISUALIZER_BUFSIZE - 1; // audio buffer size - 1
-// static const int POINTS = 1;
+static const int POINTS = VISUALIZER_BUFSIZE - 1;
 static int max_output_vertices;
 static const int COORDS_PER_POINT = 1;
-// TODO extra temporary
 static int point_indices[POINTS];
 
 // window dimensions
@@ -233,7 +231,7 @@ static bool compile_shader(char* s, GLuint& sn, GLenum stype) {
 	if (isCompiled == GL_FALSE) {
 		GLint maxLength = 0;
 		glGetShaderiv(sn, GL_INFO_LOG_LENGTH, &maxLength);
-		std::vector<GLchar> errorLog(maxLength);
+		vector<GLchar> errorLog(maxLength);
 		glGetShaderInfoLog(sn, maxLength, &maxLength, &errorLog[0]);
 		for (auto c : errorLog)
 			cout << c;
@@ -254,7 +252,7 @@ static bool link_program(GLuint& pn, GLuint& vs, GLuint& gs, GLuint fs) {
 	if (isLinked == GL_FALSE) {
 		GLint maxLength = 0;
 		glGetProgramiv(pn, GL_INFO_LOG_LENGTH, &maxLength);
-		std::vector<GLchar> infoLog(maxLength);
+		vector<GLchar> infoLog(maxLength);
 		glGetProgramInfoLog(pn, maxLength, &maxLength, &infoLog[0]);
 		for (auto c : infoLog)
 			cout << c;
@@ -267,17 +265,11 @@ static bool link_program(GLuint& pn, GLuint& vs, GLuint& gs, GLuint fs) {
 	}
 	return true;
 }
-// TODO parametarize gl state?
-// TODO if the user makes multiple shaders, then how do I clean up one shader to prepare
-// to display the next
 void draw(struct audio_data* audio) {
 	fps();
 	static auto start_time = std::chrono::steady_clock::now();
 	auto now = std::chrono::steady_clock::now();
 	double elapsed = (now - start_time).count() / 1e9;
-
-	// glBindVertexArray(vao);
-	// glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
 	// Render to texture
 	glUseProgram(buf_program);
@@ -286,7 +278,6 @@ void draw(struct audio_data* audio) {
 	glUniform1i(max_output_vertices_U, max_output_vertices);
 	glUniform2f(resolution_U, float(wwidth), float(wheight));
 
-	// TODOOOOOO
 	time_U = glGetUniformLocation(buf_program, "T");
 	glUniform1f(time_U, elapsed);
 
@@ -304,7 +295,7 @@ void draw(struct audio_data* audio) {
 // bound to the same target (in the active unit? I think), or until the bound texture is deleted
 // with glDeleteTextures. So I do not need to rebind
 // glBindTexture(GL_TEXTURE_1D, tex[X]);
-#define TEXMACRO(X, Y)                                                                             \
+#define TEXMACRO(X, Y)                                                                           \
 	glActiveTexture(GL_TEXTURE0 + X);                                                              \
 	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, VISUALIZER_BUFSIZE, GL_RED, GL_FLOAT, audio->Y);          \
 	glUniform1i(tex_loc[X], X);
@@ -331,7 +322,6 @@ void draw(struct audio_data* audio) {
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, wwidth, wheight, GL_RGBA, GL_UNSIGNED_BYTE,
 	                last_pixels);
 
-	// TODOOOOOO
 	time_U = glGetUniformLocation(img_program, "T");
 	glUniform1f(time_U, elapsed);
 
@@ -409,7 +399,7 @@ bool initialize_gl() {
 
 	glGenTextures(4, tex);
 
-#define ILOVEMACRO(X, Y)                                                                           \
+#define ILOVEMACRO(X, Y)                                                                         \
 	tex_loc[X] = glGetUniformLocation(buf_program, Y);                                             \
 	glUniform1i(tex_loc[X], X);                                                                    \
 	glActiveTexture(GL_TEXTURE0 + X);                                                              \
