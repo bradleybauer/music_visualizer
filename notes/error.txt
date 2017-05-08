@@ -1,0 +1,2 @@
+output of simplescreenrecorder during error
+[Synchronizer::ReadAudioSamples] Attention: Échantillons audio reçus avec timestamp non monotone.

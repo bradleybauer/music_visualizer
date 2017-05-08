@@ -1,7 +1,5 @@
 *.o
 main
 build
-*.nb
 wisdom*
 circular*
-*.txt
