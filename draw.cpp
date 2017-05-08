@@ -1,4 +1,6 @@
-/* POC graphics module
+/* Proof Off Concept graphics module
+ *
+ * Useful links about geometry shaders
  * https://open.gl/geometry
  * https://www.khronos.org/opengl/wiki/Geometry_Shader
  * http://www.informit.com/articles/article.aspx?p=2120983&seqNum=2
@@ -16,7 +18,7 @@ using std::endl;
 #include <GLFW/glfw3.h>
 static GLFWwindow* window;
 
-static const int POINTS = VISUALIZER_BUFSIZE-1; // audio buffer size - 1
+static const int POINTS = VISUALIZER_BUFSIZE - 1; // audio buffer size - 1
 // static const int POINTS = 1;
 static int max_output_vertices;
 static const int COORDS_PER_POINT = 1;
@@ -27,16 +29,16 @@ static int point_indices[POINTS];
 static int wwidth = 400;
 static int wheight = 400;
 
-static GLuint vbo;        // vertex buffer object
-static GLuint vao;        // vertex array object
-static GLuint tex[4];     // textures
+static GLuint vbo;       // vertex buffer object
+static GLuint vao;       // vertex array object
+static GLuint tex[4];    // textures
 static GLint tex_loc[4]; // texture uniform locations
-static GLuint fb;         // frameuffer
-static GLuint fbtex;      // framebuffer texture
+static GLuint fb;        // frameuffer
+static GLuint fbtex;     // framebuffer texture
 static GLint fbtex_loc;  // framebuffer texture location in display program
 static GLuint prev_pixels;
 static GLint prev_pixels_loc;
-static GLubyte last_pixels[4*1920*1080];
+static GLubyte last_pixels[4 * 1920 * 1080];
 
 static GLuint buf_program;
 static GLuint img_program;
@@ -59,15 +61,7 @@ static void fps() {
 		prev_time = now;
 	}
 }
-static void log_gl_error() {
-	const GLubyte* err = gluErrorString(glGetError());
-	while (*err) {
-		cout << *err;
-		err++;
-	}
-	cout << endl;
-}
-static long filelength(FILE *file) {
+static long filelength(FILE* file) {
 	long numbytes;
 	long savedpos = ftell(file);
 	fseek(file, 0, SEEK_END);
@@ -75,14 +69,14 @@ static long filelength(FILE *file) {
 	fseek(file, savedpos, SEEK_SET);
 	return numbytes;
 }
-static unsigned char *readShaderFile(const char *filename) {
-	FILE *file = fopen(filename, "r");
+static unsigned char* readShaderFile(const char* filename) {
+	FILE* file = fopen(filename, "r");
 	if (file == NULL) {
 		cout << "ERROR Cannot open shader file!" << endl;
 		return 0;
 	}
 	int bytesinfile = filelength(file);
-	unsigned char *buffer = (unsigned char *)malloc(bytesinfile + 1);
+	unsigned char* buffer = (unsigned char*)malloc(bytesinfile + 1);
 	int bytesread = fread(buffer, 1, bytesinfile, file);
 	buffer[bytesread] = 0; // Terminate the string with 0
 	fclose(file);
@@ -94,22 +88,17 @@ static unsigned char *readShaderFile(const char *filename) {
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
-	// if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
-	// toggle_play();
 }
 static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
 	// if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
-	//
 	// if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE)
-	//
 	// if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
-	//
 	// if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE)
 }
 #include <string.h>
 static void window_size_callback(GLFWwindow* window, int width, int height) {
 	wwidth = width;
-	wheight  = height;
+	wheight = height;
 	glViewport(0, 0, wwidth, wheight);
 
 	// Resize framebuffer texture
@@ -124,36 +113,6 @@ static void window_size_callback(GLFWwindow* window, int width, int height) {
 }
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
 }
-void init_desktop() {
-	glfwInit();
-
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-	window = glfwCreateWindow(wwidth, wheight, "float me", NULL, NULL);
-
-	glfwMakeContextCurrent(window);
-	glfwSetWindowSizeCallback(window, window_size_callback);
-
-	glfwSwapInterval(1);
-
-	glewExperimental = GL_TRUE;
-	glewInit();
-
-	// const GLubyte* renderer = glGetString(GL_RENDERER);
-	// const GLubyte* version = glGetString(GL_VERSION);
-	// const GLubyte* ext = glGetString(GL_EXTENSIONS);
-	// cout << "Renderer: " << renderer << endl;
-	// cout << "OpenGL version supported "<< version << endl;
-	// cout << "OpenGL extensions supported "<< ext << endl;
-
-	glViewport(0, 0, wwidth, wheight);
-
-	glfwSetKeyCallback(window, key_callback);
-	glfwSetCursorPosCallback(window, cursor_position_callback);
-	glfwSetMouseButtonCallback(window, mouse_button_callback);
-}
 static std::string VERT = R"(
 #version 330
 void main(){}
@@ -162,7 +121,7 @@ static std::string GEOM = R"(
 #version 330
 precision highp float;
 layout(points) in;
-layout(triangle_strip, max_vertices=6) out;
+layout(triangle_strip, max_vertices = 6) out;
 out vec2 p;
 void main() {
 	/* 1------3
@@ -170,29 +129,29 @@ void main() {
 	   |   \  |
 	   |     \|
 	   0------2 */
-	const vec2 p0 = vec2(-1.,-1.);
+	const vec2 p0 = vec2(-1., -1.);
 	const vec2 p1 = vec2(-1., 1.);
-    gl_Position = vec4(p0,0.,1.);
-	p = p0*.5+.5;
-    EmitVertex(); // 0
-    gl_Position = vec4(p1,0.,1.);
-	p = p1*.5+.5;
-    EmitVertex(); // 1
-    gl_Position = vec4(-p1,0.,1.);
-	p = -p1*.5+.5;
-    EmitVertex(); // 2
-    EndPrimitive();
+	gl_Position = vec4(p0, 0., 1.);
+	p = p0 * .5 + .5;
+	EmitVertex(); // 0
+	gl_Position = vec4(p1, 0., 1.);
+	p = p1 * .5 + .5;
+	EmitVertex(); // 1
+	gl_Position = vec4(-p1, 0., 1.);
+	p = -p1 * .5 + .5;
+	EmitVertex(); // 2
+	EndPrimitive();
 
-    gl_Position = vec4(-p1,0.,1.);
-	p = -p1*.5+.5;
-    EmitVertex(); // 2
-    gl_Position = vec4(p1,0.,1.);
-	p = p1*.5+.5;
-    EmitVertex(); // 1
-    gl_Position = vec4(-p0,0.,1.);
-	p = -p0*.5+.5;
-    EmitVertex(); // 3
-    EndPrimitive();
+	gl_Position = vec4(-p1, 0., 1.);
+	p = -p1 * .5 + .5;
+	EmitVertex(); // 2
+	gl_Position = vec4(p1, 0., 1.);
+	p = p1 * .5 + .5;
+	EmitVertex(); // 1
+	gl_Position = vec4(-p0, 0., 1.);
+	p = -p0 * .5 + .5;
+	EmitVertex(); // 3
+	EndPrimitive();
 }
 )";
 // TODO Kali transform the lissajous texture coord in the buffer shader.. lol wow! :)
@@ -208,8 +167,8 @@ out vec4 c;
 // vec4 bg=vec4(0.);
 // vec4 fg=vec4(0.,204./255.,1.,1.);
 //
-vec4 bg=vec4(1.);
-vec4 fg=vec4(0.,204./255.,1.,1.);
+vec4 bg = vec4(1.);
+vec4 fg = vec4(0., 204. / 255., 1., 1.);
 //
 // vec4 bg=vec4(1.);
 // vec4 fg=vec4(204./255.,0.,.1,1.);
@@ -234,16 +193,19 @@ void main() {
 	// else C = mix(bg, 4.*fg, texture(t0, U).r);
 	// c=mix(C, texture(t1, p), MIX);
 
-	vec2 U = gl_FragCoord.xy/R;
-	U = U*2.-1.;
-	U.x*=max(1.,R.x/R.y);
-	U.x = clamp(U.x,-1.,1.);
-	U.y*=max(1.,R.y/R.x);
-	U.y = clamp(U.y,-1.,1.);
-	U=U*.5+.5;
-	if (U.x==1.||U.x==0.) c=bg;
-	else if (U.y==1.||U.y==0.) c=bg;
-	else c = mix(mix(bg, fg, 8.*texture(t0, U).r), texture(t1, p), MIX);
+	vec2 U = gl_FragCoord.xy / R;
+	U = U * 2. - 1.;
+	U.x *= max(1., R.x / R.y);
+	U.x = clamp(U.x, -1., 1.);
+	U.y *= max(1., R.y / R.x);
+	U.y = clamp(U.y, -1., 1.);
+	U = U * .5 + .5;
+	if (U.x == 1. || U.x == 0.)
+		c = bg;
+	else if (U.y == 1. || U.y == 0.)
+		c = bg;
+	else
+		c = mix(mix(bg, fg, 8. * texture(t0, U).r), texture(t1, p), MIX);
 
 	// vec2 U = gl_FragCoord.xy/R;
 	// U=U*2.-1.;
@@ -268,7 +230,7 @@ static bool compile_shader(char* s, GLuint& sn, GLenum stype) {
 	glCompileShader(sn);
 	GLint isCompiled = 0;
 	glGetShaderiv(sn, GL_COMPILE_STATUS, &isCompiled);
-	if(isCompiled == GL_FALSE) {
+	if (isCompiled == GL_FALSE) {
 		GLint maxLength = 0;
 		glGetShaderiv(sn, GL_INFO_LOG_LENGTH, &maxLength);
 		std::vector<GLchar> errorLog(maxLength);
@@ -281,15 +243,15 @@ static bool compile_shader(char* s, GLuint& sn, GLenum stype) {
 	}
 	return true;
 }
-static bool link_program(GLuint &pn, GLuint &vs, GLuint &gs, GLuint fs) {
+static bool link_program(GLuint& pn, GLuint& vs, GLuint& gs, GLuint fs) {
 	pn = glCreateProgram();
 	glAttachShader(pn, gs);
 	glAttachShader(pn, fs);
 	glAttachShader(pn, vs);
 	glLinkProgram(pn);
 	GLint isLinked = 0;
-	glGetProgramiv(pn, GL_LINK_STATUS, (int *)&isLinked);
-	if(isLinked == GL_FALSE) {
+	glGetProgramiv(pn, GL_LINK_STATUS, (int*)&isLinked);
+	if (isLinked == GL_FALSE) {
 		GLint maxLength = 0;
 		glGetProgramiv(pn, GL_INFO_LOG_LENGTH, &maxLength);
 		std::vector<GLchar> infoLog(maxLength);
@@ -308,7 +270,101 @@ static bool link_program(GLuint &pn, GLuint &vs, GLuint &gs, GLuint fs) {
 // TODO parametarize gl state?
 // TODO if the user makes multiple shaders, then how do I clean up one shader to prepare
 // to display the next
-bool init_render() {
+void draw(struct audio_data* audio) {
+	fps();
+	static auto start_time = std::chrono::steady_clock::now();
+	auto now = std::chrono::steady_clock::now();
+	double elapsed = (now - start_time).count() / 1e9;
+
+	// glBindVertexArray(vao);
+	// glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+	// Render to texture
+	glUseProgram(buf_program);
+
+	glUniform1i(num_points_U, POINTS);
+	glUniform1i(max_output_vertices_U, max_output_vertices);
+	glUniform2f(resolution_U, float(wwidth), float(wheight));
+
+	// TODOOOOOO
+	time_U = glGetUniformLocation(buf_program, "T");
+	glUniform1f(time_U, elapsed);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, fb);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+// glActivateTexture activates a certain texture unit.
+// each texture unit holds one texture of each dimension of texture
+//     {GL_TEXTURE_1D, GL_TEXTURE_2D, GL_TEXTURE_3D, GL_TEXTURE_CUBEMAP}
+// because I'm using 4, 1 dimensional textures i need to store them in separate texture units
+//
+// glUniform1i(textureLoc, int) sets what texture unit the sampler in the shader reads from
+//
+// A texture binding created with glBindTexture remains active until a different texture is
+// bound to the same target (in the active unit? I think), or until the bound texture is deleted
+// with glDeleteTextures. So I do not need to rebind
+// glBindTexture(GL_TEXTURE_1D, tex[X]);
+#define TEXMACRO(X, Y)                                                                             \
+	glActiveTexture(GL_TEXTURE0 + X);                                                              \
+	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, VISUALIZER_BUFSIZE, GL_RED, GL_FLOAT, audio->Y);          \
+	glUniform1i(tex_loc[X], X);
+
+	audio->mtx.lock();
+	TEXMACRO(0, audio_l)
+	TEXMACRO(1, audio_r)
+	TEXMACRO(2, freq_l)
+	TEXMACRO(3, freq_r)
+	audio->mtx.unlock();
+
+	glDrawArrays(GL_POINTS, 0, POINTS);
+
+	// Render to screen
+	glUseProgram(img_program);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0); // bind window manager's fbo
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	glUniform2f(resolution_buf_U, float(wwidth), float(wheight));
+	glUniform1i(fbtex_loc, 0);
+	glUniform1i(prev_pixels_loc, 1);
+	glActiveTexture(GL_TEXTURE1);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, wwidth, wheight, GL_RGBA, GL_UNSIGNED_BYTE,
+	                last_pixels);
+
+	// TODOOOOOO
+	time_U = glGetUniformLocation(img_program, "T");
+	glUniform1f(time_U, elapsed);
+
+	glDrawArrays(GL_POINTS, 0, 1);
+
+	glReadPixels(0, 0, wwidth, wheight, GL_RGBA, GL_UNSIGNED_BYTE, last_pixels);
+
+	glfwSwapBuffers(window);
+	glfwPollEvents();
+}
+
+bool initialize_gl() {
+	glfwInit();
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	window = glfwCreateWindow(wwidth, wheight, "float me", NULL, NULL);
+	glfwMakeContextCurrent(window);
+	glfwSetWindowSizeCallback(window, window_size_callback);
+	glfwSwapInterval(1);
+	glewExperimental = GL_TRUE;
+	glewInit();
+	// const GLubyte* renderer = glGetString(GL_RENDERER);
+	// const GLubyte* version = glGetString(GL_VERSION);
+	// const GLubyte* ext = glGetString(GL_EXTENSIONS);
+	// cout << "Renderer: " << renderer << endl;
+	// cout << "OpenGL version supported "<< version << endl;
+	// cout << "OpenGL extensions supported "<< ext << endl;
+	glViewport(0, 0, wwidth, wheight);
+	glfwSetKeyCallback(window, key_callback);
+	glfwSetCursorPosCallback(window, cursor_position_callback);
+	glfwSetMouseButtonCallback(window, mouse_button_callback);
+
 	bool ret = true;
 	const GLchar* vertex_shader = (GLchar*)readShaderFile("shaders/vertex.glsl");
 	const GLchar* fragment_shader = (GLchar*)readShaderFile("shaders/image.glsl");
@@ -322,7 +378,8 @@ bool init_render() {
 	ret = compile_shader((char*)GEOM.data(), gs, GL_GEOMETRY_SHADER);
 	ret = compile_shader((char*)FRAG.data(), fs, GL_FRAGMENT_SHADER);
 	ret = link_program(img_program, vs, gs, fs);
-	if (!ret) return ret;
+	if (!ret)
+		return ret;
 
 	glGetIntegerv(GL_MAX_GEOMETRY_OUTPUT_VERTICES, &max_output_vertices);
 	glDisable(GL_DEPTH_TEST);
@@ -352,16 +409,16 @@ bool init_render() {
 
 	glGenTextures(4, tex);
 
-	#define ILOVEMACRO(X, Y) \
-		tex_loc[X] = glGetUniformLocation(buf_program, Y);                \
-		glUniform1i(tex_loc[X], X);                                       \
-		glActiveTexture(GL_TEXTURE0 + X);                                 \
-		glBindTexture(GL_TEXTURE_1D, tex[X]);                             \
-		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, VISUALIZER_BUFSIZE, 0, GL_RED, GL_FLOAT, NULL);\
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);     \
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);     \
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); \
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+#define ILOVEMACRO(X, Y)                                                                           \
+	tex_loc[X] = glGetUniformLocation(buf_program, Y);                                             \
+	glUniform1i(tex_loc[X], X);                                                                    \
+	glActiveTexture(GL_TEXTURE0 + X);                                                              \
+	glBindTexture(GL_TEXTURE_1D, tex[X]);                                                          \
+	glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, VISUALIZER_BUFSIZE, 0, GL_RED, GL_FLOAT, NULL);        \
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);                                  \
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);                                  \
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);                              \
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	ILOVEMACRO(0, "SL")
 	ILOVEMACRO(1, "SR")
@@ -389,86 +446,8 @@ bool init_render() {
 	// location of the sampler2D in the fragment shader
 	fbtex_loc = glGetUniformLocation(img_program, "t0");
 	prev_pixels_loc = glGetUniformLocation(img_program, "t1");
-	// glDeleteFramebuffers(1, &fb);
 
 	return ret;
-}
-
-void draw(struct audio_data* audio) {
-	fps();
-	static auto start_time = std::chrono::steady_clock::now();
-	auto now = std::chrono::steady_clock::now();
-	double elapsed = (now - start_time).count()/1e9;
-
-	// glBindVertexArray(vao);
-	// glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-	// Render to texture
-	glUseProgram(buf_program);
-
-	glUniform1i(num_points_U, POINTS);
-	glUniform1i(max_output_vertices_U, max_output_vertices);
-	glUniform2f(resolution_U, float(wwidth), float(wheight));
-
-	// TODOOOOOO
-	time_U = glGetUniformLocation(buf_program, "T");
-	glUniform1f(time_U, elapsed);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, fb);
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	// glActivateTexture activates a certain texture unit.
-	// each texture unit holds one of each dimension of texture
-	//     {GL_TEXTURE_1D, GL_TEXTURE_2D, GL_TEXTURE_3D, GL_TEXTURE_CUBEMAP}
-	// because I'm using 4, 1 dimensional textures i need to store them in separate texture units
-	//
-	// glUniform1i(textureLoc, int) sets what texture unit the sampler reads from
-	//
-	// A texture binding created with glBindTexture remains active until a different texture is
-	// bound to the same target, or until the bound texture is deleted with glDeleteTextures.
-	// So I do not need to rebind
-	// glBindTexture(GL_TEXTURE_1D, tex[X]);
-	#define TEXMACRO(X,Y) \
-		glActiveTexture(GL_TEXTURE0 + X);\
-		glTexSubImage1D(GL_TEXTURE_1D, 0, 0, VISUALIZER_BUFSIZE, GL_RED, GL_FLOAT, audio->Y);\
-		glUniform1i(tex_loc[X], X);
-
-	audio->mtx.lock();
-	TEXMACRO(0, audio_l)
-	TEXMACRO(1, audio_r)
-	TEXMACRO(2, freq_l)
-	TEXMACRO(3, freq_r)
-	audio->mtx.unlock();
-
-	glDrawArrays(GL_POINTS, 0, POINTS);
-
-	// Render to screen
-	glUseProgram(img_program);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0); // bind window manager's fbo
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	glUniform2f(resolution_buf_U, float(wwidth), float(wheight));
-	glUniform1i(fbtex_loc, 0);
-	glUniform1i(prev_pixels_loc, 1);
-	glActiveTexture(GL_TEXTURE1);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, wwidth, wheight, GL_RGBA, GL_UNSIGNED_BYTE, last_pixels);
-
-	// TODOOOOOO
-	time_U = glGetUniformLocation(img_program, "T");
-	glUniform1f(time_U, elapsed);
-
-	glDrawArrays(GL_POINTS, 0, 1);
-
-	glReadPixels(0, 0, wwidth, wheight, GL_RGBA, GL_UNSIGNED_BYTE, last_pixels);
-
-	glfwSwapBuffers(window);
-	glfwPollEvents();
-}
-
-bool initialize_gl() {
-	init_desktop();
-	return init_render();
 }
 
 bool should_loop() {

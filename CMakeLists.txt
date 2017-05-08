@@ -1,19 +1,23 @@
 cmake_minimum_required(VERSION 3.3)
-project(new)
+project(main)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast -std=c++11 -fopenmp")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast -std=c++11 -D_REENTRANT -fopenmp")
 
 set(SOURCE_FILES
-    draw.cpp
-    draw.h
-    main.cpp
-	fftwpp/fftw++.cc)
+	draw.cpp
+	draw.h
+	main.cpp
+	pulse.cpp
+	fftwpp/fftw++.cc
+)
 
-include_directories(.
-                    fftwpp)
+include_directories(
+	.
+	fftwpp
+)
 
-add_executable(new ${SOURCE_FILES})
+add_executable(main ${SOURCE_FILES})
 
 LINK_DIRECTORIES(/usr/lib/x86_64-linux-gnu/)
-TARGET_LINK_LIBRARIES(main fftw3_omp fftw3 glfw GLEW GLU GL pthread)
+TARGET_LINK_LIBRARIES(main fftw3_omp fftw3 glfw GLEW GLU GL pulse-simple pulse pthread)
 
