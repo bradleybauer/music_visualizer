@@ -366,9 +366,9 @@ bool initialize_gl() {
 	glfwSetMouseButtonCallback(window, mouse_button_callback);
 
 	bool ret = true;
-	const GLchar* vertex_shader = (GLchar*)readShaderFile("shaders/vertex.glsl");
-	const GLchar* fragment_shader = (GLchar*)readShaderFile("shaders/image.glsl");
-	const GLchar* geometry_shader = (GLchar*)readShaderFile("shaders/geom.glsl");
+	const GLchar* vertex_shader = (GLchar*)readShaderFile("../shaders/vertex.glsl");
+	const GLchar* fragment_shader = (GLchar*)readShaderFile("../shaders/image.glsl");
+	const GLchar* geometry_shader = (GLchar*)readShaderFile("../shaders/geom.glsl");
 	GLuint vs, gs, fs;
 	ret = compile_shader((char*)vertex_shader, vs, GL_VERTEX_SHADER);
 	ret = compile_shader((char*)geometry_shader, gs, GL_GEOMETRY_SHADER);
