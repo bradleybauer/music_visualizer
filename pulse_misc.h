@@ -1,10 +1,9 @@
+#include "audio_data.h"
 #include <pulse/error.h>
 #include <pulse/pulseaudio.h>
 #include <pulse/simple.h>
 
-// Setup pulse audio connection.
-// code from github: karlstav/cava
-// thanks !
+// pulseaudio code from github: karlstav/cava
 
 pa_mainloop* m_pulseaudio_mainloop;
 void cb(pa_context* pulseaudio_context, const pa_server_info* i, void* data) {
