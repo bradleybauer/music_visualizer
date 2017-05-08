@@ -15,5 +15,3 @@ struct audio_data {
 };
 
 void* audioThreadMain(void* data);
-void getPulseDefaultSink(void* data);
-

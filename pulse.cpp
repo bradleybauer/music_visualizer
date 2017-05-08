@@ -4,6 +4,7 @@
 #include <chrono>
 #include <thread>
 #include <limits>
+#include <cmath>
 #include <string.h>
 #include "audio_data.h"
 #include "pulse_misc.h"
@@ -29,6 +30,179 @@ using std::endl;
 // }
 // constexpr auto array_1_20 = make_compile_time_sequence(std::make_index_sequence<40>{});
 
+//- Constants
+//
+// PL length of the pulse audio output buffer
+// PN number of pulse audio output buffers to keep
+// L  length of all PN buffers combined
+// VL length of visualizer 1D texture buffers
+// C  channel count of audio
+// SR requested sample rate of the audio
+// SRF sample rate of audio given to FFT
+const int PL = 512;
+const int PN = 16;
+const int L = PL * PN;
+const int FFTLEN = L / 2;
+const int VL = VISUALIZER_BUFSIZE; // defined in audio_data.h
+const int C = 2;
+const int SR = 48000;
+const int SRF = SR / 2;
+// I think the FFT looks best when it has 8192/48000, or 4096/24000, time granularity. However, I
+//   like the wave to be 96000hz just because then it fits on the screen nice.
+// To have both an FFT on 24000hz data and to display 96000hz waveform data, I ask
+//   pulseaudio to output 48000hz and then resample accordingly.
+// I've compared the 4096 sample FFT over 24000hz data to the 8192 sample FFT over 48000hz data
+//   and they are surprisingly similar. I couldn't tell a difference really.
+// I've also compared resampling with ffmpeg to my current naive impl. Hard to notice a
+//   difference.
+// Of course the user might want to change all this (I hope not). That's for another day.
+// -/
+
+//- Functions
+static double sign(double x) {
+	return std::copysign(1., x);
+}
+static double mag(Complex a) {
+	return sqrt(a.real() * a.real() + a.imag() * a.imag());
+	// #define RMS(x, y) sqrt((x*x+y*y)*1./2.)
+	// return 1.f - 1.f / (RMS(a.real(), a.imag())/140.f + 1.f);
+}
+static int max_bin(array1<Complex>& f) {
+	double max = 0.;
+	int max_i = 0;
+	// catch frequencies from 5.86 to 586
+	for (int i = 0; i < 100; ++i) {
+		const double mmag = mag(f[i]);
+		if (mmag > max) {
+			max = mmag;
+			max_i = i;
+		}
+	}
+	if (max_i == 0)
+		max_i++;
+	return max_i;
+}
+static void move_index(double& p, double amount) {
+	p += amount;
+	if (p < 0.) {
+		p += L;
+	} else if (p > L) {
+		p -= L;
+	}
+}
+static double dist_forward(double from, double to) {
+	double d = to - from;
+	if (d < 0)
+		d += L;
+	return d;
+}
+static void adjust_reader(double& r, double w, double hm) {
+	// This function attempts to separate two points in a circular buffer by distance L/2.
+	const double a = w - r;
+	const double b = fabs(a) - L / 2;
+	const double foo = fabs(b);
+	// minimize foo(r)
+	// foo(r) = |b(a(r))|
+	//        = ||w-r|-L/2|
+	//
+	// dfoodr = dfoodb * dbda * dadr
+	//
+	// dadr   = dadr
+	// dbdr   = dbda * dadr
+	// dfoodr = dfoodb * dbdr
+	//
+	// dadr   = -1
+	// dbdr   = sign(a) * dadr
+	// dfoodr = sign(b) * dbdr
+	//
+	// -foo'(r) = is the direction r should move to decrease foo(r)
+	// foo(r) = happens to be the number of samples such that foo(r - foo'(r)*foo(r)) == 0
+	//
+	// see mathematica notebook (pointer_adjust_function.nb) in this directory
+	const double dadr = -1.0;
+	const double dbdr = sign(a) * dadr;
+	const double dfoodr = sign(b) * dbdr;
+	// move r by a magnitude of foo in the -foo'(r) direction but by taking only steps of size SR/hm
+	double grid = SR / hm;
+	grid = ceil(foo / grid) * grid;
+	move_index(r, -dfoodr * grid);
+}
+static bool fps(chrono::steady_clock::time_point& now) {
+	static auto prev_time = chrono::steady_clock::now();
+	static int counter = 0;
+	counter++;
+	if (now > prev_time + chrono::seconds(1)) {
+		cout << "snd fps: " << counter << endl;
+		counter = 0;
+		prev_time = now;
+		return true;
+	}
+	return false;
+}
+static chrono::steady_clock::duration dura(double x) {
+	// dura() converts a second, represented as a double, into the appropriate unit of
+	// time for chrono::steady_clock and with the appropriate arithematic type
+	// using dura() avoids errors like this : chrono::seconds(double initializer)
+	// dura() : <double,seconds> -> chrono::steady_clock::<typeof count(), time unit>
+	return chrono::duration_cast<chrono::steady_clock::duration>(
+	    chrono::duration<double, std::ratio<1>>(x));
+}
+static double max_frequency(array1<Complex>& f) {
+	// more info -> http://dspguru.com/dsp/howtos/how-to-interpolate-fft-peak
+	const int k = max_bin(f);
+	const double y1 = mag(f[k - 1]);
+	const double y2 = mag(f[k]);
+	const double y3 = mag(f[k + 1]);
+	const double d = (y3 - y1) / (2 * (2 * y2 - y1 - y3));
+	const double kp = k + d;
+	return kp * double(SRF) / double(FFTLEN);
+}
+static double clamp(double x, double l, double h) {
+	if (x <= l)
+		x = l;
+	else if (x >= h)
+		x = h;
+	return x;
+}
+static double get_harmonic(double freq) {
+	// bound freq into the interval [24, 60]
+
+	freq = clamp(freq, 1., double(SRF) / double(FFTLEN) * 100.);
+
+	const double b = log2(freq);
+	const double l = log2(24.);
+	const double u = log2(60.);
+	// a == number of iterations for one of the below loops
+	int a = 0;
+	if (b < l)
+		a = floor(b - l); // round towards -inf
+	else if (b > u)
+		a = ceil(b - u); // round towards +inf
+	freq = pow(2.0, b - a);
+
+	// double o = freq;
+	// while (o > 61.f) o /= 2.f; // dividing frequency by two does not change the flipbook
+	// image
+	// while (o < 24.f) o *= 2.f; // multiplying frequency by two produces the ghosting effect
+	return freq;
+}
+static inline double mix(double x, double y, double m) {
+	return x * (1. - m) + y * m;
+}
+// setting low mixer can lead to some interesting lissajous
+template<typename T>
+static void renorm(T* f, double& max, double mixer, double scale) {
+	double _max = -16.;
+	for (int i = 0; i < VL; ++i)
+		if (fabs(f[i]) > _max)
+			_max = fabs(f[i]);
+	max = mix(max, _max, mixer);
+	if (max != 0.)
+		for (int i = 0; i < VL; ++i)
+			f[i] = f[i] / max * scale;
+}
+// -/
+
 void* audioThreadMain(void* data) {
 
 	//- TODOs
@@ -40,37 +214,9 @@ void* audioThreadMain(void* data) {
 	//   It is not nailing down the absolute best frequency to choose the loop rate for
 	// -/
 
-	//- Constants
-	//
-	// PL length of the pulse audio output buffer
-	// PN number of pulse audio output buffers to keep
-	// L  length of all PN buffers combined
-	// VL length of visualizer 1D texture buffers
-	// C  channel count of audio
-	// SR requested sample rate of the audio
-	// SRF sample rate of audio given to FFT
-	const int PL = 512;
-	const int PN = 16;
-	const int L = PL * PN;
-	const int FFTLEN = L / 2;
-	const int VL = VISUALIZER_BUFSIZE; // defined in audio_data.h
-	const int C = 2;
-	const int SR = 48000;
-	const int SRF = SR / 2;
-	// I think the FFT looks best when it has 8192/48000, or 4096/24000, time granularity. However, I
-	//   like the wave to be 96000hz just because then it fits on the screen nice.
-	// To have both an FFT on 24000hz data and to display 96000hz waveform data, I ask
-	//   pulseaudio to output 48000hz and then resample accordingly.
-	// I've compared the 4096 sample FFT over 24000hz data to the 8192 sample FFT over 48000hz data
-	//   and they are surprisingly similar. I couldn't tell a difference really.
-	// I've also compared resampling with ffmpeg to my current naive impl. Hard to notice a
-	//   difference.
-	// Of course the user might want to change all this (I hope not). That's for another day.
-	// -/
-
 	//- Audio repositories
-	double* pulse_buf_l = (double*)calloc(L * C, sizeof(double));
-	double* pulse_buf_r = pulse_buf_l + L;
+	float* pulse_buf_l = (float*)calloc(L * C, sizeof(float));
+	float* pulse_buf_r = pulse_buf_l + L;
 	// -/
 
 	//- Presentation buffers
@@ -83,7 +229,7 @@ void* audioThreadMain(void* data) {
 
 	//- Smoothing buffers
 	// helps give the impression that the wave data updates at 60fps
-	float* tl = (float*)calloc(VL * 2 + 2, sizeof(float));
+	float* tl = (float*)calloc(VL * C + 2, sizeof(float));
 	float* tr = tl + VL + 1;
 	// -/
 
@@ -93,159 +239,30 @@ void* audioThreadMain(void* data) {
 	array1<Complex> fr(FFTLEN, sizeof(Complex));
 	fft1d Forwardl(-1, fl);
 	fft1d Forwardr(-1, fr);
-	double FFTwindow[FFTLEN];
+	float FFTwindow[FFTLEN];
 	for (int i = 1; i < FFTLEN; ++i)
-		FFTwindow[i] = (1. - cos(2. * M_PI * i / double(FFTLEN))) / 2.;
+		FFTwindow[i] = (1. - cos(2. * M_PI * i / float(FFTLEN))) / 2.;
 	// -/
 
 	//- Pulse setup
 	getPulseDefaultSink((void*)audio);
-	float buffer[PL * C];
+	float pulse_buf_interlaced[PL * C];
 	pa_sample_spec ss;
 	ss.channels = C;
 	ss.rate = SR;
 	ss.format = PA_SAMPLE_FLOAT32NE;
 	pa_buffer_attr pb;
-	pb.fragsize = sizeof(buffer) / 2;
-	pb.maxlength = sizeof(buffer);
-	pa_simple* s = NULL;
+	pb.fragsize = sizeof(pulse_buf_interlaced) / 2;
+	pb.maxlength = sizeof(pulse_buf_interlaced);
+	pa_simple* pulseState = NULL;
 	int error;
-	s = pa_simple_new(NULL, "APPNAME", PA_STREAM_RECORD, audio->source.data(), "APPNAME", &ss, NULL,
+	pulseState = pa_simple_new(NULL, "APPNAME", PA_STREAM_RECORD, audio->source.data(), "APPNAME", &ss, NULL,
 	                  &pb, &error);
-	if (!s) {
+	if (!pulseState) {
 		cout << "Could not open pulseaudio source: " << audio->source << pa_strerror(error)
 		     << ". To find a list of your pulseaudio sources run 'pacmd list-sources'" << endl;
 		exit(EXIT_FAILURE);
 	}
-	// -/
-
-	//- Functions
-	auto mag = [](Complex a) {
-		return sqrt(a.real() * a.real() + a.imag() * a.imag());
-		// #define RMS(x, y) sqrt((x*x+y*y)*1./2.)
-		// return 1.f - 1.f/ (RMS(a.real(), a.imag())/140.f + 1.f);
-	};
-	auto max_bin = [&mag](array1<Complex>& f) {
-		double max = 0.;
-		int max_i = 0;
-		// catch frequencies from 5.86 to 586
-		for (int i = 0; i < 100; ++i) {
-			const double mmag = mag(f[i]);
-			if (mmag > max) {
-				max = mmag;
-				max_i = i;
-			}
-		}
-		if (max_i == 0)
-			max_i++;
-		return max_i;
-	};
-	auto sign = [](double x) { return std::copysign(1., x); };
-	auto move_index = [L](double& p, double amount) {
-		p += amount;
-		if (p < 0.) {
-			p += L;
-		} else if (p > L) {
-			p -= L;
-		}
-	};
-	auto dist_forward = [L](double from, double to) {
-		double d = to - from;
-		if (d < 0)
-			d += L;
-		return d;
-	};
-	auto adjust_reader = [&](double& r, double w, double hm) {
-		// This function attempts to separate two points in a circular buffer by distance L/2.
-		const double a = w - r;
-		const double b = fabs(a) - L / 2;
-		const double foo = fabs(b);
-		// minimize foo(r)
-		// foo(r) = |b(a(r))|
-		//        = ||w-r|-L/2|
-		//
-		// dfoodr = dfoodb * dbda * dadr
-		//
-		// dadr   = dadr
-		// dbdr   = dbda * dadr
-		// dfoodr = dfoodb * dbdr
-		//
-		// dadr   = -1
-		// dbdr   = sign(a) * dadr
-		// dfoodr = sign(b) * dbdr
-		//
-		// -foo'(r) = is the direction r should move to decrease foo(r)
-		// foo(r) = happens to be the number of samples such that foo(r - foo'(r)*foo(r)) == 0
-		//
-		// see mathematica notebook (pointer_adjust_function.nb) in this directory
-		const double dadr = -1;
-		const double dbdr = sign(a) * dadr;
-		const double dfoodr = sign(b) * dbdr;
-		// move r by a magnitude of foo in the -foo'(r) direction but by taking only steps of size SR/hm
-		double grid = SR / hm;
-		grid = ceil(foo / grid) * grid;
-		move_index(r, -dfoodr * grid);
-	};
-	auto fps = [](chrono::steady_clock::time_point& now) {
-		static auto prev_time = chrono::steady_clock::now();
-		static int counter = 0;
-		counter++;
-		if (now > prev_time + chrono::seconds(1)) {
-			cout << "snd fps: " << counter << endl;
-			counter = 0;
-			prev_time = now;
-			return true;
-		}
-		return false;
-	};
-	auto dura = [](double x) -> chrono::steady_clock::duration {
-		// dura() converts a second, represented as a double, into the appropriate unit of
-		// time for chrono::steady_clock and with the appropriate arithematic type
-		// using dura() avoids errors like this : chrono::seconds(double initializer)
-		// dura() : <double,seconds> -> chrono::steady_clock::<typeof count(), time unit>
-		return chrono::duration_cast<chrono::steady_clock::duration>(
-		    chrono::duration<double, std::ratio<1>>(x));
-	};
-	auto max_frequency = [&](array1<Complex>& f) {
-		// more info -> http://dspguru.com/dsp/howtos/how-to-interpolate-fft-peak
-		const int k = max_bin(f);
-		const double y1 = mag(f[k - 1]);
-		const double y2 = mag(f[k]);
-		const double y3 = mag(f[k + 1]);
-		const double d = (y3 - y1) / (2 * (2 * y2 - y1 - y3));
-		const double kp = k + d;
-		return kp * double(SRF) / double(FFTLEN);
-	};
-	auto clamp = [](double x, double l, double h) {
-		if (x <= l)
-			x = l;
-		else if (x >= h)
-			x = h;
-		return x;
-	};
-	auto get_harmonic = [SRF, FFTLEN, &clamp](double freq) {
-		// bound freq into the interval [24, 60]
-
-		freq = clamp(freq, 1., double(SRF) / double(FFTLEN) * 100.);
-
-		const double b = log2(freq);
-		const double l = log2(24.);
-		const double u = log2(60.);
-		// a == number of iterations for one of the below loops
-		int a = 0;
-		if (b < l)
-			a = floor(b - l); // round towards -inf
-		else if (b > u)
-			a = ceil(b - u); // round towards +inf
-		freq = pow(2.0, b - a);
-
-		// double o = freq;
-		// while (o > 61.f) o /= 2.f; // dividing frequency by two does not change the flipbook
-		// image
-		// while (o < 24.f) o *= 2.f; // multiplying frequency by two produces the ghosting effect
-		return freq;
-	};
-	auto mix = [](double x, double y, double m) { return x * (1. - m) + y * m; };
 	// -/
 
 	//- Time Management
@@ -257,7 +274,7 @@ void* audioThreadMain(void* data) {
 
 	//- Repository Indice Management
 	int W = 0;     // The index of the writer in the audio repositories, of the newest sample in the
-								 // buffers, and of a discontinuity in the waveform
+	               // buffers, and of a discontinuity in the waveform
 	double rl = 0; // Index of a reader in the audio repositories (left channel)
 	double rr = rl;
 	double hml = 60.; // Harmonic frequency of the dominant frequency of the audio.
@@ -267,23 +284,13 @@ void* audioThreadMain(void* data) {
 	//- Wave Renormalizer
 	double maxl = 1.;
 	double maxr = 1.;
-	// setting low mixer can lead to some interesting lissajous
-	auto renorm = [&mix, VL](float* f, double& max, double mixer, double scale) {
-		double _max = -std::numeric_limits<double>::infinity();
-		for (int i = 0; i < VL; ++i)
-			if (fabs(f[i])>_max)_max=fabs(f[i]);
-		max = mix(max, _max, mixer);
-		if (max != 0.)
-			for (int i = 0; i < VL; ++i)
-				f[i] = f[i] / max * scale;
-	};
-	// renormalize the wave to be unit amplitude. there are two methods to do this; toggle between them
-	// with R1
+// renormalize the wave to be unit amplitude. there are two methods to do this; toggle between them
+// with R1
 #define R1
 #ifdef R1
-	double* sinArray = (double*)malloc(VL * sizeof(double));
+	float* sinArray = (float*)malloc(VL * sizeof(float));
 	for (int i = 0; i < VL; ++i)
-		sinArray[i] = sin(6.288 * i / double(VL));
+		sinArray[i] = sin(6.288 * i / float(VL));
 #endif
 	// -/
 
@@ -291,7 +298,7 @@ void* audioThreadMain(void* data) {
 
 		//- Read Datums
 		// auto test = std::chrono::steady_clock::now();
-		if (pa_simple_read(s, buffer, sizeof(buffer), &error) < 0) {
+		if (pa_simple_read(pulseState, pulse_buf_interlaced, sizeof(pulse_buf_interlaced), &error) < 0) {
 			cout << "pa_simple_read() failed: " << pa_strerror(error) << endl;
 			exit(EXIT_FAILURE);
 		}
@@ -301,8 +308,8 @@ void* audioThreadMain(void* data) {
 
 		//- Fill audio repositories
 		for (int i = 0; i < PL; i++) {
-			pulse_buf_l[PL * W + i] = buffer[i * C + 0];
-			pulse_buf_r[PL * W + i] = buffer[i * C + 1];
+			pulse_buf_l[PL * W + i] = pulse_buf_interlaced[i * C + 0];
+			pulse_buf_r[PL * W + i] = pulse_buf_interlaced[i * C + 1];
 		}
 		// -/
 
@@ -324,8 +331,13 @@ void* audioThreadMain(void* data) {
 #endif
 
 			hml = get_harmonic(max_frequency(fl));
+			if (!std::isnormal(hml)) {
+				cout << "left harmonic is not normal" << endl;
+				hml = 60.;
+			}
 			next_l += dura(1. / hml);
 		}
+
 		if (now > next_r) {
 			move_index(rr, SR / hmr);
 			if (dist_forward(rr, PL * W) < VL) {
@@ -340,9 +352,13 @@ void* audioThreadMain(void* data) {
 #endif
 
 			hmr = get_harmonic(max_frequency(fr));
+			if (!std::isnormal(hmr)) {
+				cout << "right harmonic is not normal" << endl;
+				hmr = 60.;
+			}
 			next_r += dura(1. / hmr);
 		}
-		// -/
+// -/
 
 		//- Preprocess audio and execute the FFT
 		if (now > prev) {
@@ -359,17 +375,19 @@ void* audioThreadMain(void* data) {
 		//- Fill presentation buffers
 		audio->mtx.lock();
 		for (int i = 0; i < FFTLEN / 2; i++) {
-			audio->freq_l[i] = mag(fl[i] / double(FFTLEN));
-			audio->freq_r[i] = mag(fr[i] / double(FFTLEN));
+			audio->freq_l[i] = (float)mag(fl[i] / double(FFTLEN));
+			audio->freq_r[i] = (float)mag(fr[i] / double(FFTLEN));
 		}
 		// Smooth and upsample the wave
 		// const double smoother = .85;
 		// const double smoother = .06;
 		const double smoother = .2;
+
 #ifdef R1
 		const double Pl = pow(maxl, .1);
 		const double Pr = pow(maxr, .1);
 #endif
+
 		for (int i = 0; i < VL; ++i) {
 			#define upsmpl(s) (s[i/2] + s[(i+1)/2])/2.
 			const double al = upsmpl(tl);
@@ -388,12 +406,27 @@ void* audioThreadMain(void* data) {
 		const double spring = .1; // can spring past bound... oops
 		renorm(audio->audio_l, maxl, spring, bound);
 		renorm(audio->audio_r, maxr, spring, bound);
+		// double _max = -std::numeric_limits<double>::infinity();
+		// for (int i = 0; i < VL; ++i) {
+		// 	if (fabs(audio->audio_l[i]) > _max)
+		// 		_max = fabs(audio->audio_l[i]);
+		// 	if (fabs(audio->audio_r[i]) > _max)
+		// 		_max = fabs(audio->audio_r[i]);
+		// }
+		// maxr = mix(maxr, _max, spring);
+		// maxl = mix(maxl, _max, spring);
+		// if (maxl != 0.)
+		// 	for (int i = 0; i < VL; ++i)
+		// 		audio->audio_l[i] /= maxl / bound;
+		// if (maxr != 0.)
+		// 	for (int i = 0; i < VL; ++i)
+		// 		audio->audio_r[i] /= maxl / bound;
 #endif
 		audio->mtx.unlock();
 		// -/
 
 		if (audio->thread_join) {
-			pa_simple_free(s);
+			pa_simple_free(pulseState);
 			break;
 		}
 

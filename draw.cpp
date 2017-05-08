@@ -11,6 +11,8 @@ using std::cout;
 using std::endl;
 #include <chrono>
 
+#include <string.h>
+
 #include "draw.h"
 #include "audio_data.h"
 
@@ -93,7 +95,6 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
 	// if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
 	// if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE)
 }
-#include <string.h>
 static void window_size_callback(GLFWwindow* window, int width, int height) {
 	wwidth = width;
 	wheight = height;
@@ -266,7 +267,7 @@ static bool link_program(GLuint& pn, GLuint& vs, GLuint& gs, GLuint fs) {
 	return true;
 }
 void draw(struct audio_data* audio) {
-	fps();
+	// fps();
 	static auto start_time = std::chrono::steady_clock::now();
 	auto now = std::chrono::steady_clock::now();
 	double elapsed = (now - start_time).count() / 1e9;
@@ -295,9 +296,9 @@ void draw(struct audio_data* audio) {
 // bound to the same target (in the active unit? I think), or until the bound texture is deleted
 // with glDeleteTextures. So I do not need to rebind
 // glBindTexture(GL_TEXTURE_1D, tex[X]);
-#define TEXMACRO(X, Y)                                                                           \
-	glActiveTexture(GL_TEXTURE0 + X);                                                              \
-	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, VISUALIZER_BUFSIZE, GL_RED, GL_FLOAT, audio->Y);          \
+#define TEXMACRO(X, Y)                                                                  \
+	glActiveTexture(GL_TEXTURE0 + X);                                                     \
+	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, VISUALIZER_BUFSIZE, GL_RED, GL_FLOAT, audio->Y); \
 	glUniform1i(tex_loc[X], X);
 
 	audio->mtx.lock();
