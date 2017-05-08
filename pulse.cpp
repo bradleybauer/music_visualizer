@@ -174,9 +174,9 @@ void* audioThreadMain(void* data) {
 		// dbdr   = sign(a) * dadr
 		// dfoodr = sign(b) * dbdr
 		//
-		// foo(r) = happens to be the number of samples n such that foo(r +- n) == 0
-		// foo'(r) = is the direction r should move to decrease foo(r)
-		// so foo(r + foo'(r)*foo(r)) == 0
+		// -foo'(r) = is the direction r should move to decrease foo(r)
+		// foo(r) = happens to be the number of samples such that foo(r - foo'(r)*foo(r)) == 0
+		//
 		// see mathematica notebook (pointer_adjust_function.nb) in this directory
 		const double dadr = -1;
 		const double dbdr = sign(a) * dadr;
