@@ -86,9 +86,9 @@ void main() {
 	vec2 P0;
 	vec2 P1;
 
-	// P0 = vec2(sl0, sr0);
-	// P1 = vec2(sl1, sr1);
-	// quad(P0, P1, t0, t1);
+	P0 = vec2(sl0, sr0);
+	P1 = vec2(sl1, sr1);
+	quad(P0, P1, t0, t1);
 
 	// P0 = vec2(t0*2.-1., log2(10.*fl0+0.002)/18.0-.5);
 	// P1 = vec2(t1*2.-1., log2(10.*fl1+0.002)/18.0-.5);
@@ -107,9 +107,9 @@ void main() {
 
 	// sl0=sl0*.8+.3;
 	// sl1=sl1*.8+.3;
-	P0 = vec2(t0*2.-1., sl0);
-	P1 = vec2(t1*2.-1., sl1);
-	quad(P0, P1, t0, t1);
+	// P0 = vec2(t0*2.-1., sl0);
+	// P1 = vec2(t1*2.-1., sl1);
+	// quad(P0, P1, t0, t1);
 
 	// quad(vec2(sl0,t0+.7),vec2(sl1,t1+.7), t0, t1);
 	// quad(vec2(t0+.7,sr0),vec2(t1+.7,sr1), t0, t1);

@@ -1,20 +1,20 @@
 #version 330
 precision highp float;
 
-uniform int max_output_vertices;
+uniform int max_output_vertices_U;
 uniform int num_points;
-in int pointIndex[];
+in int point_index[];
 
 // sound amplitude in red component
 uniform sampler1D SL; // left channel
 uniform sampler1D SR; // right channel
+
 // frequency
 uniform sampler1D FL; // left channel
 uniform sampler1D FR; // right channel
 uniform vec2 R; // resolution
 uniform float T; // time
 
-// TODO this is where the error was coming from
 const float EPS = 1E-6;
 const float param = .005;
 // uniform float param;
@@ -22,21 +22,7 @@ out vec4 uvl;
 
 layout(points) in;
 layout(triangle_strip) out;
-layout(max_vertices=6) out;
-
-// TODO multiple input methods
-// keyboard
-// mouse
-// is key down
-// is mouse down
-// direction keys push a point around a grid
-// mouse down&drag push a point around the plane
-// direction point history
-// mouse drag point history
-// key press history
-// mouse down history
-// mouse history
-// ....
+layout(max_vertices=24) out;
 
 /*
    1------3
@@ -51,18 +37,16 @@ void quad(vec2 P0, vec2 P1, float t0, float t1) {
 	// If the segment is too short, just draw a square
     if (dl < EPS)
         dir = vec2(1.0, 0.0);
-    else 
+    else
 		dir = normalize(dir);
     vec2 norm = vec2(-dir.y, dir.x);
 
 	uvl = vec4(dl+param, -param, dl, t0);
 	gl_Position = vec4(P0+(-dir-norm)*param, 0., 1.);
 	EmitVertex(); // 0
-
 	uvl = vec4(dl+param, param, dl, t0);
 	gl_Position = vec4(P0+(-dir+norm)*param, 0., 1.);
 	EmitVertex(); // 1
-
 	uvl = vec4(-param, -param, dl, t0);
 	gl_Position = vec4(P1+(dir-norm)*param, 0., 1.);
 	EmitVertex(); // 2
@@ -71,11 +55,9 @@ void quad(vec2 P0, vec2 P1, float t0, float t1) {
 	uvl = vec4(-param, -param, dl, t0);
 	gl_Position = vec4(P1+(dir-norm)*param, 0., 1.);
 	EmitVertex(); // 2
-
 	uvl = vec4(dl+param, param, dl, t0);
 	gl_Position = vec4(P0+(-dir+norm)*param, 0., 1.);
 	EmitVertex(); // 1
-
 	uvl = vec4(-param, param, dl, t0);
 	gl_Position = vec4(P1+(dir+norm)*param, 0., 1.);
 	EmitVertex(); // 3
@@ -84,7 +66,7 @@ void quad(vec2 P0, vec2 P1, float t0, float t1) {
 
 // TODO interpolation to make curves nice a smooth?
 void main() {
-	int quad_id = pointIndex[0];
+	int quad_id = point_index[0];
 	float t0 = (quad_id+0)/float(num_points);
 	float t1 = (quad_id+1)/float(num_points);
 

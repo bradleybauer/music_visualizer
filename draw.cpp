@@ -179,32 +179,35 @@ vec4 fg = vec4(0., 204. / 255., 1., 1.);
 // vec4 fg=vec4(1);
 const float MIX = .88;
 void main() {
-	// vec2 U = gl_FragCoord.xy/R;
-	// U = U*2.-1.;
-	// U.x*=max(1.,R.x/R.y);
-	// U.x = clamp(U.x,-1.,1.);
-	// U.y*=max(1.,R.y/R.x);
-	// U.y = clamp(U.y,-1.,1.);
-	// U=U*.5+.5;
+vec2 U = gl_FragCoord.xy / R;
+	// U = U * 2. - 1.;
+	// U.x *= max(1., R.x / R.y);
+	// U.x = clamp(U.x, -1., 1.);
+	// U.y *= max(1., R.y / R.x);
+	// U.y = clamp(U.y, -1., 1.);
+	// U = U * .5 + .5;
 	// vec4 C;
-	// if (U.x==1.||U.x==0.) C=bg;
-	// else if (U.y==1.||U.y==0.) C=bg;
-	// else C = mix(bg, 4.*fg, texture(t0, U).r);
-	// c=mix(C, texture(t1, p), MIX);
+	// if (U.x == 1. || U.x == 0.)
+	// 	C = bg;
+	// else if (U.y == 1. || U.y == 0.)
+	// 	C = bg;
+	// else
+	// 	C = mix(bg, fg, 8.*texture(t0, U).r);
+	// c = mix(C, texture(t1, p), MIX);
 
-	vec2 U = gl_FragCoord.xy / R;
-	U = U * 2. - 1.;
-	U.x *= max(1., R.x / R.y);
-	U.x = clamp(U.x, -1., 1.);
-	U.y *= max(1., R.y / R.x);
-	U.y = clamp(U.y, -1., 1.);
-	U = U * .5 + .5;
-	if (U.x == 1. || U.x == 0.)
-		c = bg;
-	else if (U.y == 1. || U.y == 0.)
-		c = bg;
-	else
-		c = mix(mix(bg, fg, 8. * texture(t0, U).r), texture(t1, p), MIX);
+	// vec2 U = gl_FragCoord.xy / R;
+	// U = U * 2. - 1.;
+	// U.x *= max(1., R.x / R.y);
+	// U.x = clamp(U.x, -1., 1.);
+	// U.y *= max(1., R.y / R.x);
+	// U.y = clamp(U.y, -1., 1.);
+	// U = U * .5 + .5;
+	// if (U.x == 1. || U.x == 0.)
+	// 	c = bg;
+	// else if (U.y == 1. || U.y == 0.)
+	// 	c = bg;
+	// else
+	// 	c = mix(mix(bg, fg, 8. * texture(t0, U).r), texture(t1, p), MIX);
 
 	// vec2 U = gl_FragCoord.xy/R;
 	// U=U*2.-1.;
@@ -219,7 +222,7 @@ void main() {
 	// c=mix(mix(bg, 4.*fg, texture(t0, U).r), texture(t1, p), MIX);
 
 	// c=mix(bg, fg, texture(t0,p).r);
-	// c=mix(mix(bg, fg, 2.*texture(t0,p).r), texture(t1,p), MIX);
+	c=mix(mix(bg, fg, 8.*texture(t0,p).r), texture(t1,p), MIX);
 	// c=mix(bg, fg, 2.*texture(t0,p).r);
 }
 )";
