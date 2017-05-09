@@ -153,14 +153,14 @@ static double max_frequency(array1<Complex>& f) {
 	const double y1 = mag(f[k - 1]);
 	const double y2 = mag(f[k]);
 	const double y3 = mag(f[k + 1]);
-	const double d = (y3 - y1) / (2 * (2 * y2 - y1 - y3));
+	const double d = (y3 - y1) / (2 * (2 * y2 - y1 - y3)+1./32.); // +1/32 to avoid divide by zero
 	const double kp = k + d;
 	return kp * double(SRF) / double(FFTLEN);
 }
 static double clamp(double x, double l, double h) {
-	if (x <= l)
+	if (x < l)
 		x = l;
-	else if (x >= h)
+	else if (x > h)
 		x = h;
 	return x;
 }
@@ -284,10 +284,10 @@ void* audioThreadMain(void* data) {
 	//- Wave Renormalizer
 	double maxl = 1.;
 	double maxr = 1.;
-// renormalize the wave to be unit amplitude. there are two methods to do this; toggle between them
-// with R1
-#define R1
-#ifdef R1
+// renormalize the wave to be unit amplitude. there are two methods to do this
+#define RENORM_1
+// #define RENORM_2
+#ifdef RENORM_2
 	float* sinArray = (float*)malloc(VL * sizeof(float));
 	for (int i = 0; i < VL; ++i)
 		sinArray[i] = sin(6.288 * i / float(VL));
@@ -326,15 +326,11 @@ void* audioThreadMain(void* data) {
 			for (int i = 0; i < VL; ++i)
 				tl[i] = pulse_buf_l[(i + int(rl)) % L];
 
-#ifndef R1
+#ifdef RENORM_1
 			renorm(tl, maxl, .5, 1.);
 #endif
 
 			hml = get_harmonic(max_frequency(fl));
-			if (!std::isnormal(hml)) {
-				cout << "left harmonic is not normal" << endl;
-				hml = 60.;
-			}
 			next_l += dura(1. / hml);
 		}
 
@@ -347,15 +343,11 @@ void* audioThreadMain(void* data) {
 			for (int i = 0; i < VL; ++i)
 				tr[i] = pulse_buf_r[(i + int(rr)) % L];
 
-#ifndef R1
+#ifdef RENORM_1
 			renorm(tr, maxr, .5, 1.);
 #endif
 
 			hmr = get_harmonic(max_frequency(fr));
-			if (!std::isnormal(hmr)) {
-				cout << "right harmonic is not normal" << endl;
-				hmr = 60.;
-			}
 			next_r += dura(1. / hmr);
 		}
 // -/
@@ -383,7 +375,7 @@ void* audioThreadMain(void* data) {
 		// const double smoother = .06;
 		const double smoother = .2;
 
-#ifdef R1
+#ifdef RENORM_2
 		const double Pl = pow(maxl, .1);
 		const double Pr = pow(maxr, .1);
 #endif
@@ -392,16 +384,16 @@ void* audioThreadMain(void* data) {
 			#define upsmpl(s) (s[i/2] + s[(i+1)/2])/2.
 			const double al = upsmpl(tl);
 			const double ar = upsmpl(tr);
-#ifdef R1
-			audio->audio_l[i] = mix(audio->audio_l[i], al, smoother)+.01*sinArray[i]*(1.-Pl);
-			audio->audio_r[i] = mix(audio->audio_r[i], ar, smoother)+.01*sinArray[(i+VL/4)%VL]*(1.-Pr); // i+vl/4 : sine -> cosine
+#ifdef RENORM_2
+			audio->audio_l[i] = mix(audio->audio_l[i], al, smoother)+.005*sinArray[i]*(1.-Pl);
+			audio->audio_r[i] = mix(audio->audio_r[i], ar, smoother)+.005*sinArray[(i+VL/4)%VL]*(1.-Pr); // i+vl/4 : sine -> cosine
 #else
 			audio->audio_l[i] = mix(audio->audio_l[i], al, smoother);
 			audio->audio_r[i] = mix(audio->audio_r[i], ar, smoother);
 #endif
 		}
 
-#ifdef R1
+#ifdef RENORM_2
 		const double bound = .75;
 		const double spring = .1; // can spring past bound... oops
 		renorm(audio->audio_l, maxl, spring, bound);
