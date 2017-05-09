@@ -8,9 +8,6 @@ in int point_index[];
 // sound amplitude in red component
 uniform sampler1D SL; // left channel
 uniform sampler1D SR; // right channel
-// frequency
-uniform sampler1D FL; // left channel
-uniform sampler1D FR; // right channel
 uniform vec2 R; // resolution
 uniform float T; // time
 
@@ -77,40 +74,7 @@ void main() {
 	float sr0 = texture(SR, t0).r;
 	float sr1 = texture(SR, t1).r;
 
-	// const float stretch = 200.;
-	// float fl0 = texture(FL, pow(stretch, t0-1.)-(1.-t0)/stretch).r;
-	// float fl1 = texture(FL, pow(stretch, t1-1.)-(1.-t1)/stretch).r;
-	// float fr0 = texture(FR, pow(stretch, t0-1.)-(1.-t0)/stretch).r;
-	// float fr1 = texture(FR, pow(stretch, t1-1.)-(1.-t1)/stretch).r;
-
-	vec2 P0;
-	vec2 P1;
-
-	// P0 = vec2(sl0, sr0);
-	// P1 = vec2(sl1, sr1);
-	// quad(P0, P1, t0, t1);
-
-	// P0 = vec2(t0*2.-1., log2(10.*fl0+0.002)/18.0-.5);
-	// P1 = vec2(t1*2.-1., log2(10.*fl1+0.002)/18.0-.5);
-	// quad(P0, P1, t0, t1);
-
-	// P0 = vec2(t0, fl0-.5);
-	// P1 = vec2(t1, fl1-.5);
-	// quad(P0, P1, t0, t1);
-	// P0 = vec2(-t0, fr0-.5);
-	// P1 = vec2(-t1, fr1-.5);
-	// quad(P0, P1, t0, t1);
-
-	// P0 = vec2(t0*2.-1., fr0-1.);
-	// P1 = vec2(t1*2.-1., fr1-1.);
-	// quad(P0, P1, t0, t1);
-
-	// sl0=sl0*.8+.3;
-	// sl1=sl1*.8+.3;
-	P0 = vec2(t0*2.-1., sl0);
-	P1 = vec2(t1*2.-1., sl1);
+	vec2 P0 = vec2(sl0, sr0);
+	vec2 P1 = vec2(sl1, sr1);
 	quad(P0, P1, t0, t1);
-
-	// quad(vec2(sl0,t0+.7),vec2(sl1,t1+.7), t0, t1);
-	// quad(vec2(t0+.7,sr0),vec2(t1+.7,sr1), t0, t1);
 }

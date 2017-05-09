@@ -1,0 +1,6 @@
+* Use qt gui to provide shadertoy like editing.
+
+* Originally I wanted to try and expose as much of the app's internal configuration as possible, particularly w.r.t. audio preprocessing.
+  Audio preprocessing is a huge ingredient in creating cool visualizations. Imagine being given a set of audio samples in a gl texture and drawing that to the screen using a fragment shader. Thats a practical task. But, imagine that you want to apply some smoothing to those audio samples. If that is the case, then you will need to read and process the whole texture for each and every pixel (because your writing shader code, not pulse.cpp code, because your the user, not the app's creator (me) lol). That is amazingly inefficient and just not acceptable. I think there are other examples where a person might want to preprocess the audio (or fft) that are either inefficient or impossible in shader code.
+
+	I understand that 99% of users probably will not care to preprocess the audio (or would rather set some presets in a simple config file), but the idea is to expose that type of configuration to the user in an inutitive way (like a single audio.py/audio.c file in the shader code folder), and only if they want to be exposed to it (the file is not present by default).

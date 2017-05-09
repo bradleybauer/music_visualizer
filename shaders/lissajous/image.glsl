@@ -32,14 +32,8 @@ void main() {
 	const float param = .005;
 
 	float sigma = param/(2. + 2000.*param/50.);
-	// if (len < EPS) {
-	// 	// If the beam segment is too short, just calculate intensity at the position.
-	//     alpha = exp(-pow(length(xy),2.0)/(2.0*sigma*sigma))/2.0/sqrt(param);
-	// } else {
-	// Otherwise, use analytical integral for accumulated intensity.
 	alpha = erf(xy.x/SQRT2/sigma) - erf((xy.x-len)/SQRT2/sigma);
 	alpha *= exp(-xy.y*xy.y/(2.0*sigma*sigma))/2.0/len*param;
-	// }
 
 	float uIntensity = .5;
 	float uIntensityBase = .09;
