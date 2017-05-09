@@ -1,4 +1,3 @@
-Well, the whole app currently is simply proof of a concept.
-So, todo would be to do the much needed organization and optimizations.
-
-Use qt gui app to provide shadertoy like editing.
+* Use qt gui to provide shadertoy like editing.
+* Optimize pulse.cpp ha
+  currently, interactions with pulseaudio are sensitive to system performance. What I means is, if we cannot process the audio loop fast enough then pulse will drop samples (I think) and provide a discontinuous waveform, which can be seen in the visual output. This can be observed by stressing the system while the app is running (running "find /usr" in a separate terminal does it for me). Why does this cause my app to output "oopsl" and "oopsr"? I think the reason is because the app cannot process the audio loop quick enough and so the indices of the circular buffer start to overwrite eachother.
