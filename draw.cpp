@@ -163,6 +163,7 @@ uniform vec2 R;
 uniform float T;
 in vec2 p;
 out vec4 c;
+//
 // vec4 bg=vec4(0.);
 // vec4 fg=vec4(0.,204./255.,1.,1.);
 //
@@ -175,39 +176,29 @@ vec4 fg = vec4(0., 204. / 255., 1., 1.);
 // vec4 bg=vec4(0.);
 // vec4 fg=vec4(1.,1.,.1,1.);
 //
+// vec4 bg=vec4(1.);
+// vec4 fg=vec4(0.);
+//
 // vec4 bg=vec4(0);
 // vec4 fg=vec4(1);
-const float MIX = .88;
+//
+const float MIX = .9;
+const float bright = 8.;
 void main() {
-vec2 U = gl_FragCoord.xy / R;
-	// U = U * 2. - 1.;
-	// U.x *= max(1., R.x / R.y);
-	// U.x = clamp(U.x, -1., 1.);
-	// U.y *= max(1., R.y / R.x);
-	// U.y = clamp(U.y, -1., 1.);
-	// U = U * .5 + .5;
-	// vec4 C;
-	// if (U.x == 1. || U.x == 0.)
-	// 	C = bg;
-	// else if (U.y == 1. || U.y == 0.)
-	// 	C = bg;
-	// else
-	// 	C = mix(bg, fg, 8.*texture(t0, U).r);
-	// c = mix(C, texture(t1, p), MIX);
-
-	// vec2 U = gl_FragCoord.xy / R;
-	// U = U * 2. - 1.;
-	// U.x *= max(1., R.x / R.y);
-	// U.x = clamp(U.x, -1., 1.);
-	// U.y *= max(1., R.y / R.x);
-	// U.y = clamp(U.y, -1., 1.);
-	// U = U * .5 + .5;
-	// if (U.x == 1. || U.x == 0.)
-	// 	c = bg;
-	// else if (U.y == 1. || U.y == 0.)
-	// 	c = bg;
-	// else
-	// 	c = mix(mix(bg, fg, 8. * texture(t0, U).r), texture(t1, p), MIX);
+	vec2 U = gl_FragCoord.xy / R;
+	U = U * 2. - 1.;
+	U.x *= max(1., R.x / R.y);
+	U.x = clamp(U.x, -1., 1.);
+	U.y *= max(1., R.y / R.x);
+	U.y = clamp(U.y, -1., 1.);
+	U = U * .5 + .5;
+	if (U.x == 1. || U.x == 0.)
+		c = bg;
+	else if (U.y == 1. || U.y == 0.)
+		c = bg;
+	else
+		c = mix(bg, fg, bright*texture(t0, U).r);
+	c = mix(c, texture(t1, p), MIX);
 
 	// vec2 U = gl_FragCoord.xy/R;
 	// U=U*2.-1.;
@@ -221,8 +212,7 @@ vec2 U = gl_FragCoord.xy / R;
 	// U=U*.5+.5;
 	// c=mix(mix(bg, 4.*fg, texture(t0, U).r), texture(t1, p), MIX);
 
-	// c=mix(bg, fg, texture(t0,p).r);
-	c=mix(mix(bg, fg, 8.*texture(t0,p).r), texture(t1,p), MIX);
+	// c = mix(mix(bg, fg, bright * texture(t0, p).r), texture(t1, p), MIX);
 	// c=mix(bg, fg, 2.*texture(t0,p).r);
 }
 )";
@@ -270,7 +260,7 @@ static bool link_program(GLuint& pn, GLuint& vs, GLuint& gs, GLuint fs) {
 	return true;
 }
 void draw(struct audio_data* audio) {
-	// fps();
+	fps();
 	static auto start_time = std::chrono::steady_clock::now();
 	auto now = std::chrono::steady_clock::now();
 	double elapsed = (now - start_time).count() / 1e9;
