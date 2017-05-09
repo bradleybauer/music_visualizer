@@ -1,6 +1,6 @@
 Hi.
 
-git clone https://github.com/xdaimon/music_visualizer.git
+git clone --recursive https://github.com/xdaimon/music_visualizer.git
 cd music_visualizer/ffts/
 mkdir build; cd build
 cmake ..; make -j4
