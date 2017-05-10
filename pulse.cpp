@@ -5,34 +5,43 @@
 	// renormalize the wave to be unit amplitude.
 	// there are two methods to do this, dont enable both of these
 	// #define RENORM_1
-	#define RENORM_2
+	// #define RENORM_2
 	//
 	// ------WAVE FFT STABILIZATION
-	// use the fft to intelligently choose at which times to advance the waveform.
-	// Imagine standing next to a sine wave that is zooming past you and you want to
-	// take a picture of it such that each picture looks almost exactly the same.
-	// How fast should you take pictures? Well as fast as needed such that every time
-	// you take a picture the the sinewave has travelled some whole number of wavelengths
-	// past you. So if the sine wave is 1hz a second (it has travelled 2π in 1 second), then
-	// you want to take pictures at 1hz a second. If the sine wave is 60hz (it travells a dist
-	// of 60*2π) a second, then you want to take pictures at 60hz a second.
-	// Similarly, how far should the pointer in the circular buffer travel forward such that
-	// it travels an integer number of periods of the wave? The pointer should move forward by
-	// an whole number of wavelengths of the audio. I implement this by using the fft.
-	// The frequency is related to the wavelength by this equation
+	// Use the fft to intelligently choose when to advance the waveform.
+	// Imagine running along next to a audio wave, and you want to take a picture of the audio
+	// wave with a camera such that each picture looks almost exactly the same.
+	// How do we know when to take these pictures? We need to try and take a picture every
+	// time that we pass a distance of one period (one wavelength) of the audio wave. The audio
+	// pointer in the circular buffer is like the camera, and every time we update the audio
+	// pointer we take a picture of the audio wave with our camera.
+	//
+	// The audio pointer in the circular buffer should be moved such that it travels only distances
+	// that are whole multiples, not fractional multiples, of the audio wave's wavelength.
+	// But how do we find the wavelength of the audio wave? If we try and look for the zero's
+	// of the audio wave and then note the distance between them, then we will not get an accurate
+	// or consistent measure of the wavelength because the noise in the waveform can throw
+	// our measure off.
+	//
+	// The wavelength of a waveform is related to the frequency by this equation
 	// wavelength = velocity/frequency
 	//
 	// velocity = sample rate
 	// wavelength = number of samples of one period of the wave
-	// frequency = frequency of the waveform
+	// frequency = dominant frequency of the waveform
 	//
-	// In order to find the ideal number of samples to advance the pointer by we calculate
-	// step samples = (velocity / frequency = sample rate / frequency)
+	// In order to find the wavelength of the audio wave we can take the fft of the wave
+	// and then use that to choose at what distances we should move the audio pointer by.
+	// Is there a better way to get the wavelength? idk, this works pretty good.
+	//
+	// In the code I move the audio pointer forward by ( steps*SR/freq ) instead of ( SR/freq )
+	// because it could happen that the audio loop takes enough time to process that we should move
+	// the audio pointer forward more than one wavelength. If we imagine that we're driving past the
+	// audio waveform, then we could say that we forgot to take a picture the last time we passed a
+	// wavelength, and so we need to move the next picture-taking-position (audio pointer) ahead by
+	// 'steps' number of wavelengths.
+	//
 	#define FFT_SYNC
-	//
-	// -------- FFT LIB
-	// #define USE_FFTWPP
-	#define USE_FFTS
 	// -/
 
 /*
@@ -91,13 +100,8 @@ const int SRF = SR / 2;
 // -/
 
 //- Functions
-static float sign(float x) {
-	return std::copysign(1.f, x);
-}
 static float mag(float* f, int i) {
 	return sqrt(f[i*2]*f[i*2] + f[i*2+1]*f[i*2+1]);
-	// #define RMS(x, y) sqrt((x*x+y*y)*1/2.f)
-	// return 1.f - 1.f / (RMS(a.real(), a.imag())/140.f + 1.f);
 }
 static int max_bin(float* f) {
 	float max = 0.f;
@@ -127,6 +131,9 @@ static float dist_forward(float from, float to) {
 	if (d < 0)
 		d += L;
 	return d;
+}
+static float sign(float x) {
+	return std::copysign(1.f, x);
 }
 static void adjust_reader(float& r, float w, float hm) {
 	// This function attempts to separate two points in a circular buffer by distance L/2
@@ -196,28 +203,6 @@ static float clamp(float x, float l, float h) {
 		x = h;
 	return x;
 }
-static float get_harmonic(float freq) {
-	// bound freq into the interval [24, 60]
-
-	freq = clamp(freq, 1.f, SRF / float(FFTLEN) * 100);
-
-	const float b = log2f(freq);
-	const float l = log2f(24.f);
-	const float u = log2f(60.f);
-	// a == number of iterations for one of the below loops
-	int a = 0;
-	if (b < l)
-		a = floor(b - l); // round towards -inf
-	else if (b > u)
-		a = ceil(b - u); // round towards +inf
-	freq = pow(2.f, b - a);
-
-	// double o = freq;
-	// while (o > 61.f) o /= 2.f; // dividing frequency by two does not change the flipbook
-	// image
-	// while (o < 24.f) o *= 2.f; // multiplying frequency by two produces the ghosting effect
-	return freq;
-}
 static inline float mix(float x, float y, float m) {
 	return x * (1.f - m) + y * m;
 }
@@ -245,8 +230,6 @@ void* audioThreadMain(void* data) {
 	// *use template programming to compute the window at compile time.
 	// *how much time does pa_simple_read take to finish? If the app is in the error state, then
 	//   how much time does it take?
-	// *could the get_harmonic function be approximated by some modulus operation?
-	//   It is not nailing down the absolute best frequency to choose the loop rate for
 	// -/
 
 	//- Audio repositories
@@ -260,12 +243,6 @@ void* audioThreadMain(void* data) {
 	audio->audio_r = audio->audio_l + VL;
 	audio->freq_l = audio->audio_r + VL;
 	audio->freq_r = audio->freq_l + VL;
-	// -/
-
-	//- Smoothing buffers
-	// helps give the impression that the wave data updates at 60fps
-	float* tl = (float*)calloc(VL * C + 2, sizeof(float));
-	float* tr = tl + VL + 1;
 	// -/
 
 	//- FFT setup
@@ -304,9 +281,9 @@ void* audioThreadMain(void* data) {
 	//- Time Management
 	auto now = chrono::steady_clock::now();
 	auto _60fpsDura = dura(1.f / 60.f);
-	auto next_l = now + _60fpsDura;
-	auto next_r = next_l;
-	auto prevfft = next_r; // Compute the fft only once every 1/60 of a second
+	auto next_tl = now + _60fpsDura;
+	auto next_tr = next_tl;
+	auto prev_t = next_tr; // Compute the fft only once every 1/60 of a second
 	// -/
 
 	//- Repository Indice Management
@@ -314,8 +291,8 @@ void* audioThreadMain(void* data) {
 	               // buffers, and of a discontinuity in the waveform
 	float irl = 0; // Index of a reader in the audio repositories (left channel)
 	float irr = irl;
-	float hml = 60.f; // Harmonic frequency of the dominant frequency of the audio.
-	float hmr = hml; // we capture an image of the waveform at this rate
+	float freql = 60.f; // Harmonic frequency of the dominant frequency of the audio.
+	float freqr = freql; // we capture an image of the waveform at this rate
 	// -/
 
 	//- Wave Renormalizer
@@ -331,13 +308,10 @@ void* audioThreadMain(void* data) {
 	while (1) {
 
 		//- Read Datums
-		// auto test = std::chrono::steady_clock::now();
 		if (pa_simple_read(pulseState, pulse_buf_interlaced, sizeof(pulse_buf_interlaced), &error) < 0) {
 			cout << "pa_simple_read() failed: " << pa_strerror(error) << endl;
 			exit(EXIT_FAILURE);
 		}
-		// cout << std::chrono::duration_cast<std::chrono::duration<float,
-		// std::ratio<1>>>(std::chrono::steady_clock::now()-test).count()<<endl;
 		// -/
 
 		//- Fill audio repositories
@@ -345,65 +319,36 @@ void* audioThreadMain(void* data) {
 			pulse_buf_l[PL * W + i] = pulse_buf_interlaced[i * C + 0];
 			pulse_buf_r[PL * W + i] = pulse_buf_interlaced[i * C + 1];
 		}
-		// -/
-
-		//- Manage indices and fill smoothing buffers
 		W++;
 		W %= PN;
+		// -/
+
+		//- Compute FFT and fill presentation buffers
 		now = chrono::steady_clock::now();
-		if (now > next_l) {
-			move_index(irl,  SR / hml);
+		if (now > prev_t) {
+			prev_t = now + _60fpsDura;
+
+			int steps = (now-next_tl)/dura(1.f/freql);
+			move_index(irl, steps * SR / freql);
+			next_tl += dura(steps/freql);
+
+			steps = (now-next_tr)/dura(1.f/freqr);
+			move_index(irr, steps * SR / freqr);
+			next_tr += dura(steps/freqr);
+
 			if (dist_forward(irl, PL * W) < VL) {
-				adjust_reader(irl, PL * W, hml);
+				adjust_reader(irl, PL * W, freql);
 				cout << "oopsl" << endl;
 			}
-			for (int i = 0; i < VL; ++i)
-				tl[i] = pulse_buf_l[(i + int(irl)) % L];
-
-#ifdef RENORM_1
-			renorm(tl, maxl, .5, 1.f);
-#endif
-
-#ifdef FFT_SYNC
-			hml = get_harmonic(max_frequency(fl));
-			next_l += dura(1.f/ hml);
-#else
-			next_l += _60fpsDura;
-#endif
-		}
-
-		if (now > next_r) {
-			// hmr is a harmonic (between 24-60 hz) of the dominant frequency.
-			// should we step forward according to the wavelength of the harmonic?
-			// or according to the dominant frequency (which would make the wavelength smaller)
-			// int steps = (now-next_r)/dura(1.f/max_frequency(fr));
-			// cout << steps << endl;
-			// move_index(irr, steps*SR / hmr);
-			move_index(irr, SR / hmr);
 			if (dist_forward(irr, PL * W) < VL) {
-				adjust_reader(irr, PL * W, hmr);
+				adjust_reader(irr, PL * W, freqr);
 				cout << "oopsr" << endl;
 			}
-			for (int i = 0; i < VL; ++i)
-				tr[i] = pulse_buf_r[(i + int(irr)) % L];
+			freql = max_frequency(fl);
+			if (freql < 24.) freql = 60.;
+			freqr = max_frequency(fr);
+			if (freqr < 24.) freqr = 60.;
 
-#ifdef RENORM_1
-			renorm(tr, maxr, .5, 1.f);
-#endif
-
-#ifdef FFT_SYNC
-			hmr = get_harmonic(max_frequency(fr));
-			next_r += dura(1.f/ hmr);
-#else
-			next_r += _60fpsDura;
-#endif
-		}
-// -/
-
-		//- Preprocess audio, execute the FFT, and fill fft presentation buff
-#ifdef FFT_SYNC
-		if (now > prevfft) {
-			prevfft = now + _60fpsDura;
 			for (int i = 0; i < FFTLEN; ++i) {
 				fft_inl[i * 2] = pulse_buf_l[(i * 2 + PL * W) % L] * FFTwindow[i];
 				fft_inl[i * 2 + 1] = 0;
@@ -416,65 +361,20 @@ void* audioThreadMain(void* data) {
 				audio->freq_l[i] = (float)mag(fl, i)/sqrt(FFTLEN);
 				audio->freq_r[i] = (float)mag(fr, i)/sqrt(FFTLEN);
 			}
+
+			audio->mtx.lock();
+			const float smoother = 1.;
+			for (int i = 0; i < VL; ++i) {
+				#define upsmpl(S, Y) (S[(i/2 + int(Y)) % L] + S[((i+1)/2 + int(Y)) % L])/2.f
+				const float al = upsmpl(pulse_buf_l, irl);
+				audio->audio_l[i] = mix(audio->audio_l[i], al, smoother);
+				const float ar = upsmpl(pulse_buf_r, irr);
+				audio->audio_r[i] = mix(audio->audio_r[i], ar, smoother);
+			}
+			// renorm(audio->audio_l, maxl, .5, .8);
+			// renorm(audio->audio_r, maxr, .5, .8);
+			audio->mtx.unlock();
 		}
-#endif
-		// -/
-
-		//- Fill presentation buffers
-		audio->mtx.lock();
-		// Smooth and upsample the wave
-		const float smoother = 1.;
-		// const float smoother = .85;
-		// const float smoother = .2;
-		// const float smoother = .02;
-
-#ifdef RENORM_2
-		const float Pl = pow(maxl, .1);
-		const float Pr = pow(maxr, .1);
-#endif
-
-		for (int i = 0; i < VL; ++i) {
-			#define upsmpl(s) (s[i/2] + s[(i+1)/2])/2.f
-			const float al = upsmpl(tl);
-			const float ar = upsmpl(tr);
-#ifdef RENORM_2
-			audio->audio_l[i] = mix(audio->audio_l[i], al, smoother)+.005*sinArray[i]*(1.f-Pl);
-			audio->audio_r[i] = mix(audio->audio_r[i], ar, smoother)+.005*sinArray[(i+VL/4)%VL]*(1.f-Pr); // i+vl/4 : sine -> cosine
-#endif
-#ifdef RENORM_1
-			audio->audio_l[i] = mix(audio->audio_l[i], al, smoother);
-			audio->audio_r[i] = mix(audio->audio_r[i], ar, smoother);
-#endif
-#ifndef RENORM_1
-#ifndef RENORM_2
-			audio->audio_l[i] = mix(audio->audio_l[i], al, smoother);
-			audio->audio_r[i] = mix(audio->audio_r[i], ar, smoother);
-#endif
-#endif
-		}
-
-#ifdef RENORM_2
-		const float bound = .75;
-		const float spring = .1; // can spring past bound... oops
-		renorm(audio->audio_l, maxl, spring, bound);
-		renorm(audio->audio_r, maxr, spring, bound);
-		// float _max = -std::numeric_limits<float>::infinity();
-		// for (int i = 0; i < VL; ++i) {
-		// 	if (fabs(audio->audio_l[i]) > _max)
-		// 		_max = fabs(audio->audio_l[i]);
-		// 	if (fabs(audio->audio_r[i]) > _max)
-		// 		_max = fabs(audio->audio_r[i]);
-		// }
-		// maxr = mix(maxr, _max, spring);
-		// maxl = mix(maxl, _max, spring);
-		// if (maxl != 0.f)
-		// 	for (int i = 0; i < VL; ++i)
-		// 		audio->audio_l[i] /= maxl / bound;
-		// if (maxr != 0.f)
-		// 	for (int i = 0; i < VL; ++i)
-		// 		audio->audio_r[i] /= maxl / bound;
-#endif
-		audio->mtx.unlock();
 		// -/
 
 		if (audio->thread_join) {

@@ -182,8 +182,8 @@ out vec4 c;
 vec4 bg=vec4(0);
 vec4 fg=vec4(1);
 //
-const float MIX = .9;
-const float bright = 8.;
+const float MIX = .90;
+const float bright = 9.;
 void main() {
 	// ASPECT RATIO ADJUSTED
 	// vec2 U = gl_FragCoord.xy / R;
@@ -203,7 +203,6 @@ void main() {
 
 	// NOT ASPECT RATIO ADJUSTED
 	c = mix(mix(bg, fg, bright * texture(t0, p).r), texture(t1, p), MIX);
-	c=mix(bg, fg, 2.*texture(t0,p).r);
 
 	// vec2 U = gl_FragCoord.xy/R;
 	// U=U*2.-1.;
