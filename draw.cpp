@@ -176,14 +176,14 @@ out vec4 c;
 // vec4 bg=vec4(0.);
 // vec4 fg=vec4(1.,1.,.1,1.);
 //
-// vec4 bg=vec4(1.);
-// vec4 fg=vec4(0.);
+vec4 bg=vec4(1.);
+vec4 fg=vec4(0.);
 //
-vec4 bg=vec4(0);
-vec4 fg=vec4(1);
+// vec4 bg=vec4(0);
+// vec4 fg=vec4(1);
 //
-const float MIX = .90;
-const float bright = 9.;
+const float MIX = .0;
+const float bright = 1.;
 void main() {
 	// ASPECT RATIO ADJUSTED
 	// vec2 U = gl_FragCoord.xy / R;
@@ -262,7 +262,7 @@ static bool link_program(GLuint& pn, GLuint& vs, GLuint& gs, GLuint fs) {
 	return true;
 }
 void draw(struct audio_data* audio) {
-	fps();
+	// fps();
 	static auto start_time = std::chrono::steady_clock::now();
 	auto now = std::chrono::steady_clock::now();
 	double elapsed = (now - start_time).count() / 1e9;

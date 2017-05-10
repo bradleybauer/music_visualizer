@@ -281,9 +281,9 @@ void* audioThreadMain(void* data) {
 	//- Time Management
 	auto now = chrono::steady_clock::now();
 	auto _60fpsDura = dura(1.f / 60.f);
-	auto next_tl = now + _60fpsDura;
-	auto next_tr = next_tl;
-	auto prev_t = next_tr; // Compute the fft only once every 1/60 of a second
+	auto prev_tl = now + _60fpsDura;
+	auto prev_tr = prev_tl;
+	auto prev_t = prev_tr; // Compute the fft only once every 1/60 of a second
 	// -/
 
 	//- Repository Indice Management
@@ -326,15 +326,15 @@ void* audioThreadMain(void* data) {
 		//- Compute FFT and fill presentation buffers
 		now = chrono::steady_clock::now();
 		if (now > prev_t) {
-			prev_t = now + _60fpsDura;
+			prev_t += _60fpsDura;
 
-			int steps = (now-next_tl)/dura(1.f/freql);
+			int steps = (now-prev_tl)/dura(1.f/freql);
 			move_index(irl, steps * SR / freql);
-			next_tl += dura(steps/freql);
+			prev_tl += dura(steps/freql);
 
-			steps = (now-next_tr)/dura(1.f/freqr);
+			steps = (now-prev_tr)/dura(1.f/freqr);
 			move_index(irr, steps * SR / freqr);
-			next_tr += dura(steps/freqr);
+			prev_tr += dura(steps/freqr);
 
 			if (dist_forward(irl, PL * W) < VL) {
 				adjust_reader(irl, PL * W, freql);
