@@ -29,10 +29,6 @@
 	// In order to find the ideal number of samples to advance the pointer by we calculate
 	// step samples = (velocity / frequency = sample rate / frequency)
 	#define FFT_SYNC
-	//
-	// -------- FFT LIB
-	// #define USE_FFTWPP
-	#define USE_FFTS
 	// -/
 
 /*
@@ -373,12 +369,6 @@ void* audioThreadMain(void* data) {
 		}
 
 		if (now > next_r) {
-			// hmr is a harmonic (between 24-60 hz) of the dominant frequency.
-			// should we step forward according to the wavelength of the harmonic?
-			// or according to the dominant frequency (which would make the wavelength smaller)
-			// int steps = (now-next_r)/dura(1.f/max_frequency(fr));
-			// cout << steps << endl;
-			// move_index(irr, steps*SR / hmr);
 			move_index(irr, SR / hmr);
 			if (dist_forward(irr, PL * W) < VL) {
 				adjust_reader(irr, PL * W, hmr);
