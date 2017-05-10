@@ -33,14 +33,6 @@
 	// In order to find the wavelength of the audio wave we can take the fft of the wave
 	// and then use that to choose at what distances we should move the audio pointer by.
 	// Is there a better way to get the wavelength? idk, this works pretty good.
-	//
-	// In the code I move the audio pointer forward by ( steps*SR/freq ) instead of ( SR/freq )
-	// because it could happen that the audio loop takes enough time to process that we should move
-	// the audio pointer forward more than one wavelength. If we imagine that we're driving past the
-	// audio waveform, then we could say that we forgot to take a picture the last time we passed a
-	// wavelength, and so we need to move the next picture-taking-position (audio pointer) ahead by
-	// 'steps' number of wavelengths.
-	//
 	#define FFT_SYNC
 	// -/
 
@@ -63,13 +55,6 @@
 namespace chrono = std::chrono;
 using std::cout;
 using std::endl;
-
-// template <int...I>
-// constexpr auto
-// make_compile_time_sequence(std::index_sequence<I...>) {
-// 	return std::array<int,sizeof...(I)>{{cos(I)...}};
-// }
-// constexpr auto array_1_20 = make_compile_time_sequence(std::make_index_sequence<40>{});
 
 //- Constants
 //
@@ -100,13 +85,8 @@ const int SRF = SR / 2;
 // -/
 
 //- Functions
-static float sign(float x) {
-	return std::copysign(1.f, x);
-}
 static float mag(float* f, int i) {
 	return sqrt(f[i*2]*f[i*2] + f[i*2+1]*f[i*2+1]);
-	// #define RMS(x, y) sqrt((x*x+y*y)*1/2.f)
-	// return 1.f - 1.f / (RMS(a.real(), a.imag())/140.f + 1.f);
 }
 static int max_bin(float* f) {
 	float max = 0.f;
@@ -136,6 +116,9 @@ static float dist_forward(float from, float to) {
 	if (d < 0)
 		d += L;
 	return d;
+}
+static float sign(float x) {
+	return std::copysign(1.f, x);
 }
 static void adjust_reader(float& r, float w, float hm) {
 	// This function attempts to separate two points in a circular buffer by distance L/2
@@ -168,7 +151,7 @@ static void adjust_reader(float& r, float w, float hm) {
 	grid = ceil(foo / grid) * grid;
 	move_index(r, -dfoodr * grid);
 }
-static bool fps(chrono::steady_clock::time_point& now) {
+static void fps(chrono::steady_clock::time_point& now) {
 	static auto prev_time = chrono::steady_clock::now();
 	static int counter = 0;
 	counter++;
@@ -176,9 +159,7 @@ static bool fps(chrono::steady_clock::time_point& now) {
 		cout << "snd fps: " << counter << endl;
 		counter = 0;
 		prev_time = now;
-		return true;
 	}
-	return false;
 }
 static chrono::steady_clock::duration dura(float x) {
 	// dura() converts a second, represented as a double, into the appropriate unit of
@@ -231,8 +212,7 @@ static inline float mix(float x, float y, float m) {
 	return x * (1.f - m) + y * m;
 }
 // setting low mixer can lead to some interesting lissajous
-template<typename T>
-static void renorm(T* f, float& max, float mixer, float scale) {
+static void renorm(float* f, float& max, float mixer, float scale) {
 	float _max = -16.f;
 	for (int i = 0; i < VL; ++i)
 		if (fabs(f[i]) > _max)
@@ -245,18 +225,6 @@ static void renorm(T* f, float& max, float mixer, float scale) {
 // -/
 
 void* audioThreadMain(void* data) {
-
-	//- TODOs
-	//
-	// *!need a faster fft library. try ffts (https://github.com/linkotec/ffts) or fftw!
-	//
-	// *would alsa be more stable/faster?
-	// *use template programming to compute the window at compile time.
-	// *how much time does pa_simple_read take to finish? If the app is in the error state, then
-	//   how much time does it take?
-	// *could the get_harmonic function be approximated by some modulus operation?
-	//   It is not nailing down the absolute best frequency to choose the loop rate for
-	// -/
 
 	//- Audio repositories
 	float* pulse_buf_l = (float*)calloc(L * C, sizeof(float));
@@ -292,19 +260,19 @@ void* audioThreadMain(void* data) {
 	//- Pulse setup
 	getPulseDefaultSink((void*)audio);
 	float pulse_buf_interlaced[PL * C];
-	pa_sample_spec ss;
-	ss.channels = C;
-	ss.rate = SR;
-	ss.format = PA_SAMPLE_FLOAT32NE;
+	pa_sample_spec pulseSampleSpec;
+	pulseSampleSpec.channels = C;
+	pulseSampleSpec.rate = SR;
+	pulseSampleSpec.format = PA_SAMPLE_FLOAT32NE;
 	pa_buffer_attr pb;
 	pb.fragsize = sizeof(pulse_buf_interlaced) / 2;
 	pb.maxlength = sizeof(pulse_buf_interlaced);
 	pa_simple* pulseState = NULL;
-	int error;
-	pulseState = pa_simple_new(NULL, "APPNAME", PA_STREAM_RECORD, audio->source.data(), "APPNAME", &ss, NULL,
-	                  &pb, &error);
+	int pulseError;
+	pulseState = pa_simple_new(NULL, "APPNAME", PA_STREAM_RECORD, audio->source.data(), "APPNAME", &pulseSampleSpec, NULL,
+	                  &pb, &pulseError);
 	if (!pulseState) {
-		cout << "Could not open pulseaudio source: " << audio->source << pa_strerror(error)
+		cout << "Could not open pulseaudio source: " << audio->source << pa_strerror(pulseError)
 		     << ". To find a list of your pulseaudio sources run 'pacmd list-sources'" << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -323,8 +291,8 @@ void* audioThreadMain(void* data) {
 	               // buffers, and of a discontinuity in the waveform
 	float irl = 0; // Index of a reader in the audio repositories (left channel)
 	float irr = irl;
-	float hml = 60.f; // Harmonic frequency of the dominant frequency of the audio.
-	float hmr = hml; // we capture an image of the waveform at this rate
+	float freql = 60.f; // Harmonic frequency of the dominant frequency of the audio.
+	float freqr = freql; // we capture an image of the waveform at this rate
 	// -/
 
 	//- Wave Renormalizer
@@ -340,13 +308,10 @@ void* audioThreadMain(void* data) {
 	while (1) {
 
 		//- Read Datums
-		// auto test = std::chrono::steady_clock::now();
-		if (pa_simple_read(pulseState, pulse_buf_interlaced, sizeof(pulse_buf_interlaced), &error) < 0) {
-			cout << "pa_simple_read() failed: " << pa_strerror(error) << endl;
+		if (pa_simple_read(pulseState, pulse_buf_interlaced, sizeof(pulse_buf_interlaced), &pulseError) < 0) {
+			cout << "pa_simple_read() failed: " << pa_strerror(pulseError) << endl;
 			exit(EXIT_FAILURE);
 		}
-		// cout << std::chrono::duration_cast<std::chrono::duration<float,
-		// std::ratio<1>>>(std::chrono::steady_clock::now()-test).count()<<endl;
 		// -/
 
 		//- Fill audio repositories
@@ -361,9 +326,9 @@ void* audioThreadMain(void* data) {
 		W %= PN;
 		now = chrono::steady_clock::now();
 		if (now > next_l) {
-			move_index(irl,  SR / hml);
+			move_index(irl,  SR / freql);
 			if (dist_forward(irl, PL * W) < VL) {
-				adjust_reader(irl, PL * W, hml);
+				adjust_reader(irl, PL * W, freql);
 				cout << "oopsl" << endl;
 			}
 			for (int i = 0; i < VL; ++i)
@@ -374,17 +339,17 @@ void* audioThreadMain(void* data) {
 #endif
 
 #ifdef FFT_SYNC
-			hml = get_harmonic(max_frequency(fl));
-			next_l += dura(1.f/ hml);
+			freql = get_harmonic(max_frequency(fl));
+			next_l += dura(1.f/ freql);
 #else
 			next_l += _60fpsDura;
 #endif
 		}
 
 		if (now > next_r) {
-			move_index(irr, SR / hmr);
+			move_index(irr, SR / freqr);
 			if (dist_forward(irr, PL * W) < VL) {
-				adjust_reader(irr, PL * W, hmr);
+				adjust_reader(irr, PL * W, freqr);
 				cout << "oopsr" << endl;
 			}
 			for (int i = 0; i < VL; ++i)
@@ -395,8 +360,8 @@ void* audioThreadMain(void* data) {
 #endif
 
 #ifdef FFT_SYNC
-			hmr = get_harmonic(max_frequency(fr));
-			next_r += dura(1.f/ hmr);
+			freqr = get_harmonic(max_frequency(fr));
+			next_r += dura(1.f/ freqr);
 #else
 			next_r += _60fpsDura;
 #endif
@@ -460,21 +425,6 @@ void* audioThreadMain(void* data) {
 		const float spring = .1; // can spring past bound... oops
 		renorm(audio->audio_l, maxl, spring, bound);
 		renorm(audio->audio_r, maxr, spring, bound);
-		// float _max = -std::numeric_limits<float>::infinity();
-		// for (int i = 0; i < VL; ++i) {
-		// 	if (fabs(audio->audio_l[i]) > _max)
-		// 		_max = fabs(audio->audio_l[i]);
-		// 	if (fabs(audio->audio_r[i]) > _max)
-		// 		_max = fabs(audio->audio_r[i]);
-		// }
-		// maxr = mix(maxr, _max, spring);
-		// maxl = mix(maxl, _max, spring);
-		// if (maxl != 0.f)
-		// 	for (int i = 0; i < VL; ++i)
-		// 		audio->audio_l[i] /= maxl / bound;
-		// if (maxr != 0.f)
-		// 	for (int i = 0; i < VL; ++i)
-		// 		audio->audio_r[i] /= maxl / bound;
 #endif
 		audio->mtx.unlock();
 		// -/
