@@ -12,11 +12,12 @@ set(SOURCE_FILES
 
 include_directories(
 	.
-	fftwpp
 )
+
+add_subdirectory(ffts)
 
 add_executable(main ${SOURCE_FILES})
 
 LINK_DIRECTORIES(/usr/lib/x86_64-linux-gnu/)
-TARGET_LINK_LIBRARIES(main glfw GLEW GLU GL pulse-simple pulse pthread ${CMAKE_SOURCE_DIR}/ffts/build/libffts.a)
+TARGET_LINK_LIBRARIES(main glfw GLEW GLU GL pulse-simple pulse pthread ffts ${CMAKE_SOURCE_DIR}/build/ffts/libffts.a)
 
