@@ -12,7 +12,7 @@ make -j4
 
 Depends on opengl >= 3.3, and pulseaudio.
 
-Uses code from the following repositories
+Uses code from the following repositories<br>
 <a href="https://github.com/linkotec/ffts">ffts (linkotec fork)</a>
 	fast fft library
 
