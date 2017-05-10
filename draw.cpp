@@ -69,18 +69,18 @@ static long filelength(FILE* file) {
 	fseek(file, savedpos, SEEK_SET);
 	return numbytes;
 }
-static unsigned char* readShaderFile(const char* filename) {
+static bool readShaderFile(const char* filename, GLchar*& out) {
 	FILE* file = fopen(filename, "r");
 	if (file == NULL) {
 		cout << "ERROR Cannot open shader file!" << endl;
-		return 0;
+		return false;
 	}
 	int bytesinfile = filelength(file);
-	unsigned char* buffer = (unsigned char*)malloc(bytesinfile + 1);
-	int bytesread = fread(buffer, 1, bytesinfile, file);
-	buffer[bytesread] = 0; // Terminate the string with 0
+	out = (GLchar*)malloc(bytesinfile + 1);
+	int bytesread = fread(out, 1, bytesinfile, file);
+	out[bytesread] = 0; // Terminate the string with 0
 	fclose(file);
-	return buffer;
+	return true;
 }
 
 // Vim tip ']p' -> reindented paste
@@ -218,7 +218,7 @@ void main() {
 
 }
 )";
-static bool compile_shader(char* s, GLuint& sn, GLenum stype) {
+static bool compile_shader(GLchar* s, GLuint& sn, GLenum stype) {
 	sn = glCreateShader(stype);
 	glShaderSource(sn, 1, &s, NULL);
 	glCompileShader(sn);
@@ -340,32 +340,42 @@ bool initialize_gl() {
 	glfwSwapInterval(1);
 	glewExperimental = GL_TRUE;
 	glewInit();
-	// const GLubyte* renderer = glGetString(GL_RENDERER);
-	// const GLubyte* version = glGetString(GL_VERSION);
-	// const GLubyte* ext = glGetString(GL_EXTENSIONS);
-	// cout << "Renderer: " << renderer << endl;
-	// cout << "OpenGL version supported "<< version << endl;
-	// cout << "OpenGL extensions supported "<< ext << endl;
+	const GLubyte* renderer = glGetString(GL_RENDERER);
+	const GLubyte* version = glGetString(GL_VERSION);
+	cout << "Renderer: " << renderer << endl;
+	cout << "OpenGL version supported "<< version << endl;
 	glViewport(0, 0, wwidth, wheight);
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetCursorPosCallback(window, cursor_position_callback);
 	glfwSetMouseButtonCallback(window, mouse_button_callback);
 
 	bool ret = true;
-	const GLchar* vertex_shader = (GLchar*)readShaderFile("../shaders/vertex.glsl");
-	const GLchar* fragment_shader = (GLchar*)readShaderFile("../shaders/image.glsl");
-	const GLchar* geometry_shader = (GLchar*)readShaderFile("../shaders/geom.glsl");
+	GLchar* vs_c, *fs_c, *gs_c;
+	ret = readShaderFile("../shaders/vertex.glsl", vs_c);
+	ret = readShaderFile("../shaders/geom.glsl", gs_c);
+	ret = readShaderFile("../shaders/image.glsl", fs_c);
+	if (!ret) {
+		ret = readShaderFile("shaders/vertex.glsl", vs_c);
+		ret = readShaderFile("shaders/geom.glsl", gs_c);
+		ret = readShaderFile("shaders/image.glsl", fs_c);
+		if (!ret) {
+			ret = false;
+			return ret;
+		}
+	}
 	GLuint vs, gs, fs;
-	ret = compile_shader((char*)vertex_shader, vs, GL_VERTEX_SHADER);
-	ret = compile_shader((char*)geometry_shader, gs, GL_GEOMETRY_SHADER);
-	ret = compile_shader((char*)fragment_shader, fs, GL_FRAGMENT_SHADER);
+	ret = compile_shader(vs_c, vs, GL_VERTEX_SHADER);
+	ret = compile_shader(gs_c, gs, GL_GEOMETRY_SHADER);
+	ret = compile_shader(fs_c, fs, GL_FRAGMENT_SHADER);
 	ret = link_program(buf_program, vs, gs, fs);
-	ret = compile_shader((char*)VERT.data(), vs, GL_VERTEX_SHADER);
-	ret = compile_shader((char*)GEOM.data(), gs, GL_GEOMETRY_SHADER);
-	ret = compile_shader((char*)FRAG.data(), fs, GL_FRAGMENT_SHADER);
+	ret = compile_shader((GLchar*)VERT.data(), vs, GL_VERTEX_SHADER);
+	ret = compile_shader((GLchar*)GEOM.data(), gs, GL_GEOMETRY_SHADER);
+	ret = compile_shader((GLchar*)FRAG.data(), fs, GL_FRAGMENT_SHADER);
 	ret = link_program(img_program, vs, gs, fs);
-	if (!ret)
+	if (!ret) {
+		cout << endl << endl << "Could not find shader file OR could not compile shaders." << endl << endl;
 		return ret;
+	}
 
 	glGetIntegerv(GL_MAX_GEOMETRY_OUTPUT_VERTICES, &max_output_vertices);
 	glDisable(GL_DEPTH_TEST);
