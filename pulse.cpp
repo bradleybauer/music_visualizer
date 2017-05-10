@@ -423,10 +423,9 @@ void* audioThreadMain(void* data) {
 		//- Fill presentation buffers
 		audio->mtx.lock();
 		// Smooth and upsample the wave
-		const float smoother = 1.;
-		// const float smoother = .85;
-		// const float smoother = .2;
-		// const float smoother = .02;
+		// const float smoother = 1.;
+		const float smoother = .2;
+		// const float smoother = .1;
 
 #ifdef RENORM_2
 		const float Pl = pow(maxl, .1);

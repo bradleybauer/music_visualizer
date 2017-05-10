@@ -153,7 +153,6 @@ void main() {
 	EndPrimitive();
 }
 )";
-// TODO Kali transform the lissajous texture coord in the buffer shader.. lol wow! :)
 static std::string FRAG = R"(
 #version 330
 precision highp float;
@@ -176,35 +175,35 @@ out vec4 c;
 // vec4 bg=vec4(0.);
 // vec4 fg=vec4(1.,1.,.1,1.);
 //
-// vec4 bg=vec4(1.);
-// vec4 fg=vec4(0.);
+vec4 bg=vec4(1);
+vec4 fg=vec4(0);
 //
-vec4 bg=vec4(0);
-vec4 fg=vec4(1);
+// vec4 bg=vec4(0);
+// vec4 fg=vec4(1);
 //
 const float MIX = .9;
-const float bright = 8.;
+const float bright = 6.;
 void main() {
 	// ASPECT RATIO ADJUSTED
-	// vec2 U = gl_FragCoord.xy / R;
-	// U = U * 2. - 1.;
-	// U.x *= max(1., R.x / R.y);
-	// U.x = clamp(U.x, -1., 1.);
-	// U.y *= max(1., R.y / R.x);
-	// U.y = clamp(U.y, -1., 1.);
-	// U = U * .5 + .5;
-	// if (U.x == 1. || U.x == 0.)
-	// 	c = bg;
-	// else if (U.y == 1. || U.y == 0.)
-	// 	c = bg;
-	// else
-	// 	c = mix(bg, fg, bright*texture(t0, U).r);
-	// c = mix(c, texture(t1, p), MIX);
+	vec2 U = gl_FragCoord.xy / R;
+	U = U * 2. - 1.;
+	U.x *= max(1., R.x / R.y);
+	U.x = clamp(U.x, -1., 1.);
+	U.y *= max(1., R.y / R.x);
+	U.y = clamp(U.y, -1., 1.);
+	U = U * .5 + .5;
+	if (U.x == 1. || U.x == 0.)
+		c = bg;
+	else if (U.y == 1. || U.y == 0.)
+		c = bg;
+	else
+		c = mix(bg, fg, bright*texture(t0, U).r);
+	c = mix(c, texture(t1, p), MIX);
 
 	// NOT ASPECT RATIO ADJUSTED
-	c = mix(mix(bg, fg, bright * texture(t0, p).r), texture(t1, p), MIX);
-	c=mix(bg, fg, 2.*texture(t0,p).r);
+	// c = mix(mix(bg, fg, bright * texture(t0, p).r), texture(t1, p), MIX);
 
+  // Kali transfor for fun
 	// vec2 U = gl_FragCoord.xy/R;
 	// U=U*2.-1.;
 	// U.x*=max(1.,R.x/R.y);
