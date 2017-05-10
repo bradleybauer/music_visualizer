@@ -248,10 +248,10 @@ void* audioThreadMain(void* data) {
 	//- FFT setup
 	ffts_plan_t* fft_plan;
 	fft_plan = ffts_init_1d_real(FFTLEN, FFTS_FORWARD);
-	float __attribute__((aligned(32))) fl[FFTLEN];
-	float __attribute__((aligned(32))) fft_inl[FFTLEN/2 +1];
-	float __attribute__((aligned(32))) fr[FFTLEN];
-	float __attribute__((aligned(32))) fft_inr[FFTLEN/2 +1];
+	float __attribute__((aligned(32))) fl[FFTLEN/2+1];
+	float __attribute__((aligned(32))) fft_inl[FFTLEN];
+	float __attribute__((aligned(32))) fr[FFTLEN/2+1];
+	float __attribute__((aligned(32))) fft_inr[FFTLEN];
 	float FFTwindow[FFTLEN];
 	for (int i = 1; i < FFTLEN; ++i)
 		FFTwindow[i] = (1.f - cosf(2.f * M_PI * i / float(FFTLEN))) / 2.f;
@@ -373,7 +373,7 @@ void* audioThreadMain(void* data) {
 		if (now > prevfft) {
 			prevfft = now + _60fpsDura;
 			for (int i = 0; i < FFTLEN; ++i) {
-				fft_inl[i] = pulse_buf_l[(i * 2 + PL * W) % L] * FFTwindow[i];
+				fft_inl[i] = pulse_buf_l[(i * 2 + PL * W) % L] * FFTwindow[i]; // i * 2 downsamples
 				fft_inr[i] = pulse_buf_r[(i * 2 + PL * W) % L] * FFTwindow[i];
 			}
 			ffts_execute(fft_plan, fft_inl, fl);
