@@ -12,19 +12,14 @@ make -j4
 
 Depends on opengl >= 3.3, and pulseaudio.
 
-Uses code from the following repositories:
+Uses code from the following repositories
+<a href="https://github.com/linkotec/ffts">ffts (linkotec fork)</a>
+	fast fft library
 
+<a href="https://github.com/karlstav/cava">cava</a>
+	pulseaudio setup code
 
-	ffts (linkotec fork): 
-		[a link](https://github.com/linkotec/ffts)
-		fast fft
-
-	cava: 
-		[a link](https://github.com/karlstav/cava)
-		pulseaudio setup code
-
-	Oscilloscope: 
-		[a link](https://github.com/kritzikratzi/Oscilloscope)
-		shader code for drawing smooth lines
+<a href="https://github.com/kritzikratzi/Oscilloscope">Oscilloscope</a>
+	shader code for drawing smooth lines
 
 Checkout the 'Feature Toggles' fold in pulse.cpp!
