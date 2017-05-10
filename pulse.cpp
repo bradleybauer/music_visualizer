@@ -8,26 +8,39 @@
 	#define RENORM_2
 	//
 	// ------WAVE FFT STABILIZATION
-	// use the fft to intelligently choose at which times to advance the waveform.
-	// Imagine standing next to a sine wave that is zooming past you and you want to
-	// take a picture of it such that each picture looks almost exactly the same.
-	// How fast should you take pictures? Well as fast as needed such that every time
-	// you take a picture the the sinewave has travelled some whole number of wavelengths
-	// past you. So if the sine wave is 1hz a second (it has travelled 2π in 1 second), then
-	// you want to take pictures at 1hz a second. If the sine wave is 60hz (it travells a dist
-	// of 60*2π) a second, then you want to take pictures at 60hz a second.
-	// Similarly, how far should the pointer in the circular buffer travel forward such that
-	// it travels an integer number of periods of the wave? The pointer should move forward by
-	// an whole number of wavelengths of the audio. I implement this by using the fft.
-	// The frequency is related to the wavelength by this equation
+	// Use the fft to intelligently choose when to advance the waveform.
+	// Imagine running along next to a audio wave, and you want to take a picture of the audio
+	// wave with a camera such that each picture looks almost exactly the same.
+	// How do we know when to take these pictures? We need to try and take a picture every
+	// time that we pass a distance of one period (one wavelength) of the audio wave. The audio
+	// pointer in the circular buffer is like the camera, and every time we update the audio
+	// pointer we take a picture of the audio wave with our camera.
+	//
+	// The audio pointer in the circular buffer should be moved such that it travels only distances
+	// that are whole multiples, not fractional multiples, of the audio wave's wavelength.
+	// But how do we find the wavelength of the audio wave? If we try and look for the zero's
+	// of the audio wave and then note the distance between them, then we will not get an accurate
+	// or consistent measure of the wavelength because the noise in the waveform can throw
+	// our measure off.
+	//
+	// The wavelength of a waveform is related to the frequency by this equation
 	// wavelength = velocity/frequency
 	//
 	// velocity = sample rate
 	// wavelength = number of samples of one period of the wave
-	// frequency = frequency of the waveform
+	// frequency = dominant frequency of the waveform
 	//
-	// In order to find the ideal number of samples to advance the pointer by we calculate
-	// step samples = (velocity / frequency = sample rate / frequency)
+	// In order to find the wavelength of the audio wave we can take the fft of the wave
+	// and then use that to choose at what distances we should move the audio pointer by.
+	// Is there a better way to get the wavelength? idk, this works pretty good.
+	//
+	// In the code I move the audio pointer forward by ( steps*SR/freq ) instead of ( SR/freq )
+	// because it could happen that the audio loop takes enough time to process that we should move
+	// the audio pointer forward more than one wavelength. If we imagine that we're driving past the
+	// audio waveform, then we could say that we forgot to take a picture the last time we passed a
+	// wavelength, and so we need to move the next picture-taking-position (audio pointer) ahead by
+	// 'steps' number of wavelengths.
+	//
 	#define FFT_SYNC
 	// -/
 
