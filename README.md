@@ -21,3 +21,6 @@ Uses code from the following repositories<br>
 	shader code for drawing smooth lines<br>
 
 Checkout the 'Feature Toggles' fold in pulse.cpp!
+
+Here is a youtube video of the app displaying a waveform.<br>
+<a href="https://youtu.be/yxGM7H1RFRA">https://youtu.be/yxGM7H1RFRA</a>
