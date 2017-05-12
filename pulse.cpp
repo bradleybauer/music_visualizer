@@ -36,6 +36,12 @@
 	#define FFT_SYNC
 	// -/
 
+// TODO is there any way that we can minimize the difference between each successive image?
+// maybe we should define the difference to be
+// θ(n) = 1-(o*n)/(|o||n|)
+// where '*' is the dot product, '|x|' is the length of x, o is the old wave amplitude, and n is the new wave amplitude
+// and then, within some limits, compute θ(n) for various n and choose to display only the θ(n) that produces the smallest value.
+
 /*
  * Proof in progress
  * Work of concept
@@ -389,8 +395,8 @@ void* audioThreadMain(void* data) {
 		//- Fill presentation buffers
 		audio->mtx.lock();
 		// Smooth and upsample the wave
-		// const float smoother = 1.;
-		const float smoother = .2;
+		const float smoother = .9;
+		// const float smoother = .2;
 		// const float smoother = .1;
 
 #ifdef RENORM_2
@@ -403,8 +409,8 @@ void* audioThreadMain(void* data) {
 			const float al = upsmpl(tl);
 			const float ar = upsmpl(tr);
 #ifdef RENORM_2
-			audio->audio_l[i] = mix(audio->audio_l[i], al, smoother)+.005*sinArray[i]*(1.f-Pl);
-			audio->audio_r[i] = mix(audio->audio_r[i], ar, smoother)+.005*sinArray[(i+VL/4)%VL]*(1.f-Pr); // i+vl/4 : sine -> cosine
+			audio->audio_l[i] = mix(audio->audio_l[i], al, smoother);
+			audio->audio_r[i] = mix(audio->audio_r[i], ar, smoother); // i+vl/4 : sine -> cosine
 #endif
 #ifdef RENORM_1
 			audio->audio_l[i] = mix(audio->audio_l[i], al, smoother);
