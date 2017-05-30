@@ -34,6 +34,12 @@
 	// and then use that to choose at what distances we should move the audio pointer by.
 	// Is there a better way to get the wavelength? idk, this works pretty good.
 	#define FFT_SYNC
+	//
+	// ------NewWave-oldWave mix / Exponential smooth
+	// static const float smoother = 1.;
+	static const float smoother = .4;
+	// static const float smoother = .2;
+	// static const float smoother = .1;
 	// -/
 
 /*
@@ -389,10 +395,6 @@ void* audioThreadMain(void* data) {
 		//- Fill presentation buffers
 		audio->mtx.lock();
 		// Smooth and upsample the wave
-		// const float smoother = 1.;
-		const float smoother = .2;
-		// const float smoother = .1;
-
 #ifdef RENORM_2
 		const float Pl = pow(maxl, .1);
 		const float Pr = pow(maxr, .1);
