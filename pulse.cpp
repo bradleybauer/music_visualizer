@@ -14,7 +14,8 @@
 	// compute when/where/how much to nudge the window.
 	// remember that the fft does not have perfect time resolution, so I do not necessarily know the dominant frequency at exactly time t.
 	// This problem needs a bit deeper analysis.
-	double PHASE_ADJSUT = .1;
+	float PHASE_ADJSUT_L = .1;
+	float PHASE_ADJSUT_R = .1;
 
 	//- Feature Toggles
 	// ------WAVE RENORMALIZATION
@@ -53,7 +54,7 @@
 	//
 	// ------NewWave-oldWave mix / Exponential smooth
 	static const float smoother = 1.;
-	// static const float smoother = .4;
+	// static const float smoother = .6;
 	// static const float smoother = .2;
 	// static const float smoother = .1;
 	// -/
@@ -191,7 +192,7 @@ static chrono::steady_clock::duration dura(float x) {
 	return chrono::duration_cast<chrono::steady_clock::duration>(
 	    chrono::duration<float, std::ratio<1>>(x));
 }
-static float max_frequency(float* f, bool LOG, float& prev_r, float& prev_i) {
+static float max_frequency(float* f, bool LOG, float& prev_r, float& prev_i, float& phase) {
 	// more info -> http://dspguru.com/dsp/howtos/how-to-interpolate-fft-peak
 	const int k = max_bin(f);
 	const float r1 = f[2*(k-1)];
@@ -214,18 +215,18 @@ static float max_frequency(float* f, bool LOG, float& prev_r, float& prev_i) {
 		// 	cout << d << ", ";
 		// 	cout << kp << ", ";
 
-		const float i = (i1+i2+i3)/3.;
-		const float r = (r1+r2+r3)/3.;
-		const float n = atan(i/r)-atan(prev_i/prev_r);
-		if (fabs(n)<.4*3.141592/2.)
-			PHASE_ADJSUT = .3*n + .7*PHASE_ADJSUT;
-		if (!std::isnormal(PHASE_ADJSUT))
-			PHASE_ADJSUT = 0;
-		cout << PHASE_ADJSUT << endl;
-		prev_i = i;
-		prev_r = r;
-		if (prev_r == 0) prev_r = 1;
+		cout << phase << endl;
 	}
+	const float i = (i1+i2+i3)/3.;
+	const float r = (r1+r2+r3)/3.;
+	const float n = atan(i/r)-atan(prev_i/prev_r);
+	if (fabs(n)<.4*3.141592/2.)
+		phase = .3*n + .7*phase;
+	if (!std::isnormal(phase))
+		phase = 0;
+	prev_i = i;
+	prev_r = r;
+	if (prev_r == 0) prev_r = 1;
 
 	return kp * float(SRF) / float(FFTLEN);
 }
@@ -360,8 +361,10 @@ void* audioThreadMain(void* data) {
 	// -/
 
 	//- phase adjust
-	float prev_r = 1;
-	float prev_i = 1;
+	float prev_rr = 1;
+	float prev_ir = 1;
+	float prev_rl = 1;
+	float prev_il = 1;
 	// -/
 	while (1) {
 
@@ -397,10 +400,10 @@ void* audioThreadMain(void* data) {
 #endif
 
 #ifdef FFT_SYNC
-			float max_freq = max_frequency(fft_outl, true, prev_r, prev_i);
+			float max_freq = max_frequency(fft_outl, true, prev_rl, prev_il, PHASE_ADJSUT_L);
 			freql = get_harmonic(max_freq, true);
 
-			float input = (FFTLEN/float(SRF)*(PHASE_ADJSUT/3.14159268*2.))*max_freq;
+			float input = (FFTLEN/float(SRF)*(PHASE_ADJSUT_L/3.14159268*2.))*max_freq;
 			move_index(irl, input);
 
 			next_l += dura(1.f/ freql);
@@ -423,7 +426,12 @@ void* audioThreadMain(void* data) {
 #endif
 
 #ifdef FFT_SYNC
-			freqr = get_harmonic(max_frequency(fft_outr, false, prev_r, prev_i), false);
+			float max_freq = max_frequency(fft_outr, true, prev_rr, prev_ir, PHASE_ADJSUT_R);
+			freqr = get_harmonic(max_freq, true);
+
+			float input = (FFTLEN/float(SRF)*(PHASE_ADJSUT_R/3.14159268*2.))*max_freq;
+			move_index(irr, input);
+
 			next_r += dura(1.f/ freqr);
 #else
 			next_r += _60fpsDura;

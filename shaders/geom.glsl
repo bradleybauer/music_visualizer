@@ -69,10 +69,10 @@ void main() {
 	float t0 = (quad_id+0)/float(num_points);
 	float t1 = (quad_id+1)/float(num_points);
 
-	float sr0 = texture(SL, t0).r;
-	float sr1 = texture(SL, t1).r;
-	vec2 P0 = vec2(t0*2.-1., sr0);
-	vec2 P1 = vec2(t1*2.-1., sr1);
+	float sl0 = texture(SL, t0).r;
+	float sl1 = texture(SL, t1).r;
+	vec2 P0 = vec2(t0*2.-1., sl0);
+	vec2 P1 = vec2(t1*2.-1., sl1);
 	quad(P0, P1, t0, t1);
 
 	// quad(vec2(sl0,t0+.7),vec2(sl1,t1+.7), t0, t1);
