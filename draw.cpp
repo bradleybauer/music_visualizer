@@ -262,7 +262,7 @@ static bool link_program(GLuint& pn, GLuint& vs, GLuint& gs, GLuint fs) {
 	return true;
 }
 void draw(struct audio_data* audio) {
-	fps();
+	// fps();
 	static auto start_time = std::chrono::steady_clock::now();
 	auto now = std::chrono::steady_clock::now();
 	double elapsed = (now - start_time).count() / 1e9;
@@ -342,8 +342,8 @@ bool initialize_gl() {
 	glewInit();
 	const GLubyte* renderer = glGetString(GL_RENDERER);
 	const GLubyte* version = glGetString(GL_VERSION);
-	cout << "Renderer: " << renderer << endl;
-	cout << "OpenGL version supported "<< version << endl;
+	// cout << "Renderer: " << renderer << endl;
+	// cout << "OpenGL version supported "<< version << endl;
 	glViewport(0, 0, wwidth, wheight);
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetCursorPosCallback(window, cursor_position_callback);

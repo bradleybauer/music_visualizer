@@ -1,5 +1,21 @@
 // vim: foldmarker=\/\-,\-\/:foldmethod=marker
 
+	// TODO
+	// different ways to reduce the appearance of 'drift' in the wave
+	//		Use a RNN to fix error in the output of max_frequency()
+	//			collect a bunch of data and then using mouse input to teach the NN when and what direction the wave is drifting?
+	//			have to be able to measure drift somehow
+	//			check https://stackoverflow.com/questions/27545171/identifying-phase-shift-between-signals
+	//				pro : good when signal is noisy
+	//				con : bad when signal changes freq within fft window
+	//		maximize convolution between section(old) and new
+	//			might cause jitter?
+	//
+	// compute when/where/how much to nudge the window.
+	// remember that the fft does not have perfect time resolution, so I do not necessarily know the dominant frequency at exactly time t.
+	// This problem needs a bit deeper analysis.
+	double PHASE_ADJSUT = .1;
+
 	//- Feature Toggles
 	// ------WAVE RENORMALIZATION
 	// renormalize the wave to be unit amplitude.
@@ -36,8 +52,8 @@
 	#define FFT_SYNC
 	//
 	// ------NewWave-oldWave mix / Exponential smooth
-	// static const float smoother = 1.;
-	static const float smoother = .4;
+	static const float smoother = 1.;
+	// static const float smoother = .4;
 	// static const float smoother = .2;
 	// static const float smoother = .1;
 	// -/
@@ -169,20 +185,48 @@ static void fps(chrono::steady_clock::time_point& now) {
 }
 static chrono::steady_clock::duration dura(float x) {
 	// dura() converts a second, represented as a double, into the appropriate unit of
-	// time for chrono::steady_clock and with the appropriate arithematic type
-	// using dura() avoids errors like this : chrono::seconds(double initializer)
+	// time (milli, micro, nano) for chrono::steady_clock and with the appropriate arithematic
+	// type using dura() avoids errors like this : chrono::seconds(double initializer)
 	// dura() : <double,seconds> -> chrono::steady_clock::<typeof count(), time unit>
 	return chrono::duration_cast<chrono::steady_clock::duration>(
 	    chrono::duration<float, std::ratio<1>>(x));
 }
-static float max_frequency(float* f) {
+static float max_frequency(float* f, bool LOG, float& prev_r, float& prev_i) {
 	// more info -> http://dspguru.com/dsp/howtos/how-to-interpolate-fft-peak
 	const int k = max_bin(f);
-	const float y1 = mag(f,k - 1);
-	const float y2 = mag(f,k);
-	const float y3 = mag(f,k + 1);
-	const float d = (y3 - y1) / (2 * (2 * y2 - y1 - y3)+1/32.f); // +1/32 to avoid divide by zero
+	const float r1 = f[2*(k-1)];
+	const float r2 = f[2*k];
+	const float r3 = f[2*(k+1)];
+	const float i1 = f[2*(k-1)+1];
+	const float i2 = f[2*k+1];
+	const float i3 = f[2*(k+1)+1];
+	const float y1 = sqrt(r1*r1+i1*i1);
+	const float y2 = sqrt(r2*r2+i2*i2);
+	const float y3 = sqrt(r3*r3+i3*i3);
+	float d = (y3 - y1) / (2 * (2 * y2 - y1 - y3)+1/320.f); // +1/32 to avoid divide by zero
 	const float kp = k + d;
+
+	if (LOG) {
+		// 	cout << k << ", ";
+		// 	cout << y1 << ", ";
+		// 	cout << y2 << ", ";
+		// 	cout << y3 << ", ";
+		// 	cout << d << ", ";
+		// 	cout << kp << ", ";
+
+		const float i = (i1+i2+i3)/3.;
+		const float r = (r1+r2+r3)/3.;
+		const float n = atan(i/r)-atan(prev_i/prev_r);
+		if (fabs(n)<.4*3.141592/2.)
+			PHASE_ADJSUT = .3*n + .7*PHASE_ADJSUT;
+		if (!std::isnormal(PHASE_ADJSUT))
+			PHASE_ADJSUT = 0;
+		cout << PHASE_ADJSUT << endl;
+		prev_i = i;
+		prev_r = r;
+		if (prev_r == 0) prev_r = 1;
+	}
+
 	return kp * float(SRF) / float(FFTLEN);
 }
 static float clamp(float x, float l, float h) {
@@ -192,7 +236,7 @@ static float clamp(float x, float l, float h) {
 		x = h;
 	return x;
 }
-static float get_harmonic(float freq) {
+static float get_harmonic(float freq, bool LOG) {
 	// bound freq into the interval [24, 60]
 
 	freq = clamp(freq, 1.f, SRF / float(FFTLEN) * 100);
@@ -212,6 +256,10 @@ static float get_harmonic(float freq) {
 	// while (o > 61.f) o /= 2.f; // dividing frequency by two does not change the flipbook
 	// image
 	// while (o < 24.f) o *= 2.f; // multiplying frequency by two produces the ghosting effect
+
+	// if (LOG)
+	// 	cout << freq << ", ";
+
 	return freq;
 }
 static inline float mix(float x, float y, float m) {
@@ -311,6 +359,10 @@ void* audioThreadMain(void* data) {
 #endif
 	// -/
 
+	//- phase adjust
+	float prev_r = 1;
+	float prev_i = 1;
+	// -/
 	while (1) {
 
 		//- Read Datums
@@ -335,7 +387,7 @@ void* audioThreadMain(void* data) {
 			move_index(irl,  SR / freql);
 			if (dist_forward(irl, PL * W) < VL) {
 				adjust_reader(irl, PL * W, freql);
-				cout << "oopsl" << endl;
+				// cout << "oopsl" << endl;
 			}
 			for (int i = 0; i < VL; ++i)
 				tl[i] = pulse_buf_l[(i + int(irl)) % L];
@@ -345,7 +397,12 @@ void* audioThreadMain(void* data) {
 #endif
 
 #ifdef FFT_SYNC
-			freql = get_harmonic(max_frequency(fft_outl));
+			float max_freq = max_frequency(fft_outl, true, prev_r, prev_i);
+			freql = get_harmonic(max_freq, true);
+
+			float input = (FFTLEN/float(SRF)*(PHASE_ADJSUT/3.14159268*2.))*max_freq;
+			move_index(irl, input);
+
 			next_l += dura(1.f/ freql);
 #else
 			next_l += _60fpsDura;
@@ -356,7 +413,7 @@ void* audioThreadMain(void* data) {
 			move_index(irr, SR / freqr);
 			if (dist_forward(irr, PL * W) < VL) {
 				adjust_reader(irr, PL * W, freqr);
-				cout << "oopsr" << endl;
+				// cout << "oopsr" << endl;
 			}
 			for (int i = 0; i < VL; ++i)
 				tr[i] = pulse_buf_r[(i + int(irr)) % L];
@@ -366,7 +423,7 @@ void* audioThreadMain(void* data) {
 #endif
 
 #ifdef FFT_SYNC
-			freqr = get_harmonic(max_frequency(fft_outr));
+			freqr = get_harmonic(max_frequency(fft_outr, false, prev_r, prev_i), false);
 			next_r += dura(1.f/ freqr);
 #else
 			next_r += _60fpsDura;
@@ -396,17 +453,17 @@ void* audioThreadMain(void* data) {
 		audio->mtx.lock();
 		// Smooth and upsample the wave
 #ifdef RENORM_2
-		const float Pl = pow(maxl, .1);
-		const float Pr = pow(maxr, .1);
+		const float Pl = pow(maxl, .01);
+		const float Pr = pow(maxr, .01);
 #endif
 
 		for (int i = 0; i < VL; ++i) {
-			#define upsmpl(s) (s[i/2] + s[(i+1)/2])/2.f
+			#define upsmpl(s) (s[i/2]*.5 + .5*s[(i+1)/2])
 			const float al = upsmpl(tl);
 			const float ar = upsmpl(tr);
 #ifdef RENORM_2
-			audio->audio_l[i] = mix(audio->audio_l[i], al, smoother)+.005*sinArray[i]*(1.f-Pl);
-			audio->audio_r[i] = mix(audio->audio_r[i], ar, smoother)+.005*sinArray[(i+VL/4)%VL]*(1.f-Pr); // i+vl/4 : sine -> cosine
+			audio->audio_l[i] = mix(audio->audio_l[i], al, smoother);
+			audio->audio_r[i] = mix(audio->audio_r[i], ar, smoother);
 #endif
 #ifdef RENORM_1
 			audio->audio_l[i] = mix(audio->audio_l[i], al, smoother);
