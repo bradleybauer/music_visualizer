@@ -176,11 +176,11 @@ out vec4 c;
 // vec4 bg=vec4(0.);
 // vec4 fg=vec4(1.,1.,.1,1.);
 //
-vec4 bg=vec4(1);
-vec4 fg=vec4(0);
+// vec4 bg=vec4(1);
+// vec4 fg=vec4(0);
 //
-// vec4 bg=vec4(0);
-// vec4 fg=vec4(1);
+vec4 bg=vec4(0);
+vec4 fg=vec4(1);
 //
 const float MIX = .8;
 const float bright = 6.;
@@ -204,7 +204,7 @@ void main() {
 	// NOT ASPECT RATIO ADJUSTED
 	c = mix(mix(bg, fg, bright * texture(t0, p).r), texture(t1, p), MIX);
 
-  // Kali transfor for fun
+  // Kali transform for fun
 	// vec2 U = gl_FragCoord.xy/R;
 	// U=U*2.-1.;
 	// U.x*=max(1.,R.x/R.y);
@@ -303,6 +303,7 @@ void draw(struct audio_data* audio) {
 	TEXMACRO(2, freq_l)
 	TEXMACRO(3, freq_r)
 	audio->mtx.unlock();
+#undef TEXMACRO
 
 	glDrawArrays(GL_POINTS, 0, POINTS);
 
@@ -421,6 +422,7 @@ bool initialize_gl() {
 	ILOVEMACRO(1, "SR")
 	ILOVEMACRO(2, "FL")
 	ILOVEMACRO(3, "FR")
+#undef ILOVEMACRO
 
 	glGenTextures(1, &fbtex);
 	glActiveTexture(GL_TEXTURE0);
