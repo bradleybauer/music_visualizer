@@ -69,6 +69,7 @@ static long filelength(FILE* file) {
 	fseek(file, savedpos, SEEK_SET);
 	return numbytes;
 }
+// TODO USE C++ FILESYSTEM FEATURES
 static bool readShaderFile(const char* filename, GLchar*& out) {
 	FILE* file = fopen(filename, "r");
 	if (file == NULL) {
