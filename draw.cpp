@@ -175,13 +175,13 @@ out vec4 c;
 // vec4 bg=vec4(0.);
 // vec4 fg=vec4(1.,1.,.1,1.);
 //
-vec4 bg=vec4(1);
-vec4 fg=vec4(0);
+// vec4 bg=vec4(1);
+// vec4 fg=vec4(0);
 //
-// vec4 bg=vec4(0);
-// vec4 fg=vec4(1);
+vec4 bg=vec4(0);
+vec4 fg=vec4(1);
 //
-const float MIX = .8;
+const float MIX = .9;
 const float bright = 6.;
 void main() {
 	// ASPECT RATIO ADJUSTED

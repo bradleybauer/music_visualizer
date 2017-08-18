@@ -34,6 +34,12 @@
 	// and then use that to choose at what distances we should move the audio pointer by.
 	// Is there a better way to get the wavelength? idk, this works pretty good.
 	#define FFT_SYNC
+	//
+	// ------NewWave-oldWave mix / Exponential smooth
+	// static const float smoother = 1.;
+	static const float smoother = .4;
+	// static const float smoother = .2;
+	// static const float smoother = .1;
 	// -/
 
 // TODO is there any way that we can minimize the difference between each successive image?
@@ -410,7 +416,7 @@ void* audioThreadMain(void* data) {
 			const float ar = upsmpl(tr);
 #ifdef RENORM_2
 			audio->audio_l[i] = mix(audio->audio_l[i], al, smoother);
-			audio->audio_r[i] = mix(audio->audio_r[i], ar, smoother); // i+vl/4 : sine -> cosine
+			audio->audio_r[i] = mix(audio->audio_r[i], ar, smoother);
 #endif
 #ifdef RENORM_1
 			audio->audio_l[i] = mix(audio->audio_l[i], al, smoother);
@@ -424,6 +430,7 @@ void* audioThreadMain(void* data) {
 #endif
 		}
 
+
 #ifdef RENORM_2
 		const float bound = .75;
 		const float spring = .1; // can spring past bound... oops
@@ -432,6 +439,19 @@ void* audioThreadMain(void* data) {
 #endif
 		audio->mtx.unlock();
 		// -/
+
+		// Silly smoothing
+		const int width = 0;
+		for (int i = width; i < VL-width; ++i) {
+			float suml = 0;
+			float sumr = 0;
+			for (int j = -width; j <= width; ++j) {
+				suml += audio->audio_l[i+j];
+				sumr += audio->audio_r[i+j];
+			}
+			audio->audio_l[i] = suml/(width*2 + 1);
+			audio->audio_r[i] = sumr/(width*2 + 1);
+		}
 
 		if (audio->thread_join) {
 			pa_simple_free(pulseState);
