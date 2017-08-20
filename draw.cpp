@@ -26,8 +26,8 @@ static const int COORDS_PER_POINT = 1;
 static int point_indices[POINTS];
 
 // window dimensions
-static int wwidth = 400;
-static int wheight = 400;
+static int wwidth = 800;
+static int wheight = wwidth*9/16;
 
 static GLuint vbo;       // vertex buffer object
 static GLuint vao;       // vertex array object
@@ -158,7 +158,7 @@ static std::string FRAG = R"(
 #version 330
 precision highp float;
 uniform sampler2D t0;
-uniform sampler2D t1;
+uniform sampler2D t1; // previous buffer i think? been a while since i looked at this mess
 uniform vec2 R;
 uniform float T;
 in vec2 p;
@@ -217,6 +217,8 @@ void main() {
 	// U=U*.5+.5;
 	// c=mix(mix(bg, 4.*fg, texture(t0, U).r), texture(t1, p), MIX);
 
+	if (texture(t0,p).r > .5)
+		c+=vec4(.24/sqrt(2.),0.,1./sqrt(2.),0.);
 }
 )";
 static bool compile_shader(GLchar* s, GLuint& sn, GLenum stype) {
