@@ -228,7 +228,8 @@ void main() {
 	// background.
 	// This effect would look great for songs that have a lot of noise
 	// and then momentarily cut the noise off and add some clean bass wave. :D
-	c+=smoothstep(.2, 1., .2*dot(c,c)+texture(t0,p).r)*vec4(.2,0.,1.5,0.);
+	c+=smoothstep(.2, 1., .18*dot(c,c)+texture(t0,p).r)*vec4(.2,0.,1.5,0.);
+	// c+=(1.-smoothstep(.2, 1., 1/(.6*dot(c,c)+texture(t0,p).r)))*vec4(.2,0.,1.5,0.);
 }
 )";
 static bool compile_shader(GLchar* s, GLuint& sn, GLenum stype) {
