@@ -217,8 +217,18 @@ void main() {
 	// U=U*.5+.5;
 	// c=mix(mix(bg, 4.*fg, texture(t0, U).r), texture(t1, p), MIX);
 
-	if (texture(t0,p).r > .5)
-		c+=vec4(.24/sqrt(2.),0.,1./sqrt(2.),0.);
+	// The attempt here is to draw color on lines that are nice and
+	// solid. The way the line shader works is that if there is a
+	// greater distance between two lines then the intensity of the
+	// color of the line beteen those two points is less than if those
+	// two points were closer... I think this could be done by simply
+	// drawing a smoothed version of the waveform overtop of the more
+	// noisy waveform. I want to emphasize that very distinct clear
+	// waveform and push the noisy part of the waveform more into the
+	// background.
+	// This effect would look great for songs that have a lot of noise
+	// and then momentarily cut the noise off and add some clean bass wave. :D
+	c+=smoothstep(.2, 1., .2*dot(c,c)+texture(t0,p).r)*vec4(.2,0.,1.5,0.);
 }
 )";
 static bool compile_shader(GLchar* s, GLuint& sn, GLenum stype) {
