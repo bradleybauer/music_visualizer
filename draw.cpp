@@ -27,7 +27,7 @@ static int point_indices[POINTS];
 
 // window dimensions
 static int wwidth = 800;
-static int wheight = wwidth*9/16;
+static int wheight = wwidth/2;
 
 static GLuint vbo;       // vertex buffer object
 static GLuint vao;       // vertex array object
@@ -183,7 +183,7 @@ vec4 bg=vec4(0);
 vec4 fg=vec4(1);
 //
 const float MIX = .9;
-const float bright = 6.;
+const float bright = 10.;
 void main() {
 	// ASPECT RATIO ADJUSTED
 	// vec2 U = gl_FragCoord.xy / R;
@@ -203,6 +203,8 @@ void main() {
 
 	// NOT ASPECT RATIO ADJUSTED
 	c = mix(mix(bg, fg, bright * texture(t0, p).r), texture(t1, p), MIX);
+
+	// c = mix(mix(bg, fg, bright * texture(t0, p).r), texture(t1, clamp(p+.001,0.,1.)), MIX);
 
   // Kali transform for fun
 	// vec2 U = gl_FragCoord.xy/R;
@@ -228,8 +230,11 @@ void main() {
 	// background.
 	// This effect would look great for songs that have a lot of noise
 	// and then momentarily cut the noise off and add some clean bass wave. :D
-	c+=smoothstep(.2, 1., .18*dot(c,c)+texture(t0,p).r)*vec4(.2,0.,1.5,0.);
 	// c+=(1.-smoothstep(.2, 1., 1/(.6*dot(c,c)+texture(t0,p).r)))*vec4(.2,0.,1.5,0.);
+	c+=smoothstep(.2, 1., .22*(dot(c,c)+texture(t0,p).r))*1.5*vec4(.2,0.,1.1,0.);
+
+	// allow black background instead of just very dark grey
+	c-=.002;
 }
 )";
 static bool compile_shader(GLchar* s, GLuint& sn, GLenum stype) {
