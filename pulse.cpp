@@ -37,7 +37,8 @@
 	//
 	// ------NewWave-oldWave mix / Exponential smooth
 	// static const float smoother = 1.;
-	static const float smoother = .4;
+	static const float smoother = .5;
+	// static const float smoother = .4;
 	// static const float smoother = .2;
 	// static const float smoother = .1;
 	// -/
@@ -401,9 +402,6 @@ void* audioThreadMain(void* data) {
 		//- Fill presentation buffers
 		audio->mtx.lock();
 		// Smooth and upsample the wave
-		const float smoother = .9;
-		// const float smoother = .2;
-		// const float smoother = .1;
 
 #ifdef RENORM_2
 		const float Pl = pow(maxl, .1);

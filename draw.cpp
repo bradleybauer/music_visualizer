@@ -157,8 +157,8 @@ void main() {
 static std::string FRAG = R"(
 #version 330
 precision highp float;
-uniform sampler2D t0;
-uniform sampler2D t1; // previous buffer i think? been a while since i looked at this mess
+uniform sampler2D t0; // new buffer
+uniform sampler2D t1; // previous buffer
 uniform vec2 R;
 uniform float T;
 in vec2 p;
@@ -202,9 +202,14 @@ void main() {
 	// c = mix(c, texture(t1, p), MIX);
 
 	// NOT ASPECT RATIO ADJUSTED
-	c = mix(mix(bg, fg, bright * texture(t0, p).r), texture(t1, p), MIX);
-
-	// c = mix(mix(bg, fg, bright * texture(t0, p).r), texture(t1, clamp(p+.001,0.,1.)), MIX);
+	float new = texture(t0, p).r;
+	// for waves
+	vec2 pp = min(vec2(p.x,p.y+0.0032), vec2(.999));
+	// for lissajous
+	// vec2 pp = min(p+.003, vec2(.999));
+	vec4 old = texture(t1, pp);
+	// vec4 old = texture(t1, p);
+	c = mix(mix(bg, fg, bright * new), old, MIX);
 
   // Kali transform for fun
 	// vec2 U = gl_FragCoord.xy/R;
@@ -230,8 +235,10 @@ void main() {
 	// background.
 	// This effect would look great for songs that have a lot of noise
 	// and then momentarily cut the noise off and add some clean bass wave. :D
-	// c+=(1.-smoothstep(.2, 1., 1/(.6*dot(c,c)+texture(t0,p).r)))*vec4(.2,0.,1.5,0.);
-	c+=smoothstep(.2, 1., .22*(dot(c,c)+texture(t0,p).r))*1.5*vec4(.2,0.,1.1,0.);
+	// c+=smoothstep(.2, 1., .22*dot(c,c))*1.5*vec4(.2/1.2,0.,1./1.2,0.);
+	float cc = (.5+.5*cos(T/5.));
+	float cs = (.5+.5*sin(T/8.));
+	c+=smoothstep(.2, 1., .22*dot(c,c))*1.5*vec4(cc*.2/1.2,0.,cs*1./1.2,0.);
 
 	// allow black background instead of just very dark grey
 	c-=.002;
