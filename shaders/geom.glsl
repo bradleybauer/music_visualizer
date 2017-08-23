@@ -28,6 +28,10 @@ layout(max_vertices=24) out;
    0------2
 */
 void quad(vec2 P0, vec2 P1, float t0, float t1) {
+	const float _b_o_r_d_e_r_ = 0.035;
+	if (P0.x < -1. + _b_o_r_d_e_r_ || P0.x > 1. - _b_o_r_d_e_r_ ||
+			P0.y > 1. - _b_o_r_d_e_r_ || P0.y < -1. + _b_o_r_d_e_r_ )
+		return;
 	vec2 dir = P1-P0;
 	float dl = length(dir);
 	// If the segment is too short, just draw a square

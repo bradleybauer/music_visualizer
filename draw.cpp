@@ -203,13 +203,18 @@ void main() {
 
 	// NOT ASPECT RATIO ADJUSTED
 	float new = texture(t0, p).r;
+
 	// for waves
 	vec2 pp = min(vec2(p.x,p.y+0.0032), vec2(.999));
 	// for lissajous
 	// vec2 pp = min(p+.003, vec2(.999));
+
+	// float ghostly = .5;
+	float ghostly = 1.2;
+
 	vec4 old = texture(t1, pp);
 	// vec4 old = texture(t1, p);
-	c = mix(mix(bg, fg, bright * new), old, MIX);
+	c = mix(ghostly*mix(bg, fg, bright * new), old, MIX);
 
   // Kali transform for fun
 	// vec2 U = gl_FragCoord.xy/R;
