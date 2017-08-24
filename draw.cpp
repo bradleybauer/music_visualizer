@@ -157,8 +157,8 @@ void main() {
 static std::string FRAG = R"(
 #version 330
 precision highp float;
-uniform sampler2D t0;
-uniform sampler2D t1;
+uniform sampler2D t0; // new buffer
+uniform sampler2D t1; // previous buffer
 uniform vec2 R;
 uniform float T;
 in vec2 p;
@@ -182,8 +182,8 @@ out vec4 c;
 vec4 bg=vec4(0);
 vec4 fg=vec4(1);
 //
-const float MIX = .8;
-const float bright = 6.;
+const float MIX = .9;
+const float bright = 10.;
 void main() {
 	// ASPECT RATIO ADJUSTED
 	// vec2 U = gl_FragCoord.xy / R;
@@ -202,7 +202,20 @@ void main() {
 	// c = mix(c, texture(t1, p), MIX);
 
 	// NOT ASPECT RATIO ADJUSTED
-	c = mix(mix(bg, fg, bright * texture(t0, p).r), texture(t1, p), MIX);
+	float new = texture(t0, p).r;
+
+	// for waves
+	// vec2 pp = min(vec2(p.x,p.y+0.0032), vec2(.999));
+	// for lissajous
+	// vec2 pp = min(p+.003, vec2(.999));
+	vec2 pp = p;
+
+	// float ghostly = .5;
+	float ghostly = 1.2;
+
+	vec4 old = texture(t1, pp);
+	// vec4 old = texture(t1, p);
+	c = mix(ghostly*mix(bg, fg, bright * new), old, MIX);
 
   // Kali transform for fun
 	// vec2 U = gl_FragCoord.xy/R;
@@ -217,6 +230,24 @@ void main() {
 	// U=U*.5+.5;
 	// c=mix(mix(bg, 4.*fg, texture(t0, U).r), texture(t1, p), MIX);
 
+	// The attempt here is to draw color on lines that are nice and
+	// solid. The way the line shader works is that if there is a
+	// greater distance between two lines then the intensity of the
+	// color of the line beteen those two points is less than if those
+	// two points were closer... I think this could be done by simply
+	// drawing a smoothed version of the waveform overtop of the more
+	// noisy waveform. I want to emphasize that very distinct clear
+	// waveform and push the noisy part of the waveform more into the
+	// background.
+	// This effect would look great for songs that have a lot of noise
+	// and then momentarily cut the noise off and add some clean bass wave. :D
+	// c+=smoothstep(.2, 1., .22*dot(c,c))*1.5*vec4(.2/1.2,0.,1./1.2,0.);
+	float cc = (.5+.5*cos(T/5.));
+	float cs = (.5+.5*sin(T/8.));
+	c+=smoothstep(.2, 1., .22*dot(c,c))*1.5*vec4(cc*.2/1.2,0.,cs*1./1.2,0.);
+
+	// allow black background instead of just very dark grey
+	c-=.002;
 }
 )";
 static bool compile_shader(GLchar* s, GLuint& sn, GLenum stype) {
