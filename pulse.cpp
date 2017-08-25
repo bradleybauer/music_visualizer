@@ -36,12 +36,8 @@
 	#define FFT_SYNC
 	//
 	// ------NewWave-oldWave mix / Exponential smooth
-<<<<<<< HEAD
 	// static const float smoother = 1.;
 	static const float smoother = .5;
-=======
-	static const float smoother = 1.;
->>>>>>> ce7f9dac94334ccaa36e4597d2c6ea48d5337918
 	// static const float smoother = .4;
 	// static const float smoother = .2;
 	// static const float smoother = .1;

@@ -216,7 +216,7 @@ void main() {
 	// vec4 old = texture(t1, p);
 	c = mix(ghostly*mix(bg, fg, bright * new), old, MIX);
 
-  // Kali transform for fun
+	// Kali transform for fun
 	// vec2 U = gl_FragCoord.xy/R;
 	// U=U*2.-1.;
 	// U.x*=max(1.,R.x/R.y);
