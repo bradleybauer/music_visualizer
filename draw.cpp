@@ -205,9 +205,10 @@ void main() {
 	float new = texture(t0, p).r;
 
 	// for waves
-	vec2 pp = min(vec2(p.x,p.y+0.0032), vec2(.999));
+	// vec2 pp = min(vec2(p.x,p.y+0.0032), vec2(.999));
 	// for lissajous
 	// vec2 pp = min(p+.003, vec2(.999));
+	vec2 pp = p;
 
 	// float ghostly = .5;
 	float ghostly = 1.2;

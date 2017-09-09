@@ -4,8 +4,8 @@
 	// ------WAVE RENORMALIZATION
 	// renormalize the wave to be unit amplitude.
 	// there are two methods to do this, dont enable both of these
-	// #define RENORM_1
-	#define RENORM_2
+	#define RENORM_1
+	// #define RENORM_2
 	//
 	// ------WAVE FFT STABILIZATION
 	// Use the fft to intelligently choose when to advance the waveform.
