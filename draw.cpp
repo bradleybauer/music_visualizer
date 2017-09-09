@@ -195,7 +195,7 @@ vec4 fg=vec4(0.,204./255.,1.,1.);
 // vec4 fg=vec4(1);
 //
 const float MIX = .88;
-const float bright = 1.5; // was 10
+const float bright = 1.; // was 10
 void main() {
 	// ASPECT RATIO ADJUSTED
 	// vec2 U = gl_FragCoord.xy / R;
