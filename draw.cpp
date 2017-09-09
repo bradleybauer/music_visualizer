@@ -20,7 +20,8 @@ using std::endl;
 #include <GLFW/glfw3.h>
 static GLFWwindow* window;
 
-static const int POINTS = VISUALIZER_BUFSIZE - 1;
+// static const int POINTS = VISUALIZER_BUFSIZE - 1;
+static const int POINTS = 1;
 static int max_output_vertices;
 static const int COORDS_PER_POINT = 1;
 static int point_indices[POINTS];
@@ -163,9 +164,20 @@ uniform vec2 R;
 uniform float T;
 in vec2 p;
 out vec4 c;
+vec4 blur(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {
+  vec4 color = vec4(0.0);
+  vec2 off1 = vec2(1.3846153846) * direction;
+  vec2 off2 = vec2(3.2307692308) * direction;
+  color += texture2D(image, uv) * 0.2270270270;
+  color += texture2D(image, uv + (off1 / resolution)) * 0.3162162162;
+  color += texture2D(image, uv - (off1 / resolution)) * 0.3162162162;
+  color += texture2D(image, uv + (off2 / resolution)) * 0.0702702703;
+  color += texture2D(image, uv - (off2 / resolution)) * 0.0702702703;
+  return color;
+}
 //
-// vec4 bg=vec4(0.);
-// vec4 fg=vec4(0.,204./255.,1.,1.);
+vec4 bg=vec4(0.);
+vec4 fg=vec4(0.,204./255.,1.,1.);
 //
 // vec4 bg = vec4(1.);
 // vec4 fg = vec4(0., 204. / 255., 1., 1.);
@@ -179,11 +191,11 @@ out vec4 c;
 // vec4 bg=vec4(1);
 // vec4 fg=vec4(0);
 //
-vec4 bg=vec4(0);
-vec4 fg=vec4(1);
+// vec4 bg=vec4(0);
+// vec4 fg=vec4(1);
 //
-const float MIX = .9;
-const float bright = 10.;
+const float MIX = .88;
+const float bright = 1.5; // was 10
 void main() {
 	// ASPECT RATIO ADJUSTED
 	// vec2 U = gl_FragCoord.xy / R;
@@ -204,17 +216,15 @@ void main() {
 	// NOT ASPECT RATIO ADJUSTED
 	float new = texture(t0, p).r;
 
+	// Cause the image to 'drift'
 	// for waves
 	// vec2 pp = min(vec2(p.x,p.y+0.0032), vec2(.999));
 	// for lissajous
 	// vec2 pp = min(p+.003, vec2(.999));
 	vec2 pp = p;
-
 	// float ghostly = .5;
 	float ghostly = 1.2;
-
 	vec4 old = texture(t1, pp);
-	// vec4 old = texture(t1, p);
 	c = mix(ghostly*mix(bg, fg, bright * new), old, MIX);
 
   // Kali transform for fun

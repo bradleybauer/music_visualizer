@@ -11,7 +11,7 @@ layout(points) in;
 layout(triangle_strip) out;
 layout(max_vertices=24) out;
 
-void quadAtPoint(vec2 p, vec2 size, float th) {
+void quadAtPoint(vec2 p, vec2 size) {
 	vec4 P = vec4(p,0.,1.);
 	vec2 q1 = size;
 	vec2 q2 = vec2(size.x, -size.y);
