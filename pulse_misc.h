@@ -1,4 +1,3 @@
-#include "audio_data.h"
 #include <pulse/error.h>
 #include <pulse/pulseaudio.h>
 #include <pulse/simple.h>
@@ -56,4 +55,3 @@ void getPulseDefaultSink(void* data) {
 		std::cout << "Could not open pulseaudio mainloop to find default device name: %d" << ret << std::endl;
 	}
 }
-

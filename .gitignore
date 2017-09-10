@@ -1,3 +1,11 @@
 *.o
 main
 build
+.vs
+.vscode
+x64
+*.opendb
+*.db
+*.filters
+*.user
+*.lib

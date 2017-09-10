@@ -4,7 +4,6 @@ using std::cout;
 using std::endl;
 #include <chrono>
 using clk = std::chrono::steady_clock;
-#include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include "draw.h"
 #include "audio_data.h"
