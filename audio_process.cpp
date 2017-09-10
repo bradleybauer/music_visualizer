@@ -4,8 +4,9 @@
 	// ------WAVE RENORMALIZATION
 	// renormalize the wave to be unit amplitude.
 	// there are two methods to do this, dont enable both of these
-	#define RENORM_1
+	// #define RENORM_1
 	// #define RENORM_2
+	#define RENORM_3
 	//
 	// ------WAVE FFT STABILIZATION
 	// Use the fft to intelligently choose when to advance the waveform.
@@ -33,7 +34,7 @@
 	// In order to find the wavelength of the audio wave we can take the fft of the wave
 	// and then use that to choose at what distances we should move the audio pointer by.
 	// Is there a better way to get the wavelength? idk, this works pretty good.
-	// #define FFT_SYNC
+	#define FFT_SYNC
 	//
 	// ------NewWave-oldWave mix / Exponential smooth
 	static const float smoother = 1.;
@@ -256,17 +257,19 @@ void* audioThreadMain(void* data) {
 	//- FFT setup
 	ffts_plan_t* fft_plan;
 	fft_plan = ffts_init_1d_real(FFTLEN, FFTS_FORWARD);
-	// TEST without alignment attributes
-	//float __attribute__((aligned(32))) fft_outl[FFTLEN/2+1];
-	//float __attribute__((aligned(32))) fft_inl[FFTLEN];
-	//float __attribute__((aligned(32))) fft_outr[FFTLEN/2+1];
-	//float __attribute__((aligned(32))) fft_inr[FFTLEN];
-	float fft_outl[FFTLEN/2+1];
-	float fft_inl[FFTLEN];
-	float fft_outr[FFTLEN/2+1];
-	float fft_inr[FFTLEN];
+
+#ifdef WINDOWS
+#define ALIGN __declspec(align(32))
+#else
+#define ALIGN __attribute__((aligned(32)))
+#endif
+	
+	float ALIGN fft_outl[FFTLEN/2+1];
+	float ALIGN fft_inl[FFTLEN];
+	float ALIGN fft_outr[FFTLEN/2+1];
+	float ALIGN fft_inr[FFTLEN];
 	float FFTwindow[FFTLEN];
-	for (int i = 1; i < FFTLEN; ++i)
+	for (int i = 0; i < FFTLEN; ++i)
 		FFTwindow[i] = (1.f - cosf(2.f * PI * i / float(FFTLEN))) / 2.f;
 	// -/
 
@@ -350,8 +353,8 @@ void* audioThreadMain(void* data) {
 		}
 // -/
 
-		//- Preprocess audio, execute the FFT, and fill fft output buff
-#ifdef FFT_SYNC
+		//- Execute fft and fill fft output buff
+		// This downsamples and windows the audio
 		if (now > prevfft) {
 			prevfft = now + _60fpsDura;
 			for (int i = 0; i < FFTLEN; ++i) {
@@ -365,13 +368,12 @@ void* audioThreadMain(void* data) {
 				audio->freq_r[i] = (float)mag(fft_outr, i)/sqrt(FFTLEN);
 			}
 		}
-#endif
 		// -/
 
 		//- Fill output buffers
 		audio->mtx.lock();
 		// Smooth and upsample the wave
-#ifdef RENORM_2
+#if defined(RENORM_2) || defined(RENORM_3)
 		const float Pl = pow(maxl, .1);
 		const float Pr = pow(maxr, .1);
 #endif
@@ -389,7 +391,7 @@ void* audioThreadMain(void* data) {
 #endif
 		}
 
-#ifdef RENORM_2
+#if defined(RENORM_2) || defined(RENORM_3)
 		const float bound = .75;
 		const float spring = .1; // can spring past bound... oops
 		renorm(audio->audio_l, maxl, spring, bound);

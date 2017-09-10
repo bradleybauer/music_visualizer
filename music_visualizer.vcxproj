@@ -107,6 +107,8 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>ffts_staticd.lib;opengl32.lib;glew32sd.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>
+      </SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

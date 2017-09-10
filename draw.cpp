@@ -25,8 +25,8 @@ using std::endl;
 #include <GLFW/glfw3.h>
 static GLFWwindow* window;
 
-static const int POINTS = VISUALIZER_BUFSIZE - 1;
-//static const int POINTS = 1;
+//static const int POINTS = VISUALIZER_BUFSIZE - 1;
+static const int POINTS = 1;
 static int max_output_vertices;
 static const int COORDS_PER_POINT = 1;
 static int point_indices[POINTS];
@@ -181,57 +181,57 @@ out vec4 c;
 // vec4 bg=vec4(0.);
 // vec4 fg=vec4(1.,1.,.1,1.);
 //
-//vec4 bg=vec4(1);
-//vec4 fg=vec4(0);
+vec4 bg=vec4(1);
+vec4 fg=vec4(0);
 //
-vec4 bg=vec4(0);
-vec4 fg=vec4(1);
+//vec4 bg=vec4(0);
+//vec4 fg=vec4(1);
 //
 const float MIX = .88;
-const float bright = 10.; // was 10
+const float bright = 1.; // was 10
 void main() {
 	// ASPECT RATIO ADJUSTED
-	// vec2 U = gl_FragCoord.xy / R;
-	// U = U * 2. - 1.;
-	// U.x *= max(1., R.x / R.y);
-	// U.x = clamp(U.x, -1., 1.);
-	// U.y *= max(1., R.y / R.x);
-	// U.y = clamp(U.y, -1., 1.);
-	// U = U * .5 + .5;
-	// if (U.x == 1. || U.x == 0.)
-	// 	c = bg;
-	// else if (U.y == 1. || U.y == 0.)
-	// 	c = bg;
-	// else
-	// 	c = mix(bg, fg, bright*texture(t0, U).r);
-	// c = mix(c, texture(t1, p), MIX);
+		// vec2 U = gl_FragCoord.xy / R;
+		// U = U * 2. - 1.;
+		// U.x *= max(1., R.x / R.y);
+		// U.x = clamp(U.x, -1., 1.);
+		// U.y *= max(1., R.y / R.x);
+		// U.y = clamp(U.y, -1., 1.);
+		// U = U * .5 + .5;
+		// if (U.x == 1. || U.x == 0.)
+		// 	c = bg;
+		// else if (U.y == 1. || U.y == 0.)
+		// 	c = bg;
+		// else
+		// 	c = mix(bg, fg, bright*texture(t0, U).r);
+		// c = mix(c, texture(t1, p), MIX);
 
 	// NOT ASPECT RATIO ADJUSTED
-	float new = texture(t0, p).r;
+		float new = texture(t0, p).r;
 
-	// Cause the image to 'drift'
-	// for waves
-	// vec2 pp = min(vec2(p.x,p.y+0.0032), vec2(.999));
-	// for lissajous
-	// vec2 pp = min(p+.003, vec2(.999));
-	vec2 pp = p;
-	// float ghostly = .5;
-	float ghostly = 1.2;
-	vec4 old = texture(t1, pp);
-	c = mix(ghostly*mix(bg, fg, bright * new), old, MIX);
+		// Cause the image to 'drift'
+		// for waves
+		// vec2 pp = min(vec2(p.x,p.y+0.0032), vec2(.999));
+		// for lissajous
+		// vec2 pp = min(p+.003, vec2(.999));
+		vec2 pp = p;
+		// float ghostly = .5;
+		float ghostly = 1.;
+		vec4 old = texture(t1, pp);
+		c = mix(ghostly*mix(bg, fg, bright * new), old, MIX);
 
-  // Kali transform for fun
-	// vec2 U = gl_FragCoord.xy/R;
-	// U=U*2.-1.;
-	// U.x*=max(1.,R.x/R.y);
-	// U.y*=max(1.,R.y/R.x);
-	// for (int i = 0; i < 10; ++i) {
-	// 	U=abs(U)/dot(U,U) - vec2(.5+.5*cos(T/10.), .5+.5*sin(T/10.));
-	// }
-	// U.x = clamp(U.x,-1.,1.);
-	// U.y = clamp(U.y,-1.,1.);
-	// U=U*.5+.5;
-	// c=mix(mix(bg, 4.*fg, texture(t0, U).r), texture(t1, p), MIX);
+	// Kali transform for fun
+		// vec2 U = gl_FragCoord.xy/R;
+		// U=U*2.-1.;
+		// U.x*=max(1.,R.x/R.y);
+		// U.y*=max(1.,R.y/R.x);
+		// for (int i = 0; i < 10; ++i) {
+		// 	U=abs(U)/dot(U,U) - vec2(.5+.5*cos(T/10.), .5+.5*sin(T/10.));
+		// }
+		// U.x = clamp(U.x,-1.,1.);
+		// U.y = clamp(U.y,-1.,1.);
+		// U=U*.5+.5;
+		// c=mix(mix(bg, 4.*fg, texture(t0, U).r), texture(t1, p), MIX);
 
 	// The attempt here is to draw color on lines that are nice and
 	// solid. The way the line shader works is that if there is a

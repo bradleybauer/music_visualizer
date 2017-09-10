@@ -29,7 +29,6 @@ static IAudioClient* m_pAudioClient = NULL;
 static IAudioCaptureClient* m_pCaptureClient = NULL;
 static IMMDeviceEnumerator* m_pEnumerator = NULL;
 static IMMDevice* m_pDevice = NULL;
-static REFERENCE_TIME m_hnsActualDuration;
 static const int m_refTimesPerMS = 10000;
 #endif
 
@@ -45,6 +44,10 @@ static void get_pcm_linux(float* audio_buf_l, float* audio_buf_r, int ABL, int C
 	}
 #endif
 }
+
+// TODO
+// Sample rate
+// Understand setup code and make sure it is right
 
 #ifdef WINDOWS
 static const int CACHE_SIZE = 10000;
@@ -77,7 +80,6 @@ static void get_pcm_windows(float* audio_buf_l, float* audio_buf_r, int ABL, int
 		}
 		cache_fill -= read;
 		if (read == ABL) {
-			//Sink->CopyData((BYTE*)audio_buf_l, ABL);
 			memcpy(cache, cache + C*read, sizeof(short)*2000);
 			return;
 		}
@@ -99,10 +101,6 @@ static void get_pcm_windows(float* audio_buf_l, float* audio_buf_r, int ABL, int
 				&flags, NULL, NULL);
 			if (hr) throw hr;
 
-			if (flags & AUDCLNT_BUFFERFLAGS_SILENT) {
-				pData = NULL;  // Tell CopyData to write silence.
-			}
-
 			// Copy the available capture data to the audio sink.
 			int j = 0;
 			for (; i + j < ABL && j < numFramesAvailable; j++) {
@@ -119,7 +117,6 @@ static void get_pcm_windows(float* audio_buf_l, float* audio_buf_r, int ABL, int
 			if (hr) throw hr;
 		}
 	}
-	//Sink->CopyData((BYTE*)audio_buf_l, ABL);
 #endif
 }
 
@@ -154,7 +151,6 @@ static void setup_linux(const int ABL, const int C, const int SR, struct audio_d
 
 static void setup_windows(const int ABL, const int C, const int SR, struct audio_data* audio) {
 #ifdef WINDOWS
-	//Sink = new FileWriteSink(1, 32);
 	// Difficulties arise
 	// PCM CAPTURE CONTROL FLOW
 	// PCM SAMPLE RATE
@@ -185,7 +181,6 @@ static void setup_windows(const int ABL, const int C, const int SR, struct audio
 		m_CLSID_MMDeviceEnumerator, NULL,
 		CLSCTX_ALL, m_IID_IMMDeviceEnumerator,
 		(void**)&m_pEnumerator);
-
 	if (hr)	throw hr;
 
 	hr = m_pEnumerator->GetDefaultAudioEndpoint(
@@ -228,15 +223,9 @@ static void setup_windows(const int ABL, const int C, const int SR, struct audio
 		(void**)&m_pCaptureClient);
 	if (hr) throw hr;
 
-
-	// Calculate the actual duration of the allocated buffer.
-	m_hnsActualDuration = (double)m_refTimesPerSec *
-		m_bufferFrameCount / m_pwfx->nSamplesPerSec;
-
 	// Start capturing audio
 	hr = m_pAudioClient->Start();
 	if (hr) throw hr;
-
 #endif
 }
 

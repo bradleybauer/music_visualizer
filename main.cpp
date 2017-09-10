@@ -7,7 +7,17 @@ using clk = std::chrono::steady_clock;
 #include <GLFW/glfw3.h>
 #include "draw.h"
 #include "audio_data.h"
+
+#ifdef WINDOWS
+#ifdef DEBUG
+int WinMain() {
+#else
 int main() {
+#endif
+#else
+int main() {
+#endif
+
 	struct audio_data audio;
 	audio.thread_join = false;
 	std::thread audioThread(audioThreadMain, &audio);
