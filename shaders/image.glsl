@@ -1,66 +1,42 @@
 #version 330
 precision highp float;
 
-uniform sampler1D FL; // left channel
-uniform sampler1D FR; // left channel
-uniform vec2 R; // resolution
-uniform float T; // time
+const float EPS = 1E-6;
+const float TAU = 6.283185307179586;
+const float TAUR = 2.5066282746310002;
+const float SQRT2 = 1.4142135623730951;
+vec3 fg = vec3(1.);
+vec3 bg = vec3(0.);
+in vec4 uvl;
 
-float f(float x)
-{
-	x /= 5.;
-	return (texture(FL, x).r + texture(FR, x).r)/2.;
+// A standard gaussian function, used for weighting samples
+float gaussian(float x, float sigma) {
+  return exp(-(x * x) / (2.0 * sigma * sigma)) / (TAUR * sigma);
+}
+
+// This approximates the error function, needed for the gaussian integral
+float erf(float x) {
+	float s = sign(x), a = abs(x);
+	x = 1.0 + (0.278393 + (0.230389 + (0.000972 + 0.078108 * a) * a) * a) * a;
+	x *= x;
+	return s - s / (x * x);
 }
 
 out vec4 C;
-void main()
-{
-	float threshold = .2;
-	float time = T/100.;
-	vec3 color1 = vec3(1);
-	vec3 color2 = vec3(0);
+void main() {
 
-	vec2 p = gl_FragCoord.xy/R*2.-1.;
-	float aspect = R.x/R.y;
-	p.y /= aspect;
-	p *= 1. + fract(max(aspect, .7))/2.;
+	float len = uvl.z;
+	vec2 xy = uvl.xy;
+	float alpha;
 
-	float theta = atan(p.y,p.x);
-	float len = length(p);
+	const float param = .005;
 
-	// Make star fish
+	float sigma = param/(2. + 2000.*param/50.);
+	alpha = erf(xy.x/SQRT2/sigma) - erf((xy.x-len)/SQRT2/sigma);
+	alpha *= exp(-xy.y*xy.y/(2.0*sigma*sigma))/2.0/len*param;
 
-	// Set the fishies parameters
-	float fish_number_legs = 10.;
-
-	// Make the fish twirl around
-	float fish_spin = time/2.;
-
-	// Make the fish get bigger
-	float fish_leg_len = .1*(.7+.7*.5);
-
-	// Make the fish move its legs, if mouse.x==0 star fish dead
-	float fish_leg_move = 0.1*sin(4.*time+len)*(2.*3.141592653589793);
-
-	// Put the fish togeter
-	float fish = fish_leg_len*sin(fish_leg_move + fish_spin + fish_number_legs*theta);
-
-	// Make the fish jump a little
-	float fish_jump = .08*.5; // just a soft bump
-
-	// Pixel distance to fish
-	float fish_dist = 1.-len*(.8+fish_jump+fish);
-
-	// Fishes swim away
-	float fish_swim = time;
-
-	// Fishes are packed fin to fin and gill to gill
-	float fish_school = 2.0*abs(fract(.5*fish_dist + fish_swim)-.5);
-	fish_school += 0.05; // remove the always zero frequencies.
-
-	// Eat the fish
-	float v = 3.*f(fish_school);
-
-	C.rgb = mix(color2, color1, v);
-	C.a = 1.;
+	float uIntensity = .5;
+	float uIntensityBase = .09;
+	alpha = pow(alpha,1.0-uIntensityBase)*(0.01+min(0.99,uIntensity*3.0));
+	C = vec4(fg, alpha);
 }

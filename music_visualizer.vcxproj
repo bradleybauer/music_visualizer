@@ -112,7 +112,6 @@
   <ItemGroup>
     <ClCompile Include="audio_capture.cpp" />
     <ClCompile Include="draw.cpp" />
-    <ClCompile Include="FileWriteSink.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="audio_process.cpp" />
   </ItemGroup>
@@ -121,9 +120,7 @@
     <ClInclude Include="audio_data.h" />
     <ClInclude Include="draw.h" />
     <ClInclude Include="ffts\include\ffts.h" />
-    <ClInclude Include="FileWriteSink.h" />
     <ClInclude Include="glew.h" />
-    <ClInclude Include="IAudioSink.h" />
     <ClInclude Include="pulse_misc.h" />
     <ClInclude Include="wglew.h" />
   </ItemGroup>

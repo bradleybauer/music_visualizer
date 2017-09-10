@@ -25,8 +25,8 @@ using std::endl;
 #include <GLFW/glfw3.h>
 static GLFWwindow* window;
 
-//static const int POINTS = VISUALIZER_BUFSIZE - 1;
-static const int POINTS = 1;
+static const int POINTS = VISUALIZER_BUFSIZE - 1;
+//static const int POINTS = 1;
 static int max_output_vertices;
 static const int COORDS_PER_POINT = 1;
 static int point_indices[POINTS];

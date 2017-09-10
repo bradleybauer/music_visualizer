@@ -6,7 +6,6 @@ using std::endl;
 #include "pulse_misc.h"
 #endif
 #ifdef WINDOWS
-#include "FileWriteSink.h"
 #include <mmdeviceapi.h>
 #include <Audioclient.h>
 #include <audiopolicy.h>
@@ -48,7 +47,6 @@ static void get_pcm_linux(float* audio_buf_l, float* audio_buf_r, int ABL, int C
 }
 
 #ifdef WINDOWS
-static FileWriteSink* Sink;
 static const int CACHE_SIZE = 10000;
 static int cache_fill = 0;
 static short cache[CACHE_SIZE];
