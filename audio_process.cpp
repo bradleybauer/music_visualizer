@@ -263,7 +263,7 @@ void* audioThreadMain(void* data) {
 #else
 #define ALIGN __attribute__((aligned(32)))
 #endif
-	
+
 	float ALIGN fft_outl[FFTLEN/2+1];
 	float ALIGN fft_inl[FFTLEN];
 	float ALIGN fft_outr[FFTLEN/2+1];

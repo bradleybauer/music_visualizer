@@ -3,6 +3,7 @@
 using std::cout;
 using std::endl;
 #ifdef LINUX
+#include "audio_data.h"
 #include "pulse_misc.h"
 #endif
 #ifdef WINDOWS
@@ -12,17 +13,14 @@ using std::endl;
 #include <mmreg.h>
 #endif
 
-
 // ABL number of samples to capture in each channel of audio
 // C number of channels
 // SR sample rate to capture
 
-static float* buf_interlaced;
-
 #ifdef LINUX
+static float* buf_interlaced;
 static int pulseError;
 static pa_simple* pulseState = NULL;
-static pa_sample_spec pulseSampleSpec;
 #endif
 #ifdef WINDOWS
 static IAudioClient* m_pAudioClient = NULL;
@@ -34,7 +32,7 @@ static const int m_refTimesPerMS = 10000;
 
 static void get_pcm_linux(float* audio_buf_l, float* audio_buf_r, int ABL, int C) {
 #ifdef LINUX
-	if (pa_simple_read(pulseState, buf_interlaced, sizeof(buf_interlaced), &pulseError) < 0) {
+	if (pa_simple_read(pulseState, buf_interlaced, ABL*C*sizeof(float), &pulseError) < 0) {
 		cout << "pa_simple_read() failed: " << pa_strerror(pulseError) << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -64,12 +62,6 @@ static void get_pcm_windows(float* audio_buf_l, float* audio_buf_r, int ABL, int
 	// else
 	//		use system
 	//		grow cache
-	
-	static int maxC = 0;
-	if (cache_fill > maxC) {
-		maxC = cache_fill;
-		cout << maxC << endl;
-	}
 
 	int i = 0;
 	if (cache_fill) {
@@ -121,25 +113,24 @@ static void get_pcm_windows(float* audio_buf_l, float* audio_buf_r, int ABL, int
 }
 
 void get_pcm(float* audio_buf_l, float* audio_buf_r, int ABL, int C) {
-#ifdef LINUX
+	// nop if windows
 	get_pcm_linux(audio_buf_l, audio_buf_r, ABL, C);
-#endif
-#ifdef WINDOWS
+	// nop if linux
 	get_pcm_windows(audio_buf_l, audio_buf_r, ABL, C);
-#endif
 }
 
 static void setup_linux(const int ABL, const int C, const int SR, struct audio_data* audio) {
 #ifdef LINUX
 	getPulseDefaultSink((void*)audio);
 	buf_interlaced = new float[ABL * C];
+	pa_sample_spec pulseSampleSpec;
 	pulseSampleSpec.channels = C;
 	pulseSampleSpec.rate = SR;
 	pulseSampleSpec.format = PA_SAMPLE_FLOAT32NE;
 	pa_buffer_attr pb;
-	pb.fragsize = sizeof(buf_interlaced) / 2;
-	pb.maxlength = sizeof(buf_interlaced);
-	pulseState = pa_simple_new(NULL, "APPNAME", PA_STREAM_RECORD, audio->source.data(), "APPNAME", &pulseSampleSpec, NULL,
+	pb.fragsize = ABL*C*sizeof(float) / 2;
+	pb.maxlength = ABL*C*sizeof(float);
+	pulseState = pa_simple_new(NULL, "Music Visualizer", PA_STREAM_RECORD, audio->source.data(), "Music Visualizer", &pulseSampleSpec, NULL,
 	                  &pb, &pulseError);
 	if (!pulseState) {
 		cout << "Could not open pulseaudio source: " << audio->source << pa_strerror(pulseError)
@@ -230,12 +221,10 @@ static void setup_windows(const int ABL, const int C, const int SR, struct audio
 }
 
 void audio_setup(const int ABL, const int C, const int SR, struct audio_data* audio) {
-#ifdef LINUX
+	// nop if windows
 	setup_linux(ABL, C, SR, audio);
-#endif
-#ifdef WINDOWS
+	// nop if linux
 	setup_windows(ABL, C, SR, audio);
-#endif
 }
 
 void audio_destroy() {
