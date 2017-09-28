@@ -17,6 +17,7 @@ float f(float x)
 out vec4 C;
 void main()
 {
+	const float PI = 3.141592;
 	float threshold = .2;
 	float time = T/100.;
 	vec3 color1 = vec3(1);
@@ -39,32 +40,30 @@ void main()
 	// bass
 	// float bump = (f(0.01)+f(0.02)+f(0.03))*.05;
 	float bump = f(0.02)*.07;
-	// bump*=0.;
 
 	// Set the fishies parameters
-	float fish_number_legs = 10.;
+	float fish_number_legs = 9.;
 
 	// Make the fish twirl around
-	float fish_spin = time*5.;
+	float fish_spin = -time*20.;
 
 	// Make the fish get bigger
-	float fish_leg_len = .1*(1.1+bump);
+	float fish_leg_len = .1+.1*bump;
 
-	// Make the fish move its legs, if mouse.x==0 star fish dead
-	float fish_leg_move = 0.1*sin(40.*time+len)*(2.*3.141592653589793);
+	// Make the fish move its legs
+	float fish_leg_bend = 0.1*sin(40.*time+len)*(2.*PI);
 
 	// Put the fish togeter
-	float fish = fish_leg_len*sin(fish_leg_move + fish_spin + fish_number_legs*theta);
+	float fish = fish_leg_len*sin(fish_leg_bend + fish_spin + fish_number_legs*theta);
 
 	// Make the fish jump a little
 	float fish_jump = .25*bump; // just a soft bump
 
 #ifdef SPIRAL
-	const float PI = 3.141592;
 	float spiral = (theta-PI/2.)/PI;
 	float fish_dist = 1.-len*(.8+fish_jump+fish)+spiral;
-	float fish_swim = time;
-	float fish_school = fract(fish_dist*.5);
+	float fish_swim = -time*4.;
+	float fish_school = fract(fish_dist*.5 + fish_swim);
 	fish_school = pow(fish_school, 1.3);
 	float v = f(fish_school);
 	v = log(2.* v+.9);
