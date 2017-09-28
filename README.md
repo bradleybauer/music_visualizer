@@ -8,8 +8,7 @@ visualizer looks like.
 
 ![](anim.gif)
 
-One way to further improve the visualization quality might be to do some kind of
-offline analysis of the audio file.
+Currently the app can visualize constant tone sounds nearly perfectly. However, when the app visualizes complicated sounds, like dubstep, the presented waveform still looks quite chaotic. One way to further improve the visualization quality might be to do some kind of offline analysis of the audio file.
 
 ```
 git clone --recursive https://github.com/xdaimon/music_visualizer.git
