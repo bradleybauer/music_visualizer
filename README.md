@@ -1,7 +1,7 @@
 Welcome to the project page for my music visualizer :)
 What makes this app stand apart from other audio visualizers is that it
 positions the waveform such that on each frame the phase of the presented
-waveform changes minimally.
+waveform (the phase relative to the previously presented waveform) changes minimally.
 
 Here is a comparison between what my app looks like and what a standard music
 visualizer looks like.
