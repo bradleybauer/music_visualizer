@@ -169,8 +169,8 @@ uniform vec2 R;
 uniform float T;
 in vec2 p;
 out vec4 c;
-//vec4 bg=vec4(0.);
-//vec4 fg=vec4(0.,204./255.,1.,1.);
+vec4 bg=vec4(0.);
+vec4 fg=vec4(0.,204./255.,1.,1.);
 //
 // vec4 bg = vec4(1.);
 // vec4 fg = vec4(0., 204. / 255., 1., 1.);
@@ -181,11 +181,11 @@ out vec4 c;
 // vec4 bg=vec4(0.);
 // vec4 fg=vec4(1.,1.,.1,1.);
 //
-vec4 bg=vec4(1);
-vec4 fg=vec4(0);
+// vec4 bg=vec4(0);
+// vec4 fg=vec4(1);
 //
-//vec4 bg=vec4(0);
-//vec4 fg=vec4(1);
+// vec4 bg=vec4(1);
+// vec4 fg=vec4(0);
 //
 const float MIX = .9;
 const float bright = 1.; // was 10
@@ -207,18 +207,10 @@ void main() {
 		// c = mix(c, texture(t1, p), MIX);
 
 	// NOT ASPECT RATIO ADJUSTED
-		float new = texture(t0, p).r;
-
-		// Cause the image to 'drift'
-		// for waves
-		// vec2 pp = min(vec2(p.x,p.y+0.0032), vec2(.999));
-		// for lissajous
-		// vec2 pp = min(p+.003, vec2(.999));
-		vec2 pp = p;
-		// float ghostly = .5;
-		float ghostly = 1.;
-		vec4 old = texture(t1, pp);
-		c = mix(ghostly*mix(bg, fg, bright * new), old, MIX);
+	  float new_intensity = texture(t0, p).r;
+		vec4 old_color = texture(t1, p);
+		vec4 new_color = mix(bg, fg, bright * new_intensity);
+		c = mix(new_color, old_color, MIX);
 
 	// Kali transform for fun
 		// vec2 U = gl_FragCoord.xy/R;
@@ -244,10 +236,10 @@ void main() {
 	// background.
 	// This effect would look great for songs that have a lot of noise
 	// and then momentarily cut the noise off and add some clean bass wave. :D
-	// c+=smoothstep(.2, 1., .22*dot(c,c))*1.5*vec4(.2/1.2,0.,1./1.2,0.);
-	float cc = (.5+.5*cos(T/5.));
-	float cs = (.5+.5*sin(T/8.));
-	c+=smoothstep(.2, 1., .22*dot(c,c))*1.5*vec4(cc*.2/1.2,0.,cs*1./1.2,0.);
+	float cc = (.6+.5*cos(T/5.));
+	float cs = (.6+.5*sin(T/8.));
+	vec4 palet = vec4(cc*.2/1.2,0.,cs*1./1.2,0.);
+	c+=palet*smoothstep(.2, 1., .8*pow(new_intensity,3.));
 
 	// allow black background instead of just very dark grey
 	c-=.002;
