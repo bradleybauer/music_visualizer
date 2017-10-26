@@ -32,8 +32,8 @@ static const int COORDS_PER_POINT = 1;
 static int point_indices[POINTS];
 
 // window dimensions
-static int wwidth = 400;
-static int wheight = 400;
+static int window_width = 400;
+static int window_height = 400;
 
 static GLuint vbo;       // vertex buffer object
 static GLuint vao;       // vertex array object
@@ -103,19 +103,19 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
 	// if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE)
 }
 static void window_size_callback(GLFWwindow* window, int width, int height) {
-	wwidth = width;
-	wheight = height;
-	glViewport(0, 0, wwidth, wheight);
+	window_width = width;
+	window_height = height;
+	glViewport(0, 0, window_width, window_height);
 
 	// Resize framebuffer texture
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, fbtex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, wwidth, wheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, window_width, window_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 	// Resize prev_pixels texture
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, prev_pixels);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, wwidth, wheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 	memset(last_pixels, 255, sizeof(last_pixels));
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, window_width, window_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 }
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
 }
@@ -299,7 +299,7 @@ void draw(struct audio_data* audio) {
 
 	glUniform1i(num_points_U, POINTS);
 	glUniform1i(max_output_vertices_U, max_output_vertices);
-	glUniform2f(resolution_U, float(wwidth), float(wheight));
+	glUniform2f(resolution_U, float(window_width), float(window_height));
 
 	time_U = glGetUniformLocation(buf_program, "T");
 	glUniform1f(time_U, elapsed);
@@ -339,11 +339,11 @@ void draw(struct audio_data* audio) {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0); // bind window manager's fbo
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	glUniform2f(resolution_buf_U, float(wwidth), float(wheight));
+	glUniform2f(resolution_buf_U, float(window_width), float(window_height));
 	glUniform1i(fbtex_loc, 0);
 	glUniform1i(prev_pixels_loc, 1);
 	glActiveTexture(GL_TEXTURE1);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, wwidth, wheight, GL_RGBA, GL_UNSIGNED_BYTE,
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, window_width, window_height, GL_RGBA, GL_UNSIGNED_BYTE,
 	                last_pixels);
 
 	time_U = glGetUniformLocation(img_program, "T");
@@ -351,7 +351,7 @@ void draw(struct audio_data* audio) {
 
 	glDrawArrays(GL_POINTS, 0, 1);
 
-	glReadPixels(0, 0, wwidth, wheight, GL_RGBA, GL_UNSIGNED_BYTE, last_pixels);
+	glReadPixels(0, 0, window_width, window_height, GL_RGBA, GL_UNSIGNED_BYTE, last_pixels);
 
 	glfwSwapBuffers(window);
 	glfwPollEvents();
@@ -362,7 +362,7 @@ bool initialize_gl() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	window = glfwCreateWindow(wwidth, wheight, "float me", NULL, NULL);
+	window = glfwCreateWindow(window_width, window_height, "float me", NULL, NULL);
 	glfwMakeContextCurrent(window);
 	glfwSetWindowSizeCallback(window, window_size_callback);
 	glfwSwapInterval(1);
@@ -372,7 +372,7 @@ bool initialize_gl() {
 	const GLubyte* version = glGetString(GL_VERSION);
 	cout << "Renderer: " << renderer << endl;
 	cout << "OpenGL version supported "<< version << endl;
-	glViewport(0, 0, wwidth, wheight);
+	glViewport(0, 0, window_width, window_height);
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetCursorPosCallback(window, cursor_position_callback);
 	glfwSetMouseButtonCallback(window, mouse_button_callback);
@@ -454,7 +454,7 @@ bool initialize_gl() {
 	glGenTextures(1, &fbtex);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, fbtex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, wwidth, wheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, window_width, window_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
@@ -465,7 +465,7 @@ bool initialize_gl() {
 	glActiveTexture(GL_TEXTURE1);
 	glGenTextures(1, &prev_pixels);
 	glBindTexture(GL_TEXTURE_2D, prev_pixels);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, wwidth, wheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, window_width, window_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
