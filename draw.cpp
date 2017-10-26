@@ -44,7 +44,8 @@ static GLuint fbtex;     // framebuffer texture
 static GLint fbtex_loc;  // framebuffer texture location in display program
 static GLuint prev_pixels;
 static GLint prev_pixels_loc;
-static GLubyte last_pixels[4 * 1920 * 1080];
+static GLubyte* last_pixels;
+static int last_pixels_size = 4 * 1920 * 1080;
 
 static GLuint buf_program;
 static GLuint img_program;
@@ -106,6 +107,11 @@ static void window_size_callback(GLFWwindow* window, int width, int height) {
 	window_width = width;
 	window_height = height;
 	glViewport(0, 0, window_width, window_height);
+	if (4 * window_height * window_width > last_pixels_size) {
+		// Resize buffer
+		last_pixels_size = 4 * window_height * window_width;
+		last_pixels = (GLubyte*)realloc(last_pixels, last_pixels_size * sizeof(GLubyte));
+	}
 
 	// Resize framebuffer texture
 	glActiveTexture(GL_TEXTURE0);
@@ -114,8 +120,8 @@ static void window_size_callback(GLFWwindow* window, int width, int height) {
 	// Resize prev_pixels texture
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, prev_pixels);
-	memset(last_pixels, 255, sizeof(last_pixels));
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, window_width, window_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	memset(last_pixels, 255, last_pixels_size * sizeof(GLubyte));
 }
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
 }
@@ -188,7 +194,7 @@ vec4 fg=vec4(0.,204./255.,1.,1.);
 // vec4 fg=vec4(0);
 //
 const float MIX = .9;
-const float bright = 1.; // was 10
+const float bright = 20.; // was 10
 void main() {
 	// ASPECT RATIO ADJUSTED
 		// vec2 U = gl_FragCoord.xy / R;
@@ -472,6 +478,8 @@ bool initialize_gl() {
 	// location of the sampler2D in the fragment shader
 	fbtex_loc = glGetUniformLocation(img_program, "t0");
 	prev_pixels_loc = glGetUniformLocation(img_program, "t1");
+
+	last_pixels = (GLubyte*)malloc(sizeof(GLubyte)*last_pixels_size);
 
 	return ret;
 }
