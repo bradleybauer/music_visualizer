@@ -20,6 +20,11 @@ make -j4
 ./main
 ```
 
+TODO
+
+	- I would like to unit test the graphic and audio system's output to be sure that the program works the same across different operating systems.
+	- Don't execute the fullscreen graphics shader on 4k screens. Render to a smaller buffer and then scale up.
+
 Depends on opengl >= 3.3, and pulseaudio.
 
 Uses code from the following repositories<br>
