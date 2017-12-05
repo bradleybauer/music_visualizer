@@ -8,7 +8,7 @@ visualizer looks like.
 
 ![](anim.gif)
 
-Currently the app can visualize constant tone sounds nearly perfectly. However, when the app visualizes complicated sounds, like dubstep, the presented waveform still looks quite chaotic. One way to further improve the visualization quality might be to do some kind of offline analysis of the audio file.
+Currently the app can visualize constant tone sounds very well. However, when the app visualizes complicated sounds the presented waveform looks quite chaotic.
 
 ```
 git clone --recursive https://github.com/xdaimon/music_visualizer.git
@@ -19,11 +19,6 @@ cmake ..
 make -j4
 ./main
 ```
-
-TODO
-
-	- I would like to unit test the graphic and audio system's output to be sure that the program works the same across different operating systems.
-	- Don't execute the fullscreen graphics shader on 4k screens. Render to a smaller buffer and then scale up.
 
 Depends on opengl >= 3.3, and pulseaudio.
 
