@@ -368,7 +368,8 @@ bool initialize_gl() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	window = glfwCreateWindow(window_width, window_height, "float me", NULL, NULL);
+	//glfwWindowHint(GLFW_DECORATED, false);
+	window = glfwCreateWindow(window_width, window_height, "Music Visualizer", NULL, NULL);
 	glfwMakeContextCurrent(window);
 	glfwSetWindowSizeCallback(window, window_size_callback);
 	glfwSwapInterval(1);
