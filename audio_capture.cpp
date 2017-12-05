@@ -30,7 +30,8 @@ static IMMDevice* m_pDevice = NULL;
 static const int m_refTimesPerMS = 10000;
 #endif
 
-static void get_pcm_linux(float* audio_buf_l, float* audio_buf_r, int ABL, int C) {
+static void get_pcm_linux(float* audio_buf_l, float* audio_buf_r, int ABL) {
+	int C = 2;
 #ifdef LINUX
 	if (pa_simple_read(pulseState, buf_interlaced, ABL*C*sizeof(float), &pulseError) < 0) {
 		cout << "pa_simple_read() failed: " << pa_strerror(pulseError) << endl;
@@ -49,33 +50,40 @@ static void get_pcm_linux(float* audio_buf_l, float* audio_buf_r, int ABL, int C
 
 #ifdef WINDOWS
 static const int CACHE_SIZE = 10000;
-static int cache_fill = 0;
-static short cache[CACHE_SIZE];
+static int frame_cache_fill = 0;
+// This is a fifo
+static short frame_cache[CACHE_SIZE];
 #endif
-static void get_pcm_windows(float* audio_buf_l, float* audio_buf_r, int ABL, int C) {
+static void get_pcm_windows(float* audio_buf_l, float* audio_buf_r, int ABL) {
+	// TODO extract the FIFO, write a test
+
+	int C = 2;
 #ifdef WINDOWS
 	HRESULT hr;
 
-	// if cache
-	//		use cache
-	//		shrink cache
-	// else
-	//		use system
-	//		grow cache
+	// if frame_cache_fill != 0
+	//     use frame_cache
+	//     remove frame_cache
+	// if more needed
+	//     use system provided
+	//     grow frame_cache
 
 	int i = 0;
-	if (cache_fill) {
-		int read = cache_fill > ABL ? ABL : cache_fill;
+	if (frame_cache_fill) {
+		int read = frame_cache_fill > ABL ? ABL : frame_cache_fill;
 		for (; i < read; i++) {
-			audio_buf_l[i] = cache[i * C + 0]/32768.f;
-			audio_buf_r[i] = cache[i * C + 1]/32768.f;
+			audio_buf_l[i] = frame_cache[i * C + 0]/32768.f;
+			audio_buf_r[i] = frame_cache[i * C + 1]/32768.f;
 		}
-		cache_fill -= read;
-		if (read == ABL) {
-			memcpy(cache, cache + C*read, sizeof(short)*2000);
-			return;
-		}
+		frame_cache_fill -= read;
+		// Remove from the fifo the frames we've just read
+		memcpy(frame_cache, frame_cache + C*read, sizeof(short)*C*frame_cache_fill);
 	}
+
+	// if i == ABL, then we can just return. (audio_buff completely filled from frame_cache)
+	// We do not lose some section of the system audio stream if we return here, because we've not called GetBuffer yet.
+	// So we do not need to fill the frame_cache with anything here if we return here.
+	// We only need to fill the frame_cache with the frames we don't use after calling GetBuffer
 
 	short* pData;
 	DWORD flags;
@@ -94,15 +102,22 @@ static void get_pcm_windows(float* audio_buf_l, float* audio_buf_r, int ABL, int
 			if (hr) throw hr;
 
 			// Copy the available capture data to the audio sink.
-			int j = 0;
+			int j = 0; // j==1 is 1 frame
 			for (; i + j < ABL && j < numFramesAvailable; j++) {
 				audio_buf_l[i + j] = pData[j * C + 0]/32768.f;
 				audio_buf_r[i + j] = pData[j * C + 1]/32768.f;
 			}
 			i += j;
+
+			// If we didn't use all the frames returned by the system
 			if (j != numFramesAvailable) {
-				memcpy(cache, pData + j*C, sizeof(short)*2000);
-				cache_fill = numFramesAvailable - j;
+				if (frame_cache_fill + (numFramesAvailable - j) >= CACHE_SIZE) {
+					cout << "fifo overflow in audio_capture::get_pcm" << endl;
+					exit(-1);
+				}
+				// Then copy what we didn't use to the frame_cache
+				memcpy(frame_cache + C*frame_cache_fill, pData + j*C, sizeof(short)*C*(numFramesAvailable - j));
+				frame_cache_fill += numFramesAvailable - j;
 			}
 
 			hr = m_pCaptureClient->ReleaseBuffer(numFramesAvailable);
@@ -112,14 +127,15 @@ static void get_pcm_windows(float* audio_buf_l, float* audio_buf_r, int ABL, int
 #endif
 }
 
-void get_pcm(float* audio_buf_l, float* audio_buf_r, int ABL, int C) {
+void get_pcm(float* audio_buf_l, float* audio_buf_r, int ABL) {
 	// nop if windows
-	get_pcm_linux(audio_buf_l, audio_buf_r, ABL, C);
+	get_pcm_linux(audio_buf_l, audio_buf_r, ABL);
 	// nop if linux
-	get_pcm_windows(audio_buf_l, audio_buf_r, ABL, C);
+	get_pcm_windows(audio_buf_l, audio_buf_r, ABL);
 }
 
-static void setup_linux(const int ABL, const int C, const int SR, struct audio_data* audio) {
+static void setup_linux(const int ABL, const int SR, struct audio_data* audio) {
+	int C = 2;
 #ifdef LINUX
 	getPulseDefaultSink((void*)audio);
 	buf_interlaced = new float[ABL * C];
@@ -140,9 +156,10 @@ static void setup_linux(const int ABL, const int C, const int SR, struct audio_d
 #endif
 }
 
-static void setup_windows(const int ABL, const int C, const int SR, struct audio_data* audio) {
+static void setup_windows(const int ABL, const int SR) {
+	int C = 2;
 #ifdef WINDOWS
-	// Difficulties arise
+	// --Difficulties arise--
 	// PCM CAPTURE CONTROL FLOW
 	// PCM SAMPLE RATE
 	// pulse audio's function that gives me pcm blocks until the amount i've asked for has been delivered
@@ -220,11 +237,13 @@ static void setup_windows(const int ABL, const int C, const int SR, struct audio
 #endif
 }
 
-void audio_setup(const int ABL, const int C, const int SR, struct audio_data* audio) {
+// ABL: audio buffer length in frames
+// SR: sample rate, number of frames per second
+void audio_setup(const int ABL, const int SR, struct audio_data* audio) {
 	// nop if windows
-	setup_linux(ABL, C, SR, audio);
+	setup_linux(ABL, SR, audio);
 	// nop if linux
-	setup_windows(ABL, C, SR, audio);
+	setup_windows(ABL, SR);
 }
 
 void audio_destroy() {
