@@ -33,7 +33,11 @@ using std::endl;
 //           samples that are also amplified. This motivates a functionality to allow the user to scale the
 //           audio waveform by a constant factor in the program.
 //           TODO: check that the windows GetBuffer function does not have some parameter that would fix this issue.
+//                 for instance a parameter that would fetch audio before any filters are applied by some other
+//                 program.
 // Leave all RENORM_s undefined for no renorm.
+// TODO check if any preprocessing is done on the windows audio stream? Or use a renorm that normalizes using
+//      max = max_seen_so_far?
 //#define RENORM_1
 //#define RENORM_2
 #define RENORM_3
