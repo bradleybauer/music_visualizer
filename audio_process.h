@@ -287,7 +287,7 @@ public:
 		if (dist_forward(r, w, TBL) < VL) { // if dist from r to w is < what is read by graphics system
 			float delta = adjust_reader(r, w, wave_len, TBL);
 			r = move_index(r, delta, TBL);
-			cout << "Discontinuity in buffer." << endl;
+			cout << "Reader too close to discontinuity, adjusting." << endl;
 			//cout << "\tr_fix:" << r;
 		}
 		//cout << endl;
