@@ -25,8 +25,10 @@ using std::endl;
 #include <GLFW/glfw3.h>
 static GLFWwindow* window;
 
-// static const int POINTS = VISUALIZER_BUFSIZE - 1;
-static const int POINTS = 1;
+// TODO Currently I have to toggle the following two lines in order to use different shaders. Yeah, this whole file is really just a scratch pad
+// Use the greater number of points to render the waveform and lissajous using the lines shader, use the smaller number of points to render the fullscreen quads
+static const int POINTS = VISUALIZER_BUFSIZE - 1;
+// static const int POINTS = 1;
 static int max_output_vertices;
 static const int COORDS_PER_POINT = 1;
 static int point_indices[POINTS];
@@ -175,11 +177,11 @@ uniform vec2 R;
 uniform float T;
 in vec2 p;
 out vec4 c;
-vec4 bg=vec4(0.);
-vec4 fg=vec4(0.,204./255.,1.,1.);
+//vec4 bg=vec4(0.);
+//vec4 fg=vec4(0.,204./255.,1.,1.);
 //
-// vec4 bg = vec4(1.);
-// vec4 fg = vec4(0., 204. / 255., 1., 1.);
+//vec4 bg = vec4(1.);
+//vec4 fg = vec4(0., 204. / 255., 1., 1.);
 //
 // vec4 bg=vec4(1.);
 // vec4 fg=vec4(204./255.,0.,.1,1.);
@@ -190,11 +192,11 @@ vec4 fg=vec4(0.,204./255.,1.,1.);
 // vec4 bg=vec4(0);
 // vec4 fg=vec4(1);
 //
-// vec4 bg=vec4(1);
-// vec4 fg=vec4(0);
+vec4 bg=vec4(1);
+vec4 fg=vec4(0);
 //
-const float MIX = .9;
-const float bright = 20.; // was 10
+const float MIX = .8;
+const float bright = 7.;
 void main() {
 	// ASPECT RATIO ADJUSTED
 		// vec2 U = gl_FragCoord.xy / R;
@@ -248,7 +250,10 @@ void main() {
 	c+=palet*smoothstep(.2, 1., .8*pow(new_intensity,3.));
 
 	// allow black background instead of just very dark grey
-	c-=.002;
+	// c-=.002;
+	
+	// fade out near sides of window
+	// c = mix(bg, c, smoothstep(1., .8, abs(p.x * 2. - 1.)));
 }
 )";
 static bool compile_shader(GLchar* s, GLuint& sn, GLenum stype) {

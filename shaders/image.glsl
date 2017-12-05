@@ -1,91 +1,42 @@
 #version 330
 precision highp float;
 
-uniform sampler1D FL; // left channel
-uniform sampler1D FR; // left channel
-uniform vec2 R; // resolution
-uniform float T; // time
+const float EPS = 1E-6;
+const float TAU = 6.283185307179586;
+const float TAUR = 2.5066282746310002;
+const float SQRT2 = 1.4142135623730951;
+vec3 fg = vec3(1.);
+vec3 bg = vec3(0.);
+in vec4 uvl;
 
-float f(float x)
-{
-	x /= 3.;
-	return (texture(FL, x).r + texture(FR, x).r)/2.;
+// A standard gaussian function, used for weighting samples
+float gaussian(float x, float sigma) {
+  return exp(-(x * x) / (2.0 * sigma * sigma)) / (TAUR * sigma);
 }
 
-#define SPIRAL
+// This approximates the error function, needed for the gaussian integral
+float erf(float x) {
+	float s = sign(x), a = abs(x);
+	x = 1.0 + (0.278393 + (0.230389 + (0.000972 + 0.078108 * a) * a) * a) * a;
+	x *= x;
+	return s - s / (x * x);
+}
 
 out vec4 C;
-void main()
-{
-	const float PI = 3.141592;
-	float threshold = .2;
-	float time = T/100.;
-	vec3 color1 = vec3(1);
-	vec3 color2 = vec3(0);
+void main() {
 
-	vec2 p = gl_FragCoord.xy/R*2.-1.;
-#ifdef SPIRAL
-	p*=1.5;
-	p-=vec2(.0,-.4);
-#endif
-	float aspect = R.x/R.y;
-	p.y /= aspect;
-	p *= 1. + fract(max(aspect, .7))/2.;
+	float len = uvl.z;
+	vec2 xy = uvl.xy;
+	float alpha;
 
-	float theta = atan(p.y,p.x);
-	float len = length(p);
+	const float param = .005;
 
-	// Make star fish
+	float sigma = param/(2. + 2000.*param/50.);
+	alpha = erf(xy.x/SQRT2/sigma) - erf((xy.x-len)/SQRT2/sigma);
+	alpha *= exp(-xy.y*xy.y/(2.0*sigma*sigma))/2.0/len*param;
 
-	// bass
-	// float bump = (f(0.01)+f(0.02)+f(0.03))*.05;
-	float bump = f(0.02)*.07;
-
-	// Set the fishies parameters
-	float fish_number_legs = 9.;
-
-	// Make the fish twirl around
-	float fish_spin = -time*20.;
-
-	// Make the fish get bigger
-	float fish_leg_len = .1+.1*bump;
-
-	// Make the fish move its legs
-	float fish_leg_bend = 0.1*sin(40.*time+len)*(2.*PI);
-
-	// Put the fish togeter
-	float fish = fish_leg_len*sin(fish_leg_bend + fish_spin + fish_number_legs*theta);
-
-	// Make the fish jump a little
-	float fish_jump = .25*bump; // just a soft bump
-
-#ifdef SPIRAL
-	float spiral = (theta-PI/2.)/PI;
-	float fish_dist = 1.-len*(.8+fish_jump+fish)+spiral;
-	float fish_swim = -time*4.;
-	float fish_school = fract(fish_dist*.5 + fish_swim);
-	fish_school = pow(fish_school, 1.3);
-	float v = f(fish_school);
-	v = log(2.* v+.9);
-	v *= smoothstep(0.,0.05,len*(fish_school));
-#else
-	// Pixel distance to fish
-	float fish_dist = 1.-len*(.8+fish_jump+fish);
-
-	// Fishes swim away
-	float fish_swim = time/4.;
-
-	// Fishes are packed fin to fin and gill to gill
-	float fish_school = abs(fract(.5*fish_dist + fish_swim)-.5);
-	fish_school += 0.05; // remove the always zero frequencies.
-	fish_school = fract(fish_school*.8);
-
-	// Eat the fish
-	float v = f(fish_school);
-	v = log(2.* v+.9);
-	v *= smoothstep(0.,.07, len*(.8+fish));
-#endif
-
-	C.rgb = mix(color2, color1, v);
-	C.a = 1.;
+	float uIntensity = .5;
+	float uIntensityBase = .09;
+	alpha = pow(alpha,1.0-uIntensityBase)*(0.01+min(0.99,uIntensity*3.0));
+	C = vec4(fg, alpha);
 }
