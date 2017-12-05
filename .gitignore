@@ -9,3 +9,10 @@ x64
 *.filters
 *.user
 *.lib
+musicVisualizer\.srctrlbm
+
+musicVisualizer\.srctrldb
+
+musicVisualizer\.srctrlprj
+
+\.idea/
