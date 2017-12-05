@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.27004.2009
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "music_visualizer", "music_visualizer.vcxproj", "{D6550F63-9286-4450-A866-89587427FCCB}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tests", "tests\tests.vcxproj", "{65705339-3F83-42BB-B4C1-5C8AF2C23CDD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,8 +23,19 @@ Global
 		{D6550F63-9286-4450-A866-89587427FCCB}.Release|x64.Build.0 = Release|x64
 		{D6550F63-9286-4450-A866-89587427FCCB}.Release|x86.ActiveCfg = Release|Win32
 		{D6550F63-9286-4450-A866-89587427FCCB}.Release|x86.Build.0 = Release|Win32
+		{65705339-3F83-42BB-B4C1-5C8AF2C23CDD}.Debug|x64.ActiveCfg = Debug|x64
+		{65705339-3F83-42BB-B4C1-5C8AF2C23CDD}.Debug|x64.Build.0 = Debug|x64
+		{65705339-3F83-42BB-B4C1-5C8AF2C23CDD}.Debug|x86.ActiveCfg = Debug|Win32
+		{65705339-3F83-42BB-B4C1-5C8AF2C23CDD}.Debug|x86.Build.0 = Debug|Win32
+		{65705339-3F83-42BB-B4C1-5C8AF2C23CDD}.Release|x64.ActiveCfg = Release|x64
+		{65705339-3F83-42BB-B4C1-5C8AF2C23CDD}.Release|x64.Build.0 = Release|x64
+		{65705339-3F83-42BB-B4C1-5C8AF2C23CDD}.Release|x86.ActiveCfg = Release|Win32
+		{65705339-3F83-42BB-B4C1-5C8AF2C23CDD}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1B3A0ED1-8D50-4973-A384-29C984064B6D}
 	EndGlobalSection
 EndGlobal
