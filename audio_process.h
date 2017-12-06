@@ -390,6 +390,7 @@ public:
 				next_r = next_l = now;
 			}
 
+			// TODO On windows this can prevent the app from closing if the music is paused.
 			pcm_getter(audio_buf_l+iw*ABL, audio_buf_r+iw*ABL, ABL);
 
 			//- Manage indices and fill smoothing buffers
