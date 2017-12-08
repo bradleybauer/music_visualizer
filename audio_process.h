@@ -75,8 +75,8 @@ using std::endl;
 // to appear completely out of phase with the current.
 //
 // Improvements?
-//     constrained minimization of successive frames to push snapshot points around the timeline
-//         it's not just the difference between successive frames that I want to minimize
+//     constrained minimization of successive frames to push snapshot points around the timeline.
+//         It's not just the difference between successive frames that I want to minimize
 //         I want to minimize the whole sum of differences, so that no interval could have a set
 //         of snapshot points arranged in any other way (given the constraints) such that the
 //         total sum of differences in that interval was smaller. right?
@@ -280,13 +280,13 @@ public:
 	// w: index of the writer in the circular buffer
 	// r: index of the reader in the circular buffer
 	// freq: frequency to compute the wavelength with
-	static float advance_index(float w, float r, float freq) {
+	static float advance_index(float w, float r, float freq, float tbl) {
 		float wave_len = SR / freq;
-		r = move_index(r, wave_len, TBL);
+		r = move_index(r, wave_len, tbl);
 		//cout << "w:" << w << "\t" << "r:" << r;
-		if (dist_forward(r, w, TBL) < VL) { // if dist from r to w is < what is read by graphics system
-			float delta = adjust_reader(r, w, wave_len, TBL);
-			r = move_index(r, delta, TBL);
+		if (dist_forward(r, w, tbl) < VL) { // if dist from r to w is < what is read by graphics system
+			float delta = adjust_reader(r, w, wave_len, tbl);
+			r = move_index(r, delta, tbl);
 			cout << "Reader too close to discontinuity, adjusting." << endl;
 			//cout << "\tr_fix:" << r;
 		}
@@ -340,6 +340,9 @@ public:
 		//- Smoothing buffers
 		// Helps smooth the appearance of the waveform. Useful when we're not updating the waveform data at 60fps.
 		// Holds the audio that is just about ready to be sent to the visualizer.
+		// Audio in these buffers are 'staged' to be visualized
+		// The staging buffers are mixed with the final output buffers 'continuously'
+		// until the staging buffers are updated again. The mixing parameter (smoother) controls a molasses like effect.
 		staging_buff_l = (float*)calloc(VL * C + 2, sizeof(float));
 		staging_buff_r = staging_buff_l + VL + 1;
 		// -/
@@ -398,7 +401,7 @@ public:
 			iw %= ABN;
 			if (now > next_l) {
 
-				rl = advance_index(iw*ABL, rl, freql);
+				rl = advance_index(iw*ABL, rl, freql, TBL);
 				for (int i = 0; i < VL; ++i)
 					staging_buff_l[i] = audio_buf_l[(i + int(rl)) % TBL];
 
@@ -416,7 +419,7 @@ public:
 
 			if (now > next_r) {
 
-				rr = advance_index(iw*ABL, rr, freqr);
+				rr = advance_index(iw*ABL, rr, freqr, TBL);
 				for (int i = 0; i < VL; ++i)
 					staging_buff_r[i] = audio_buf_r[(i + int(rr)) % TBL];
 
