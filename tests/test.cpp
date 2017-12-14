@@ -21,7 +21,7 @@ void utest_adjust_reader() {
 	typedef audio_processor ap;
 	bool fail = false;
 
-	auto test = [](float r, float w, float step_size, int tbl) {
+	auto test = [&](float r, float w, float step_size, int tbl) {
 		float delta = ap::adjust_reader(r, w, step_size, tbl);
 		r = ap::move_index(r, delta, tbl);
 		float df = ap::dist_forward(w, r, tbl);
