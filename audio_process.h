@@ -17,6 +17,20 @@ using std::cout;
 using std::endl;
 
 //- Feature Toggles
+//
+// ------------------------------------------------------
+// TODO Why is there tearing in the image when I do this?
+// To turn off all the fancy stuff
+// undef
+//   FFT_SYNC
+//   DIFFERENCE_SYNC to be about 50 or so
+// def
+//   RENORM_4
+// set
+//   smoother = 1
+//   MIX = 0 in draw.cpp
+// ------------------------------------------------------
+//
 // WAVE RENORMALIZATION
 // RENORM_1: just normalize the wave by dividing each sample by the max amplitude
 // RENORM_2: is used to cause the lissajous to tend towards a circle when the audio 'cuts out'.
@@ -26,6 +40,13 @@ using std::endl;
 //           therefore the amplitude is greater than 1. The amplitude will be inflated for a short
 //           period of time until the dynamics of the max mixing catch up and max_prev is approximately
 //           equal to max_current.
+// RENORM_4: use max observed amplitude so far as the max to normalize by.
+//           TODO: should max observed be reset when frame max amplitude drops close enough to zero? What if a person
+//           is watching youtube and the next video they watch is much more quiet than the previous? Or what if the
+//           person is watching a video that goes completely silent for a moment, what will happen when there is a small
+//           sound made by the video. What will happen is the small sound will be visualized as having large amplitude.
+//           That is a problem, so I'll choose not to recompute max observed based on a threshold value. Should I recompute
+//           Every so often? Na, we could still have the same problem with that.
 // CONST_RENORM: use this to scale the raw audio samples by a constant factor. On my pc I reduce the
 //           amplitude of all system sounds by about 15dB. I do this because the audio is way too loud
 //           in my headphones when the Windows master audio level is at a mere 5 to 10 percent volume setting.
@@ -40,8 +61,9 @@ using std::endl;
 //      max = max_seen_so_far?
 //#define RENORM_1
 //#define RENORM_2
-#define RENORM_3
-//#define CONST_RENORM 60
+//#define RENORM_3
+#define RENORM_4
+//#define CONST_RENORM 30
 //
 // WAVE FFT STABILIZATION
 // Use the fft to intelligently choose when to advance the waveform.
@@ -90,7 +112,46 @@ using std::endl;
 // A smaller smoother makes the wave more like molasses.
 // A larger smoother makes the wave more snappy.
 // Smooths the old buffer of audio with the new buffer of audio.
+//static const float smoother = .95f;
 static const float smoother = 1.f;
+//
+// DIFFERENCE_SYNC
+// Makes the wave stand almost uncomfortably still. It is nice to watch the phase change when
+// a person is humming a tune for instance.
+#define DIFFERENCE_SYNC 60
+// TODO What is a good value for M?
+static const int M = DIFFERENCE_SYNC; // Search an 2*M region for a min. Computes M*VL multiplications
+// CONVOLUTIONAL_SYNC
+// TODO would be too computationally expensive?
+// Make a 2D array set to zero. For each point on the new_wave set the corresponding point in thee
+// 2D array to 1. Do the same for the old_wave.
+// Convolve the 2D array with a nxn 1's matrix.
+// Sum the resulting array to get a real value.
+// Minimize this real value for each new_wave in some interval.
+// I like this method the best, because what the user sees in the music visualizer is not the wave's height values
+// but rather the amount of color delivered to their eyeballs over a 1/10 of a second from a specific point in the plane.
+// This convolutional approach could take even more than just the previous wave. The conv could consider the last 5 waves.
+// The conv approach will try to condense the stream of points to cover as small of an area as possible.
+//
+// Maybe this isn't what I want. Because it isn't immediately clear to me that it will always put the waveform where I
+// would put the waveform. But where would I put the waveform say if old_wave(t) = noisy_sin(t) + .8 and
+// new_wave(t) = noisy_sin(t)? I would shift new_wave so that the periods line up.
+// but the conv solution would shift new_wave so that the hills of new_wave cover up the valleys of old_wave.
+//
+// Should I attempt to minimize the difference between phase(new_wave) and phase(old_wave)? No, what if new_wave is all
+// crazy looking and phase minimization tells me to align it some way that only adds more chaos to the screen? I would
+// use the phase as returned by the fft, but this phase could be really jittery from frame to frame and could just plain
+// not put the wave where it seems like it should be.
+//
+// How about this: Maximize the size and minimize the number of patches of empty area on the screen.
+// The convolutional approach maximizes the amount of empty area on the screen, but unfortunately fails on examples like
+// above with noisy_sin(t)+.8 and noisy_sin(t). That example maximized both the amount of and the number of patches of
+// empty space on the screen.
+//
+// Convolution or just non overlapping resolution reducing product sum (by nxn 1's filter)
+//
+// I'm trying to minimize the entropy in the information received by the theoretical user who is utterly attentive to my
+// awesome artwork XD. The information is basically the set of graphics frames the user sees over a short amount of time.
 // -/
 
 //- Constants
@@ -265,6 +326,7 @@ public:
 		return x * (1.f - m) + y * m;
 	}
 	// setting low mixer can lead to some interesting lissajous
+	// TODO this is ridiculous
 	static void renorm(float* f, float& max, float mixer, float scale) {
 		float _max = -16.f;
 		for (int i = 0; i < VL; ++i)
@@ -310,9 +372,13 @@ public:
 		free(staging_buff_l);
 		free(staging_buff_r);
 
+		#ifdef DIFFERENCE_SYNC
+		free(prev_buffer);
+		#endif
+
 		ffts_free(fft_plan);
 
-		#ifdef RENORM_2
+		#if defined(RENORM_2) || defined(DIFFERENCE_SYNC)
 		free(sinArray);
 		#endif
 	}
@@ -329,6 +395,10 @@ public:
 		audio_buf_l = (float*)calloc(TBL * C, sizeof(float));
 		audio_buf_r = audio_buf_l + TBL;
 		// -/
+
+		#ifdef DIFFERENCE_SYNC
+		prev_buffer = (float*)calloc(VL * C, sizeof(float));
+		#endif
 
 		//- Output buffers
 		audio_sink->audio_l = (float*)calloc(VL * C * 2, sizeof(float));
@@ -367,13 +437,23 @@ public:
 		//- Wave Renormalizer
 		maxl = 1.f;
 		maxr = 1.f;
-		#ifdef RENORM_2
+		#if defined(RENORM_2) || defined(DIFFERENCE_SYNC)
 		sinArray = (float*)malloc(sizeof(float)*VL);
 		for (int i = 0; i < VL; ++i)
 			sinArray[i] = sinf(6.288f * i / float(VL));
 		#endif
 		// -/
+
+		#ifdef DIFFERENCE_SYNC
+		for (int i = 0; i < 2*M; ++i)
+			counts[i] = 0;
+		#endif
 	};
+
+	#ifdef DIFFERENCE_SYNC
+	float* prev_buffer;
+	int counts[2*M];
+	#endif
 
 	int run() {
 
@@ -402,8 +482,9 @@ public:
 			if (now > next_l) {
 
 				rl = advance_index(iw*ABL, rl, freql, TBL);
-				for (int i = 0; i < VL; ++i)
+				for (int i = 0; i < VL; ++i) {
 					staging_buff_l[i] = audio_buf_l[(i + int(rl)) % TBL];
+				}
 
 				#ifdef RENORM_1
 				renorm(staging_buff_l, maxl, .5, 1.f);
@@ -420,11 +501,82 @@ public:
 			if (now > next_r) {
 
 				rr = advance_index(iw*ABL, rr, freqr, TBL);
-				for (int i = 0; i < VL; ++i)
-					staging_buff_r[i] = audio_buf_r[(i + int(rr)) % TBL];
+
+				float mink = 0.;
+				#ifdef DIFFERENCE_SYNC
+				// TODO compute bounds for search
+				//float furthest_search = min(float(M), dist_forward(rr, iw*ABL, TBL)); not correct
+				if (dist_backward(rr, iw*ABL, TBL) > M) {
+					float or = rr;
+					rr = move_index(rr, -M, TBL);
+					float minr = 0;
+					float minmae = std::numeric_limits<float>::infinity();
+					//mink = minmae;
+					for (int i = 0; i < M*2; ++i) {
+						//for (float k = -.1; k < .1; k+=.02) {
+							float mae = 0.f;
+							for (int j = 0; j < VL; ++j) {
+								//const float a = audio_buf_r[(j + int(rr)) % TBL] + k;
+								const float a = audio_buf_r[(j + int(rr)) % TBL];
+								const float b = prev_buffer[j];
+								// const float d = std::fabs(a) - std::fabs(b);
+								const float d = a - b;
+								// const float d = a*a-b*b;
+								// const float d = std::sqrt(std::fabs(a)) - std::sqrt(std::fabs(b));
+								// mae += d*d;
+								mae += std::fabs(d);
+							}
+							if (mae < minmae) {
+								minmae = mae;
+								minr = rr;
+								//mink = k;
+							}
+						//}
+						rr = move_index(rr, 1.0f, TBL);
+					}
+
+					// Find out how far we've been shifted. We might undo the shift if its too far.
+					int df = dist_forward(or , minr, TBL);
+					int db = dist_backward(or , minr, TBL);
+					int diff;
+					if (df < db)
+						diff = df;
+					else
+						diff = -db;
+
+					#ifdef DIFFERENCE_SYNC_LOG
+					if (diff < M && diff >= -M)
+						counts[diff+M] += 1;
+					for (int i = 0; i < M*2; ++i)
+						cout << counts[i] << ",";
+					cout << endl;
+					#endif
+
+					// More often than not, the minr is all the way at +-M. I'm taking this to mean that a small nudge
+					if (abs(diff) < M-1)
+						rr = minr;
+					else
+						rr = or;
+				}
+				#endif
+
+				for (int i = 0; i < VL; ++i) {
+					staging_buff_r[i] = audio_buf_r[(i + int(rr)) % TBL] + mink;
+					#ifdef DIFFERENCE_SYNC
+					// The mix helps reduce jitter in the choice of where to place the next wave.
+					prev_buffer[i] = mix(staging_buff_r[i] - mink, prev_buffer[i], .8);
+					#endif
+					#ifdef RENORM_4
+					if (staging_buff_r[i] > max_amplitude_so_far)
+						max_amplitude_so_far = staging_buff_r[i];
+					#endif
+				}
 
 				#ifdef RENORM_1
 				renorm(staging_buff_r, maxr, .5, 1.f);
+				#endif
+				#ifdef RENORM_4
+				renorm(staging_buff_r, max_amplitude_so_far, 0.f, .83f);
 				#endif
 
 				#ifdef FFT_SYNC
@@ -495,7 +647,8 @@ public:
 				break;
 			}
 
-			// fps(now);
+			// TODO how does DIFFERENCE_SYNC affect this?
+			fps(now); // Should be about 90 fps for the sound loop
 			// Turning this on causes the indices to get all fd up, this makes sense because ... TODO
 			// std::this_thread::sleep_for(std::chrono::milliseconds(13));
 		}
@@ -528,9 +681,11 @@ private:
 
 	float maxl = 1.f;
 	float maxr = 1.f;
-	#ifdef RENORM_2
+	#if defined(RENORM_2) || defined(DIFFERENCE_SYNC)
 	float* sinArray;
 	#endif
+
+	float max_amplitude_so_far = 0.;
 
 	std::function<void(float*, float*, int)> pcm_getter;
 	std::function<void(int, int, struct audio_data*)> audio_initializer;
