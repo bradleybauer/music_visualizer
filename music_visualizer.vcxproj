@@ -107,6 +107,8 @@
       <AdditionalIncludeDirectories>C:\Users\gazin\Programming\internal\git\music_visualizer;C:\Users\gazin\Programming\libs\glfw-3.2.1.bin.WIN64\include;C:\Users\gazin\Programming\internal\git\music_visualizer\ffts\include</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <PreprocessorDefinitions>GLEW_STATIC;WIN32;_DEBUG;_CONSOLE;WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Optimization>MaxSpeed</Optimization>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ffts_staticd.lib;opengl32.lib;glew32sd.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>

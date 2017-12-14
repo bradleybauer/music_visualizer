@@ -17,18 +17,18 @@ using std::cout;
 using std::endl;
 
 //- Feature Toggles
-//
 // ------------------------------------------------------
-// TODO Why is there tearing in the image when I do this?
 // To turn off all the fancy stuff
 // undef
 //   FFT_SYNC
-//   DIFFERENCE_SYNC to be about 50 or so
+//   DIFFERENCE_SYNC
 // def
 //   RENORM_4
 // set
 //   smoother = 1
 //   MIX = 0 in draw.cpp
+// This probably could cause screen tearing (or make it observable).
+// If you can, turn on vsync and tripple buffering in your graphics driver (easy with nvidia on windows.)
 // ------------------------------------------------------
 //
 // WAVE RENORMALIZATION
@@ -61,8 +61,8 @@ using std::endl;
 //      max = max_seen_so_far?
 //#define RENORM_1
 //#define RENORM_2
-//#define RENORM_3
-#define RENORM_4
+#define RENORM_3
+//#define RENORM_4
 //#define CONST_RENORM 30
 //
 // WAVE FFT STABILIZATION
@@ -111,14 +111,14 @@ using std::endl;
 // EXPONENTIAL SMOOTHER
 // A smaller smoother makes the wave more like molasses.
 // A larger smoother makes the wave more snappy.
-// Smooths the old buffer of audio with the new buffer of audio.
-//static const float smoother = .95f;
-static const float smoother = 1.f;
+// Mixes the old buffer of audio with the new buffer of audio.
+static const float smoother = .98f;
+//static const float smoother = 1.f;
 //
 // DIFFERENCE_SYNC
 // Makes the wave stand almost uncomfortably still. It is nice to watch the phase change when
 // a person is humming a tune for instance.
-#define DIFFERENCE_SYNC 60
+#define DIFFERENCE_SYNC 15
 // TODO What is a good value for M?
 static const int M = DIFFERENCE_SYNC; // Search an 2*M region for a min. Computes M*VL multiplications
 // CONVOLUTIONAL_SYNC
@@ -138,17 +138,15 @@ static const int M = DIFFERENCE_SYNC; // Search an 2*M region for a min. Compute
 // new_wave(t) = noisy_sin(t)? I would shift new_wave so that the periods line up.
 // but the conv solution would shift new_wave so that the hills of new_wave cover up the valleys of old_wave.
 //
+// How about this: Maximize the size and minimize the number of patches of empty area on the screen.
+// The convolutional approach maximizes the amount of empty area on the screen, but unfortunately fails on examples like
+// above with noisy_sin(t)+.8 and noisy_sin(t). That example maximized both the amount of and the number of patches of
+// empty space on the screen. This could use non-overlapping (image size reducing) product sum (by nxn 1's filter)
+//
 // Should I attempt to minimize the difference between phase(new_wave) and phase(old_wave)? No, what if new_wave is all
 // crazy looking and phase minimization tells me to align it some way that only adds more chaos to the screen? I would
 // use the phase as returned by the fft, but this phase could be really jittery from frame to frame and could just plain
 // not put the wave where it seems like it should be.
-//
-// How about this: Maximize the size and minimize the number of patches of empty area on the screen.
-// The convolutional approach maximizes the amount of empty area on the screen, but unfortunately fails on examples like
-// above with noisy_sin(t)+.8 and noisy_sin(t). That example maximized both the amount of and the number of patches of
-// empty space on the screen.
-//
-// Convolution or just non overlapping resolution reducing product sum (by nxn 1's filter)
 //
 // I'm trying to minimize the entropy in the information received by the theoretical user who is utterly attentive to my
 // awesome artwork XD. The information is basically the set of graphics frames the user sees over a short amount of time.
@@ -163,8 +161,8 @@ static const int M = DIFFERENCE_SYNC; // Search an 2*M region for a min. Compute
 // C channel count of audio
 // SR requested sample rate of the audio
 // SRF sample rate of audio given to FFT
-const int ABL = 512;
-const int ABN = 16;
+const int ABL = 768;
+const int ABN = 11;
 const int TBL = ABL * ABN;
 const int FFTLEN = TBL / 2;
 const int VL = VISUALIZER_BUFSIZE; // defined in audio_data.h
@@ -181,7 +179,6 @@ const int SRF = SR / 2;
 //   and they are surprisingly similar. I couldn't tell a difference really.
 // I've also compared resampling with ffmpeg to my current naive impl. Hard to notice a
 //   difference.
-// Of course the user might want to change all this. That's for another day, and another program :D
 // -/
 
 class audio_processor {
@@ -473,6 +470,9 @@ public:
 				next_r = next_l = now;
 			}
 
+			// TODO test this function. The samples it writes to the circular buffer should be the same for the same sound
+			// on windows and linux. Or the RENORM_4 normalized samples should be the same. It seems like this is not true
+			// currently
 			// TODO On windows this can prevent the app from closing if the music is paused.
 			pcm_getter(audio_buf_l+iw*ABL, audio_buf_r+iw*ABL, ABL);
 
@@ -564,7 +564,7 @@ public:
 					staging_buff_r[i] = audio_buf_r[(i + int(rr)) % TBL] + mink;
 					#ifdef DIFFERENCE_SYNC
 					// The mix helps reduce jitter in the choice of where to place the next wave.
-					prev_buffer[i] = mix(staging_buff_r[i] - mink, prev_buffer[i], .8);
+					prev_buffer[i] = mix(staging_buff_r[i] - mink, prev_buffer[i], .95);
 					#endif
 					#ifdef RENORM_4
 					if (staging_buff_r[i] > max_amplitude_so_far)
@@ -634,7 +634,7 @@ public:
 			}
 
 			#if defined(RENORM_2) || defined(RENORM_3)
-			const float bound = .7;
+			const float bound = .66;
 			const float spring = .3; // can spring past bound... oops
 			renorm(audio_sink->audio_l, maxl, spring, bound);
 			renorm(audio_sink->audio_r, maxr, spring, bound);

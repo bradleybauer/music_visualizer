@@ -4,6 +4,9 @@
  * http://www.informit.com/articles/article.aspx?p=2120983&seqNum=2
  */
 
+// TODO Test the output of the shaders. Use dummy data in audio_data. Compute similarity between expected images
+// and produced images.
+
 #include <iostream>
 #include <vector>
 using std::vector;
@@ -34,7 +37,7 @@ static const int COORDS_PER_POINT = 1;
 static int point_indices[POINTS];
 
 // window dimensions
-static int window_width = 400;
+static int window_width = 1000;
 static int window_height = 400;
 
 static GLuint vbo;       // vertex buffer object
@@ -377,7 +380,7 @@ bool initialize_gl() {
 	window = glfwCreateWindow(window_width, window_height, "Music Visualizer", NULL, NULL);
 	glfwMakeContextCurrent(window);
 	glfwSetWindowSizeCallback(window, window_size_callback);
-	glfwSwapInterval(1);
+	glfwSwapInterval(0);
 	glewExperimental = GL_TRUE;
 	glewInit();
 	const GLubyte* renderer = glGetString(GL_RENDERER);
