@@ -34,8 +34,9 @@ int main() {
 		std::this_thread::sleep_for(dura > clk::duration(0) ? dura : clk::duration(0));
 	}
 	my_audio_data.thread_join = true;
-	audioThread.join();
+	//audioThread.join(); // I would like to exit the program the right way, but sometimes this blocks due to the windows audio system.
 	deinit_drawing();
 	glfwTerminate();
+	exit(0);
 	return 0;
 }
