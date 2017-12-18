@@ -247,14 +247,15 @@ void main() {
 	// background.
 	// This effect would look great for songs that have a lot of noise
 	// and then momentarily cut the noise off and add some clean bass wave. :D
-	float cc = (.6+.5*cos(T/5.));
-	float cs = (.6+.5*sin(T/8.));
-	vec4 palet = vec4(cc*.2/1.2,0.,cs*1./1.2,0.);
-	c+=palet*smoothstep(.2, 1., .8*pow(new_intensity,3.));
+
+	// float cc = (.6+.5*cos(T/5.));
+	// float cs = (.6+.5*sin(T/8.));
+	// vec4 palet = vec4(cc*.2/1.2,0.,cs*1./1.2,0.);
+	// c+=palet*smoothstep(.2, 1., .8*pow(new_intensity,3.));
 
 	// allow black background instead of just very dark grey
 	// c-=.002;
-	
+
 	// fade out near sides of window
 	// c = mix(bg, c, smoothstep(1., .8, abs(p.x * 2. - 1.)));
 }

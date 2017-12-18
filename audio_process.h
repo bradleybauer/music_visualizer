@@ -19,6 +19,11 @@
 namespace chrono = std::chrono;
 using std::cout;
 using std::endl;
+#ifdef WINDOWS
+#define Aligned_Alloc(align, sz) _aligned_malloc(sz, align)
+#else
+#define Aligned_Alloc(align, sz) aligned_alloc(align, sz)
+#endif
 
 //- Feature Toggles
 // ------------------------------------------------------
@@ -45,29 +50,13 @@ using std::endl;
 //           period of time until the dynamics of the max mixing catch up and max_prev is approximately
 //           equal to max_current.
 // RENORM_4: use max observed amplitude so far as the max to normalize by.
-//           TODO: should max observed be reset when frame max amplitude drops close enough to zero? What if a person
-//           is watching youtube and the next video they watch is much more quiet than the previous? Or what if the
-//           person is watching a video that goes completely silent for a moment, what will happen when there is a small
-//           sound made by the video. What will happen is the small sound will be visualized as having large amplitude.
-//           That is a problem, so I'll choose not to recompute max observed based on a threshold value. Should I recompute
-//           Every so often? Na, we could still have the same problem with that.
-// CONST_RENORM: use this to scale the raw audio samples by a constant factor. On my pc I reduce the
-//           amplitude of all system sounds by about 15dB. I do this because the audio is way too loud
-//           in my headphones when the Windows master audio level is at a mere 5 to 10 percent volume setting.
-//           However, when the system sound is amplified like this, then the get_pcm function returns audio
-//           samples that are also amplified. This motivates a functionality to allow the user to scale the
-//           audio waveform by a constant factor in the program.
-//           TODO: check that the windows GetBuffer function does not have some parameter that would fix this issue.
-//                 for instance a parameter that would fetch audio before any filters are applied by some other
-//                 program.
-// Leave all RENORM_s undefined for no renorm.
-// TODO check if any preprocessing is done on the windows audio stream? Or use a renorm that normalizes using
-//      max = max_seen_so_far?
-//#define RENORM_1
-//#define RENORM_2
+// CONST_RENORM: use this to scale the raw audio samples by a constant factor.
+//
+// #define RENORM_1
+// #define RENORM_2
 #define RENORM_3
-//#define RENORM_4
-//#define CONST_RENORM 10
+// #define RENORM_4
+// #define CONST_RENORM 10
 //
 // WAVE FFT STABILIZATION
 // Use the fft to intelligently choose when to advance the waveform.
@@ -122,7 +111,7 @@ static const float smoother = .98f;
 // DIFFERENCE_SYNC
 // Makes the wave stand almost uncomfortably still. It is nice to watch the phase change when
 // a person is humming a tune for instance.
-#define DIFFERENCE_SYNC 15
+#define DIFFERENCE_SYNC 40
 // #define DIFFERENCE_SYNC_LOG
 // TODO What is a good value for M?
 static const int M = DIFFERENCE_SYNC; // Search an 2*M region for a min. Computes M*VL multiplications
@@ -405,14 +394,15 @@ public:
 			else
 				r = orig_r;
 
-			// #ifdef DIFFERENCE_SYNC_LOG
-			// const int diff_int = int(diff);
-			// if (diff_int < dist && diff_int >= -dist)
-			// 	counts[diff_int+dist] += 1;
-			// for (int i = 0; i < dist*2; ++i)
-			// 	cout << counts[i] << ",";
-			// cout << endl;
-			// #endif
+			#ifdef DIFFERENCE_SYNC_LOG
+			static int counts[2*M] = {};
+			const int diff_int = int(diff);
+			if (diff_int < dist && diff_int >= -dist)
+				counts[diff_int+dist] += 1;
+			for (int i = 0; i < dist*2; ++i)
+				cout << counts[i] << ",";
+			cout << endl;
+			#endif
 		}
 		return r;
 	}
@@ -440,10 +430,8 @@ public:
 		free(fft_outl);
 		free(FFTwindow);
 
-		#ifdef DIFFERENCE_SYNC
 		free(prev_buff_l);
 		free(prev_buff_r);
-		#endif
 
 		ffts_free(fft_plan);
 
@@ -467,10 +455,8 @@ public:
 		audio_buff_r = (float*)calloc(TBL, sizeof(float));
 		// -/
 
-		#ifdef DIFFERENCE_SYNC
 		prev_buff_l = (float*)calloc(VL, sizeof(float));
 		prev_buff_r = (float*)calloc(VL, sizeof(float));
-		#endif
 
 		//- Output buffers
 		audio_sink->audio_l = (float*)calloc(VL, sizeof(float));
@@ -494,10 +480,10 @@ public:
 		//- FFT setup
 		const int N = FFTLEN;
 		fft_plan = ffts_init_1d_real(N, FFTS_FORWARD);
-		fft_inl = (float*)aligned_alloc(32, N*sizeof(float));
-		fft_inr = (float*)aligned_alloc(32, N*sizeof(float));
-		fft_outl = (float*)aligned_alloc(32, (N/2 + 1)*(2*sizeof(float))); // alloc N/2+1 complex numbers (sizeof(complex) == 2*sizeof(float))
-		fft_outr = (float*)aligned_alloc(32, (N/2 + 1)*(2*sizeof(float)));
+		fft_inl = (float*)Aligned_Alloc(32, N*sizeof(float));
+		fft_inr = (float*)Aligned_Alloc(32, N*sizeof(float));
+		fft_outl = (float*)Aligned_Alloc(32, (N/2 + 1)*(2*sizeof(float))); // alloc N/2+1 complex numbers (sizeof(complex) == 2*sizeof(float))
+		fft_outr = (float*)Aligned_Alloc(32, (N/2 + 1)*(2*sizeof(float)));
 		FFTwindow = (float*)malloc(N*sizeof(float));
 		for (int i = 0; i < N; ++i)
 			FFTwindow[i] = (1.f - cosf(2.f*3.141592f * i / float(N))) / 2.f; // sin(x)^2
@@ -523,8 +509,8 @@ public:
 		// -/
 
 		#ifdef DIFFERENCE_SYNC_LOG
-		for (int i = 0; i < 2*M; ++i)
-			counts[i] = 0;
+		// for (int i = 0; i < 2*M; ++i)
+		// 	counts[i] = 0;
 		#endif
 	};
 	// -/
@@ -618,9 +604,9 @@ public:
 
 			service_channel(iw*ABL,         // writer
 	                    rl,             // reader
-	                    prev_buff_l,    // previously used audio
+	                    prev_buff_l,    // previously visualized audio
 	                    audio_buff_l,   // audio collected from system audio stream
-	                    staging_buff_l, // audio sent to visualizer
+	                    staging_buff_l, // audio for visualizer goes here
 											fft_outl,       // fft complex outputs
 	                    freql,          // most recent dominant frequency < 600hz
 											channel_max_l,  // channel renormalization term
@@ -652,8 +638,8 @@ public:
 				ffts_execute(fft_plan, fft_inl, fft_outl);
 				ffts_execute(fft_plan, fft_inr, fft_outr);
 				for (int i = 0; i < VL; i++) {
-					audio_sink->freq_l[i] = mag(fft_outl, i)/sqrt(FFTLEN);
-					audio_sink->freq_r[i] = mag(fft_outr, i)/sqrt(FFTLEN);
+					audio_sink->freq_l[i] = 2*mag(fft_outl, i)/sqrt(FFTLEN);
+					audio_sink->freq_r[i] = 2*mag(fft_outr, i)/sqrt(FFTLEN);
 				}
 			}
 			// -/
@@ -663,8 +649,8 @@ public:
 
 			// Smooth and upsample the wave
 			#ifdef RENORM_2
-			const float Pl = pow(channel_max_l, .1);
-			const float Pr = pow(channel_max_r, .1);
+			const float pow_max_l = pow(channel_max_l, .1);
+			const float pow_max_r = pow(channel_max_r, .1);
 			#endif
 			for (int i = 0; i < VL; ++i) {
 				float oldl, oldr, newl, newr, mixl, mixr;
@@ -687,8 +673,8 @@ public:
 				#endif
 
 				#ifdef RENORM_2
-				mixl = (1.f-Pl)*.005*sinArray[i];
-				mixr = (1.f-Pr)*.005*sinArray[(i+VL/4)%VL]; // i+vl/4 : sine -> cosine
+				mixl += (1.f-pow_max_l)*.005*sinArray[i];
+				mixr += (1.f-pow_max_r)*.005*sinArray[(i+VL/4)%VL]; // i+vl/4 : sine -> cosine
 				#endif
 
 				audio_sink->audio_l[i] = mixl;
@@ -717,14 +703,8 @@ public:
 
 	//- Members
 private:
-	#ifdef DIFFERENCE_SYNC
 	float* prev_buff_l;
 	float* prev_buff_r;
-	#endif
-
-	#ifdef DIFFERENCE_SYNC_LOG
-	int counts[2*M];
-	#endif
 
 	float* audio_buff_l;
 	float* audio_buff_r;
@@ -732,11 +712,6 @@ private:
 	float* staging_buff_r;
 	ffts_plan_t* fft_plan;
 
-	#ifdef WINDOWS
-	#define ALIGN __declspec(align(32))
-	#else
-	#define ALIGN __attribute__((aligned(32)))
-	#endif
 	float* fft_outl;
 	float* fft_inl;
 	float* fft_outr;
