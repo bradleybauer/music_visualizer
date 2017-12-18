@@ -111,10 +111,10 @@ static const float smoother = .98f;
 // DIFFERENCE_SYNC
 // Makes the wave stand almost uncomfortably still. It is nice to watch the phase change when
 // a person is humming a tune for instance.
-#define DIFFERENCE_SYNC 40
-// #define DIFFERENCE_SYNC_LOG
-// TODO What is a good value for M?
+#define DIFFERENCE_SYNC 50
+// #define DIFFERENCE_SYNC_HISTOGRAM_LOG
 static const int M = DIFFERENCE_SYNC; // Search an 2*M region for a min. Computes M*VL multiplications
+static const float difference_smoother = .95f;
 // CONVOLUTIONAL_SYNC
 // TODO would be too computationally expensive?
 // Make a 2D array set to zero. For each point on the new_wave set the corresponding point in thee
@@ -201,37 +201,38 @@ public:
 	}
 	// Move p around the circular buffer by the amound and direction delta
 	// tbl: total buffer length of the circular buffer
-	static float move_index(float p, float delta, int tbl) {
+	static int move_index(int p, int delta, int tbl) {
 		p += delta;
-		if (p > tbl) {
+		if (p >= tbl) {
 			p -= tbl;
-		} else if (p < 0.f) {
+		} else if (p < 0) {
 			p += tbl;
 		}
 		return p;
 	}
-	static float dist_forward(float from, float to, int tbl) {
-		float d = to - from;
+	static int dist_forward(int from, int to, int tbl) {
+		int d = to - from;
 		if (d < 0)
 			d += tbl;
 		return d;
 	}
-	static float dist_backward(float from, float to, int tbl) {
-		float d = from - to;
+	static int dist_backward(int from, int to, int tbl) {
+		int d = from - to;
 		if (d < 0)
 			d += tbl;
 		return d;
 	}
-	static float sign(float x) {
-		return std::copysign(1.f, x);
+	static int sign(int x) {
+		if (x < 0) return -1;
+		else return 1;
 	}
 	// Attempts to separate two points, in a circular buffer, r (reader) and w (writer)
 	// by distance tbl/2.f by moving r in steps of size step_size.
 	// Returns the delta that r should be moved by
-	static float adjust_reader(float r, float w, float step_size, int tbl) {
-		const float a = w - r;
-		const float b = fabs(a) - tbl / 2.f;
-		const float foo = fabs(b);
+	static int adjust_reader(int r, int w, int step_size, int tbl) {
+		const int a = w - r;
+		const int b = std::abs(a) - tbl / 2;
+		const int foo = std::abs(b);
 		// minimize foo(r)
 		// foo(r) = |b(a(r))|
 		//        = ||w-r|-tbl/2|
@@ -248,13 +249,13 @@ public:
 		//
 		// -foo'(r) = is the direction r should move to decrease foo(r)
 		// foo(r) = happens to be the number of samples such that foo(r - foo'(r)*foo(r)) == 0
-		const float dadr = -1.f;
-		const float dbdr = sign(a) * dadr;
-		const float dfoodr = sign(b) * dbdr;
+		const int dadr = -1;
+		const int dbdr = sign(a) * dadr;
+		const int dfoodr = sign(b) * dbdr;
 		// move r by a magnitude of foo in the -foo'(r) direction, but only take
 		// steps of size step_size
-		float grid = step_size;
-		grid = ceil(foo / grid) * grid;
+		int grid = step_size;
+		grid = ceil(foo / float(grid)) * grid;
 		return -dfoodr * grid;
 	}
 	static void fps(chrono::steady_clock::time_point& now) {
@@ -333,15 +334,30 @@ public:
 	// w: index of the writer in the circular buffer
 	// r: index of the reader in the circular buffer
 	// freq: frequency to compute the wavelength with
-	static float advance_index(float w, float r, float freq, float tbl) {
-		float wave_len = SR / freq;
+	static int advance_index(int w, int r, float freq, int tbl) {
+		int wave_len = SR / freq;
 		r = move_index(r, wave_len, tbl);
 		if (dist_forward(r, w, tbl) < VL) { // if dist from r to w is < what is read by graphics system
-			float delta = adjust_reader(r, w, wave_len, tbl);
+			int delta = adjust_reader(r, w, wave_len, tbl);
 			r = move_index(r, delta, tbl);
 			cout << "Reader too close to writer, adjusting." << endl;
 		}
 		return r;
+	}
+	// Compute the manhattan distance between two vectors.
+	// a_circular: a circular buffer containing the first vector
+	// b_buff: a buffer containing the second vector
+	// a_sz: circumference of a_circular
+	// b_sz: length of b_buff
+	static float manhattan_dist(float* a_circular, float* b_buff, int a_offset, int a_sz, int b_sz) {
+		float md = 0.f;
+		for (int i = 0; i < b_sz; ++i) {
+			const float xi_1 = a_circular[(i + a_offset) % a_sz];
+			const float xi_2 = b_buff[i];
+			md += std::fabs(xi_1-xi_2);
+			//md += std::pow(xi_1-xi_2, 2);
+		}
+		return md;
 	}
 	// w: writer
 	// r: reader
@@ -353,52 +369,47 @@ public:
 	// No, the inputs depend on each other too much.
 	// Writing the tests/asserts in anticipation that the inputs would vary is too much work, when I know that the inputs actually will not vary.
 	//
-	static float difference_sync(float w, float r, int dist, float* prev_buff, float* buff) {
+	static int difference_sync(int w, int r, int dist, float* prev_buff, float* buff) {
 		// TODO compute bounds for search
-		//float furthest_search = min(float(dist), dist_forward(rr, iw*ABL, TBL)); not correct
+		//float furthest_search = min(float(dist), dist_forward(reader_r, writer, TBL)); not correct
 		if (dist_backward(r, w, TBL) > dist && dist_forward(r, w, TBL) > dist) {
-			float orig_r = r;
+			int orig_r = r;
 			r = move_index(r, -dist, TBL);
-			float min_r = 0;
-			float min_mae = std::numeric_limits<float>::infinity();
+
+			// Find r that gives best similarity between buff and prev_buff
+			int min_r = 0;
+			float min_md = std::numeric_limits<float>::infinity();
 			for (int i = 0; i < dist*2; ++i) {
-				float mae = 0.f;
-				for (int j = 0; j < VL; ++j) {
-					const float a = buff[(j + int(r)) % TBL];
-					const float b = prev_buff[j];
-					const float d = a - b; // or |a| - |b|, or a^2 - b^2
-					mae += std::fabs(d);
-				}
-				if (mae < min_mae) {
-					min_mae = mae;
+				float md = manhattan_dist(buff, prev_buff, r, TBL, VL);
+				if (md < min_md) {
+					min_md = md;
 					min_r = r;
 				}
-				r = move_index(r, 1.0f, TBL);
+				r = move_index(r, 1, TBL);
 			}
 
 			// Find out how far we've been shifted.
-			const float df = dist_forward(orig_r , min_r, TBL);
-			const float db = dist_backward(orig_r , min_r, TBL);
-			float diff;
+			const int df = dist_forward(orig_r , min_r, TBL);
+			const int db = dist_backward(orig_r , min_r, TBL);
+			int diff;
 			if (df < db)
 				diff = df;
 			else
 				diff = -db;
 
-			// We want the pointer to be somwhere around where advanced_index put it. We ONLY want to make a small nudge left or right
+			// We want the pointer to be somewhere around where advanced_index put it. We ONLY want to make a small nudge left or right
 			// in order to increase the similarity between this frame and the previous. We do not want to move the index too far.
-			// The histogram of where the index is moved can be viewed by defining DIFFERENCE_SYNC_LOG. The histogram shows that,
+			// The histogram of where the index is moved can be viewed by defining DIFFERENCE_SYNC_HISTOGRAM_LOG. The histogram shows that,
 			// most of the time the index is put either at the ends or somewhere near the center.
-			if (std::fabs(diff) < dist-1)
+			if (std::abs(diff) < dist-1)
 				r = min_r;
 			else
 				r = orig_r;
 
-			#ifdef DIFFERENCE_SYNC_LOG
+			#ifdef DIFFERENCE_SYNC_HISTOGRAM_LOG
 			static int counts[2*M] = {};
-			const int diff_int = int(diff);
-			if (diff_int < dist && diff_int >= -dist)
-				counts[diff_int+dist] += 1;
+			if (diff < dist && diff >= -dist)
+				counts[diff+dist] += 1;
 			for (int i = 0; i < dist*2; ++i)
 				cout << counts[i] << ",";
 			cout << endl;
@@ -490,10 +501,10 @@ public:
 		// -/
 
 		//- Buffer Indice Management
-		iw = 0; // The index of the writer in the audio buffers, of the newest sample in the
+		writer = 0; // The index of the writer in the audio buffers, of the newest sample in the
 		        // buffers, and of a discontinuity in the waveform
-		rl = TBL - VL; // Index of a reader in the audio buffers (left channel)
-		rr = TBL - VL;
+		reader_l = TBL - VL; // Index of a reader in the audio buffers (left channel)
+		reader_r = TBL - VL;
 		freql = 60.f; // Holds a harmonic frequency of the dominant frequency of the audio.
 		freqr = freql; // we capture an image of the waveform at this rate
 		// -/
@@ -508,21 +519,17 @@ public:
 		#endif
 		// -/
 
-		#ifdef DIFFERENCE_SYNC_LOG
-		// for (int i = 0; i < 2*M; ++i)
-		// 	counts[i] = 0;
-		#endif
 	};
 	// -/
 
-	void service_channel(float  w,
-	                     float& r,
+	void service_channel(int  w,
+	                     int& r,
 	                     float* prev_buff,
 	                     float* audio_buff,
 	                     float* staging_buff,
-											 float* fft_out,
+	                     float* fft_out,
 	                     float& freq,
-											 float& channel_max,
+	                     float& channel_max,
 	                     chrono::steady_clock::time_point& now,
 	                     chrono::steady_clock::time_point& next_t) {
 			if (now > next_t) {
@@ -534,22 +541,23 @@ public:
 				#endif
 
 				for (int i = 0; i < VL; ++i) {
-					staging_buff[i] = audio_buff[(i + int(r)) % TBL];
+					staging_buff[i] = audio_buff[(i + r) % TBL];
 
 					#ifdef DIFFERENCE_SYNC
 					// The mix helps reduce jitter in the choice of where to place the next wave.
-					prev_buff[i] = mix(staging_buff[i], prev_buff[i], .95);
+					prev_buff[i] = mix(staging_buff[i], prev_buff[i], difference_smoother);
 					#endif
 
 					#ifdef RENORM_4
-					if (staging_buff[i] > max_amplitude_so_far)
-						max_amplitude_so_far = staging_buff[i];
+					if (std::fabs(staging_buff[i]) > max_amplitude_so_far)
+						max_amplitude_so_far = std::fabs(staging_buff[i]);
 					#endif
 				}
 
 				#ifdef RENORM_1
 				renorm(staging_buff, channel_max, .5, 1.f, VL);
 				#endif
+
 				#ifdef RENORM_4
 				renorm(staging_buff, max_amplitude_so_far, 0.f, .83f, VL);
 				#endif
@@ -562,9 +570,9 @@ public:
 				#endif
 			}
 				// // cout << "left" << endl;
-				// const float new_rl = advance_index(iw*ABL, rl, freql, TBL);
-				// const float SAMPLES = dist_forward(rl, new_rl, TBL);
-				// rl = new_rl;
+				// const float new_rl = advance_index(writer, reader_l, freql, TBL);
+				// const float SAMPLES = dist_forward(reader_l, new_rl, TBL);
+				// reader_l = new_rl;
 				// const float TIME = SAMPLES / SR;
 				// next_l += dura(TIME);
 	}
@@ -595,34 +603,33 @@ public:
 			// on windows and on linux.
 			// TODO On windows this can prevent the app from closing if the music is paused.
 			// auto perf_timepoint = std::chrono::steady_clock::now();
-			pcm_getter(audio_buff_l+iw*ABL, audio_buff_r+iw*ABL, ABL);
+			pcm_getter(audio_buff_l+writer, audio_buff_r+writer, ABL);
 			// cout << (std::chrono::steady_clock::now() - perf_timepoint).count()/1e9 << endl;
 
 			//- Manage indices and fill smoothing buffers
-			iw++;
-			iw %= ABN; // iw * ABN marks the index of the discontinuity in the circular buffer
+			writer = move_index(writer, ABL, TBL); // writer marks the index of the discontinuity in the circular buffer
 
-			service_channel(iw*ABL,         // writer
-	                    rl,             // reader
-	                    prev_buff_l,    // previously visualized audio
-	                    audio_buff_l,   // audio collected from system audio stream
-	                    staging_buff_l, // audio for visualizer goes here
-											fft_outl,       // fft complex outputs
-	                    freql,          // most recent dominant frequency < 600hz
-											channel_max_l,  // channel renormalization term
-											now,            // current time point
-	                    next_l);        // update staging at this timepoint again
+			service_channel(writer,         // writer
+			                reader_l,             // reader
+			                prev_buff_l,    // previously visualized audio
+			                audio_buff_l,   // audio collected from system audio stream
+			                staging_buff_l, // audio for visualizer goes here
+			                fft_outl,       // fft complex outputs
+			                freql,          // most recent dominant frequency < 600hz
+			                channel_max_l,  // channel renormalization term
+			                now,            // current time point
+			                next_l);        // update staging at this timepoint again
 
-			service_channel(iw*ABL,
-	                    rr,
-	                    prev_buff_r,
-	                    audio_buff_r,
-	                    staging_buff_r,
-											fft_outr,
-	                    freqr,
-											channel_max_r,
-											now,
-	                    next_r);
+			service_channel(writer,
+			                reader_r,
+			                prev_buff_r,
+			                audio_buff_r,
+			                staging_buff_r,
+			                fft_outr,
+			                freqr,
+			                channel_max_r,
+			                now,
+			                next_r);
 			// -/
 
 			//- Execute fft and fill fft output buff
@@ -630,7 +637,7 @@ public:
 			if (now > next_fft) {
 				next_fft += _60fpsDura;
 				for (int i = 0; i < FFTLEN; ++i) {
-					#define downsmpl(s) s[(i*2+ABL*iw)%TBL]
+					#define downsmpl(s) s[(i*2+writer)%TBL]
 					fft_inl[i] = downsmpl(audio_buff_l) * FFTwindow[i];
 					fft_inr[i] = downsmpl(audio_buff_r) * FFTwindow[i];
 					#undef downsmpl
@@ -659,6 +666,7 @@ public:
 				#define upsmpl(s) (s[i/2] + s[(i+1)/2])/2.f
 				newl = upsmpl(staging_buff_l);
 				newr = upsmpl(staging_buff_r);
+				// newr = upsmpl(prev_buff_r);
 				#undef upsmpl
 
 				oldl = audio_sink->audio_l[i];
@@ -718,9 +726,9 @@ private:
 	float* fft_inr;
 	float* FFTwindow;
 
-	int iw;
-	float rl;
-	float rr;
+	int writer;
+	int reader_l;
+	int reader_r;
 	float freql;
 	float freqr;
 
