@@ -25,6 +25,33 @@ using std::endl;
 #define Aligned_Alloc(align, sz) aligned_alloc(align, sz)
 #endif
 
+//- Constants
+//
+// ABL length of the system audio capture buffer (in frames)
+// ABN number of system audio capture buffers to keep
+// TBL total audio buffer length. length of all ABN buffers combined (in frames)
+// VL length of visualizer 1D texture buffers. Length of audio data that this module 'outputs' (in frames)
+// C channel count of audio
+// SR requested sample rate of the audio
+// SRF sample rate of audio given to FFT
+const int ABL = 512;
+const int ABN = 16;
+const int TBL = ABL * ABN;
+const int FFTLEN = TBL / 2;
+const int VL = VISUALIZER_BUFSIZE; // defined in audio_data.h
+const int C = 2;
+const int SR = 48000;
+const int SRF = SR / 2;
+
+// I think the FFT looks best when it has 8192/48000, or 4096/24000, time granularity. However, I
+//   like the wave to be 96000hz just because then it fits on the screen nice.
+// To have both an FFT on 24000hz data and to display 96000hz waveform data, I ask
+//   pulseaudio to output 48000hz and then resample accordingly.
+// I've compared the 4096 sample FFT over 24000hz data to the 8192 sample FFT over 48000hz data
+//   and they are surprisingly similar. I couldn't tell a difference really.
+// I've also compared resampling with ffmpeg to my current naive impl. Hard to notice a difference.
+// -/
+
 //- Feature Toggles
 // ------------------------------------------------------
 // To turn off all the fancy stuff
@@ -80,22 +107,6 @@ using std::endl;
 // velocity = sample rate
 // wavelength = number of samples of one period of the wave
 // frequency = dominant frequency of the waveform
-//
-// In order to find the wavelength of the audio wave we can take the fft of a section of
-// the wave and then use that to choose at what distances we should move the audio pointer by.
-// Is there a better way to get the wavelength? idk, this works pretty good.
-//
-// Many sounds have highly variable wavelengths. Often the wavelength will change almost
-// instantly, making any choice of wavelength we've made incorrect and causing the next frame
-// to appear completely out of phase with the current.
-//
-// Improvements?
-//     constrained minimization of successive frames to push snapshot points around the timeline.
-//         It's not just the difference between successive frames that I want to minimize
-//         I want to minimize the whole sum of differences, so that no interval could have a set
-//         of snapshot points arranged in any other way (given the constraints) such that the
-//         total sum of differences in that interval was smaller. right?
-//     interpolate between current frame and next frame?
 #define FFT_SYNC
 //
 // TODO why in the code do I use the frequency to both check WHEN to update next and WHERE to put
@@ -105,80 +116,44 @@ using std::endl;
 // A smaller smoother makes the wave more like molasses.
 // A larger smoother makes the wave more snappy.
 // Mixes the old buffer of audio with the new buffer of audio.
-static const float smoother = .98f;
-//static const float smoother = 1.f;
+static const float smoother = .97f;
+// static const float smoother = 1.f;
 //
 // DIFFERENCE_SYNC
 // Makes the wave stand almost uncomfortably still. It is nice to watch the phase change when
 // a person is humming a tune for instance.
-#define DIFFERENCE_SYNC 50
+#define DIFFERENCE_SYNC
 // #define DIFFERENCE_SYNC_HISTOGRAM_LOG
-static const int M = DIFFERENCE_SYNC; // Search an 2*M region for a min. Computes M*VL multiplications
-static const float difference_smoother = .95f;
-// CONVOLUTIONAL_SYNC
-// TODO would be too computationally expensive?
-// Make a 2D array set to zero. For each point on the new_wave set the corresponding point in thee
-// 2D array to 1. Do the same for the old_wave.
-// Convolve the 2D array with a nxn 1's matrix.
-// Sum the resulting array to get a real value.
-// Minimize this real value for each new_wave in some interval.
-// I like this method the best, because what the user sees in the music visualizer is not the wave's height values
-// but rather the amount of color delivered to their eyeballs over a 1/10 of a second from a specific point in the plane.
-// This convolutional approach could take even more than just the previous wave. The conv could consider the last 5 waves.
-// The conv approach will try to condense the stream of points to cover as small of an area as possible.
-//
-// Maybe this isn't what I want. Because it isn't immediately clear to me that it will always put the waveform where I
-// would put the waveform. But where would I put the waveform say if old_wave(t) = noisy_sin(t) + .8 and
-// new_wave(t) = noisy_sin(t)? I would shift new_wave so that the periods line up.
-// but the conv solution would shift new_wave so that the hills of new_wave cover up the valleys of old_wave.
-//
-// How about this: Maximize the size and minimize the number of patches of empty area on the screen.
-// The convolutional approach maximizes the amount of empty area on the screen, but unfortunately fails on examples like
-// above with noisy_sin(t)+.8 and noisy_sin(t). That example maximized both the amount of and the number of patches of
-// empty space on the screen. This could use non-overlapping (image size reducing) product sum (by nxn 1's filter)
-//
-// Should I attempt to minimize the difference between phase(new_wave) and phase(old_wave)? No, what if new_wave is all
-// crazy looking and phase minimization tells me to align it some way that only adds more chaos to the screen? I would
-// use the phase as returned by the fft, but this phase could be really jittery from frame to frame and could just plain
-// not put the wave where it seems like it should be.
-//
-// I'm trying to minimize the entropy in the information received by the theoretical user who is utterly attentive to my
-// awesome artwork XD. The information is basically the set of graphics frames the user sees over a short amount of time.
-// -/
+// If history > 1, then difference_sync compares agains multiple previous frames
 
-//- Constants
+// Observations:
+// if I set these params
+// frames: 3
+// gran: 4
+// range:16*gran
+// then Slow Motion (by TEB) visualizes ok, but there is very noticable drift in the wave
+// during the intro (sound=clean constant tone)
+// But if I set
+// frames: 9
+// then drift is reduced (almost eliminated) throughout the whole song.
+// This observation shows that the history frames help establish a correlation
+// in frame placement (horizontal shift) between new frames and older frames.
+#define HISTORY_NUM_FRAMES 9
+#define HISTORY_SEARCH_GRANULARITY 4
+#define HISTORY_SEARCH_RANGE 16*HISTORY_SEARCH_GRANULARITY
+static const int HISTORY_BUFF_SZ = VL/2; // we only load VL/2 samples into the visualzier
+// The performance cost for the history_search/difference_sync is
 //
-// ABL length of the system audio capture buffer (in frames)
-// ABN number of system audio capture buffers to keep
-// TBL total audio buffer length. length of all ABN buffers combined (in frames)
-// VL length of visualizer 1D texture buffers. Length of audio data that this module 'outputs' (in frames)
-// C channel count of audio
-// SR requested sample rate of the audio
-// SRF sample rate of audio given to FFT
-const int ABL = 512;
-const int ABN = 16;
-const int TBL = ABL * ABN;
-const int FFTLEN = TBL / 2;
-const int VL = VISUALIZER_BUFSIZE; // defined in audio_data.h
-const int C = 2;
-const int SR = 48000;
-const int SRF = SR / 2;
-
-//////////////////////////////////IMPORTANT PARAMETER INFO
-// I think the FFT looks best when it has 8192/48000, or 4096/24000, time granularity. However, I
-//   like the wave to be 96000hz just because then it fits on the screen nice.
-// To have both an FFT on 24000hz data and to display 96000hz waveform data, I ask
-//   pulseaudio to output 48000hz and then resample accordingly.
-// I've compared the 4096 sample FFT over 24000hz data to the 8192 sample FFT over 48000hz data
-//   and they are surprisingly similar. I couldn't tell a difference really.
-// I've also compared resampling with ffmpeg to my current naive impl. Hard to notice a
-//   difference.
+// 2 * HISTORY_SEARCH_RANGE * HISTORY_NUM_FRAMES * HISTORY_BUFF_SZ
+// ---------------------------------------------------------------
+//                 HISTORY_SEARCH_GRANULARITY
+//
 // -/
 
 class audio_processor {
 public:
 
-	//- Static Utility Functions
+	//- Functions
 	// Returns the magnitude of the ith complex number of the fft output stored in f.
 	static float mag(float* f, int i) {
 		return sqrt(f[i*2]*f[i*2] + f[i*2+1]*f[i*2+1]);
@@ -286,33 +261,15 @@ public:
 		const float kp = k + d;
 		return kp * float(SRF) / float(FFTLEN);
 	}
-	static float clamp(float x, float l, float h) {
-		if (x < l)
-			x = l;
-		else if (x > h)
-			x = h;
-		return x;
-	}
-	// Bound freq into the interval [24, 60] by multiplying by factors of 2.
 	static float get_harmonic(float freq) {
-
-		// TODO what does this do?
-		freq = clamp(freq, 1.f, SRF / float(FFTLEN) * 100);
-
-		const float b = log2f(freq);
-		const float l = log2f(24.f);
-		const float u = log2f(60.f);
-		// a == number of iterations for one of the below loops
-		int a = 0;
-		if (b < l)
-			a = floor(b - l); // round towards -inf
-		else if (b > u)
-			a = ceil(b - u); // round towards +inf
-		freq = pow(2.f, b - a);
-
-		// double o = freq;
-		// while (o > 61.f) o /= 2.f; // dividing frequency by two does produce the ghosting effect
-		// while (o < 24.f) o *= 2.f; // multiplying frequency by two produces the ghosting effect
+		//while (freq > 121.f)
+		//	freq /= 2.f;
+		float a = std::log2f(freq);
+		float b = std::log2f(121.f);
+		if (a > b)
+			freq *= std::powf(2.f, std::floor(b-a));
+		if (!std::isnormal(freq))
+			freq = 60.f;
 		return freq;
 	}
 	static inline float mix(float x, float y, float m) {
@@ -369,28 +326,33 @@ public:
 	// No, the inputs depend on each other too much.
 	// Writing the tests/asserts in anticipation that the inputs would vary is too much work, when I know that the inputs actually will not vary.
 	//
-	static int difference_sync(int w, int r, int dist, float* prev_buff, float* buff) {
-		// TODO compute bounds for search
+	static int difference_sync(int w, int r, int dist, float* prev_buff[HISTORY_NUM_FRAMES], int frame_id, float* buff) {
+		// TODO compute bounds for search?
 		//float furthest_search = min(float(dist), dist_forward(reader_r, writer, TBL)); not correct
 		if (dist_backward(r, w, TBL) > dist && dist_forward(r, w, TBL) > dist) {
 			int orig_r = r;
 			r = move_index(r, -dist, TBL);
 
 			// Find r that gives best similarity between buff and prev_buff
-			int min_r = 0;
+			int min_r = orig_r;
 			float min_md = std::numeric_limits<float>::infinity();
-			for (int i = 0; i < dist*2; ++i) {
-				float md = manhattan_dist(buff, prev_buff, r, TBL, VL);
+			for (int i = 0; i < dist*2/HISTORY_SEARCH_GRANULARITY; ++i) {
+				float md = 0.f;
+				for (int b = 0; b < HISTORY_NUM_FRAMES; ++b) {
+					int cur_buf = (frame_id + HISTORY_NUM_FRAMES - 1 + b) % HISTORY_NUM_FRAMES;
+					md += mix(1.f, .5f, b/float(HISTORY_NUM_FRAMES)) * manhattan_dist(buff, prev_buff[cur_buf], r, TBL, HISTORY_BUFF_SZ);
+					//md += manhattan_dist(buff, prev_buff[b], r, TBL, HISTORY_BUFF_SZ); // even though we only send VL/2 to visualizer, computing dist over all VL seems to give better results
+				}
 				if (md < min_md) {
 					min_md = md;
 					min_r = r;
 				}
-				r = move_index(r, 1, TBL);
+				r = move_index(r, HISTORY_SEARCH_GRANULARITY, TBL);
 			}
 
 			// Find out how far we've been shifted.
-			const int df = dist_forward(orig_r , min_r, TBL);
-			const int db = dist_backward(orig_r , min_r, TBL);
+			const int df = dist_forward(orig_r, min_r, TBL);
+			const int db = dist_backward(orig_r, min_r, TBL);
 			int diff;
 			if (df < db)
 				diff = df;
@@ -407,48 +369,17 @@ public:
 				r = orig_r;
 
 			#ifdef DIFFERENCE_SYNC_HISTOGRAM_LOG
-			static int counts[2*M] = {};
+			static int counts[2*HISTORY_SEARCH_RANGE] = {};
 			if (diff < dist && diff >= -dist)
 				counts[diff+dist] += 1;
-			for (int i = 0; i < dist*2; ++i)
-				cout << counts[i] << ",";
-			cout << endl;
+			if (frame_id % 1000 == 0) {
+				for (int i = 0; i < dist*2; i+=HISTORY_SEARCH_GRANULARITY)
+					cout << counts[i] << ",";
+				cout << endl;
+			}
 			#endif
 		}
 		return r;
-	}
-	template<typename T>
-	static T min(T a, T b) {
-		if (a < b) return a;
-		return b;
-	}
-	// -/
-
-	//- Destructor
-	~audio_processor() {
-		free(audio_sink->audio_l);
-		free(audio_sink->audio_r);
-		free(audio_sink->freq_l);
-		free(audio_sink->freq_r);
-		free(audio_buff_l);
-		free(audio_buff_r);
-		free(staging_buff_l);
-		free(staging_buff_r);
-
-		free(fft_inl);
-		free(fft_inr);
-		free(fft_outl);
-		free(fft_outl);
-		free(FFTwindow);
-
-		free(prev_buff_l);
-		free(prev_buff_r);
-
-		ffts_free(fft_plan);
-
-		#ifdef RENORM_2
-		free(sinArray);
-		#endif
 	}
 	// -/
 
@@ -466,8 +397,12 @@ public:
 		audio_buff_r = (float*)calloc(TBL, sizeof(float));
 		// -/
 
-		prev_buff_l = (float*)calloc(VL, sizeof(float));
-		prev_buff_r = (float*)calloc(VL, sizeof(float));
+		#ifdef DIFFERENCE_SYNC
+		for (int i = 0; i < HISTORY_NUM_FRAMES; ++i) {
+			prev_buff_l[i] = (float*)calloc(HISTORY_BUFF_SZ, sizeof(float));
+			prev_buff_r[i] = (float*)calloc(HISTORY_BUFF_SZ, sizeof(float));
+		}
+		#endif
 
 		//- Output buffers
 		audio_sink->audio_l = (float*)calloc(VL, sizeof(float));
@@ -502,8 +437,8 @@ public:
 
 		//- Buffer Indice Management
 		writer = 0; // The index of the writer in the audio buffers, of the newest sample in the
-		        // buffers, and of a discontinuity in the waveform
-		reader_l = TBL - VL; // Index of a reader in the audio buffers (left channel)
+		            // buffers, and of a discontinuity in the waveform
+		reader_l = TBL - VL; // Index of a reader in the audio buffers
 		reader_r = TBL - VL;
 		freql = 60.f; // Holds a harmonic frequency of the dominant frequency of the audio.
 		freqr = freql; // we capture an image of the waveform at this rate
@@ -522,9 +457,42 @@ public:
 	};
 	// -/
 
+	//- Destructor
+	~audio_processor() {
+		free(audio_sink->audio_l);
+		free(audio_sink->audio_r);
+		free(audio_sink->freq_l);
+		free(audio_sink->freq_r);
+		free(audio_buff_l);
+		free(audio_buff_r);
+		free(staging_buff_l);
+		free(staging_buff_r);
+
+		free(fft_inl);
+		free(fft_inr);
+		free(fft_outl);
+		free(fft_outl);
+		free(FFTwindow);
+
+		#ifdef DIFFERENCE_SYNC
+		for (int i = 0; i < HISTORY_NUM_FRAMES; ++i) {
+			free(prev_buff_l[i]);
+			free(prev_buff_r[i]);
+		}
+		#endif
+
+		ffts_free(fft_plan);
+
+		#ifdef RENORM_2
+		free(sinArray);
+		#endif
+	}
+	// -/
+
 	void service_channel(int  w,
 	                     int& r,
-	                     float* prev_buff,
+	                     int& frame_id,
+	                     float* prev_buff[HISTORY_NUM_FRAMES],
 	                     float* audio_buff,
 	                     float* staging_buff,
 	                     float* fft_out,
@@ -537,15 +505,14 @@ public:
 				r = advance_index(w, r, freq, TBL);
 
 				#ifdef DIFFERENCE_SYNC
-				r = difference_sync(w, r, M, prev_buff, audio_buff);
+				r = difference_sync(w, r, HISTORY_SEARCH_RANGE, prev_buff, frame_id, audio_buff);
 				#endif
 
 				for (int i = 0; i < VL; ++i) {
 					staging_buff[i] = audio_buff[(i + r) % TBL];
 
-					#ifdef DIFFERENCE_SYNC
-					// The mix helps reduce jitter in the choice of where to place the next wave.
-					prev_buff[i] = mix(staging_buff[i], prev_buff[i], difference_smoother);
+					#ifdef CONST_RENORM
+					staging_buff[i] *= CONST_RENORM;
 					#endif
 
 					#ifdef RENORM_4
@@ -553,6 +520,16 @@ public:
 						max_amplitude_so_far = std::fabs(staging_buff[i]);
 					#endif
 				}
+
+				#ifdef DIFFERENCE_SYNC
+				// The mix helps reduce jitter in the choice of where to place the next wave.
+				//prev_buff[0][i] = mix(staging_buff[i], prev_buff[0][i], difference_smoother);
+				for (int i = 0; i < HISTORY_BUFF_SZ; ++i) {
+					//prev_buff[frame_id%HISTORY_NUM_FRAMES][i] = mix(staging_buff[i], prev_buff[(frame_id + HISTORY_NUM_FRAMES-1)%HISTORY_NUM_FRAMES][i], difference_smoother);
+					prev_buff[frame_id%HISTORY_NUM_FRAMES][i] = staging_buff[i];
+				}
+				#endif
+				frame_id++;
 
 				#ifdef RENORM_1
 				renorm(staging_buff, channel_max, .5, 1.f, VL);
@@ -569,12 +546,12 @@ public:
 				next_t += dura(1.f/60.f);
 				#endif
 			}
-				// // cout << "left" << endl;
-				// const float new_rl = advance_index(writer, reader_l, freql, TBL);
-				// const float SAMPLES = dist_forward(reader_l, new_rl, TBL);
-				// reader_l = new_rl;
-				// const float TIME = SAMPLES / SR;
-				// next_l += dura(TIME);
+			// // cout << "left" << endl;
+			// const float new_rl = advance_index(writer, reader_l, freql, TBL);
+			// const float SAMPLES = dist_forward(reader_l, new_rl, TBL);
+			// reader_l = new_rl;
+			// const float TIME = SAMPLES / SR;
+			// next_l += dura(TIME);
 	}
 
 	//- Program
@@ -588,12 +565,15 @@ public:
 		auto next_fft = now + _60fpsDura; // Compute the fft only once every 1/60 of a second
 		// -/
 
+		int frame_id_l = 0;
+		int frame_id_r = 0;
+
 		while (!audio_sink->thread_join) { // Break when audio_sink->thread_join true
 			fps(now);
 			now = chrono::steady_clock::now();
 			// We want to use next += dura(1/freq) in the loop below and not next = now + dura(1/freq) because ... TODO,
 			// BUT if now >> next, then we probably were stalled in pcm_getter and should update the next times
-			if (now - next_l > std::chrono::milliseconds(17*4)) { // less than 60/2/2 fps
+			if (now - next_l > chrono::milliseconds(17*4)) { // less than 60/2/2 fps
 				next_r = now;
 				next_l = now;
 				next_fft = now;
@@ -602,15 +582,14 @@ public:
 			// TODO test this function. The samples it writes to the circular buffer should be the same for the same sound
 			// on windows and on linux.
 			// TODO On windows this can prevent the app from closing if the music is paused.
-			// auto perf_timepoint = std::chrono::steady_clock::now();
 			pcm_getter(audio_buff_l+writer, audio_buff_r+writer, ABL);
-			// cout << (std::chrono::steady_clock::now() - perf_timepoint).count()/1e9 << endl;
 
 			//- Manage indices and fill smoothing buffers
 			writer = move_index(writer, ABL, TBL); // writer marks the index of the discontinuity in the circular buffer
 
 			service_channel(writer,         // writer
-			                reader_l,             // reader
+			                reader_l,       // reader
+			                frame_id_l,
 			                prev_buff_l,    // previously visualized audio
 			                audio_buff_l,   // audio collected from system audio stream
 			                staging_buff_l, // audio for visualizer goes here
@@ -622,6 +601,7 @@ public:
 
 			service_channel(writer,
 			                reader_r,
+			                frame_id_r,
 			                prev_buff_r,
 			                audio_buff_r,
 			                staging_buff_r,
@@ -644,9 +624,10 @@ public:
 				}
 				ffts_execute(fft_plan, fft_inl, fft_outl);
 				ffts_execute(fft_plan, fft_inr, fft_outr);
+				// TODO fft magnitudes are different between windows and linux
 				for (int i = 0; i < VL; i++) {
-					audio_sink->freq_l[i] = 2*mag(fft_outl, i)/sqrt(FFTLEN);
-					audio_sink->freq_r[i] = 2*mag(fft_outr, i)/sqrt(FFTLEN);
+					audio_sink->freq_l[i] = mag(fft_outl, i)/sqrt(FFTLEN);
+					audio_sink->freq_r[i] = mag(fft_outr, i)/sqrt(FFTLEN);
 				}
 			}
 			// -/
@@ -675,18 +656,26 @@ public:
 				mixl = mix(oldl, newl, smoother);
 				mixr = mix(oldr, newr, smoother);
 
-				#ifdef CONST_RENORM
-				mixl *= CONST_RENORM;
-				mixr *= CONST_RENORM;
-				#endif
-
 				#ifdef RENORM_2
 				mixl += (1.f-pow_max_l)*.005*sinArray[i];
 				mixr += (1.f-pow_max_r)*.005*sinArray[(i+VL/4)%VL]; // i+vl/4 : sine -> cosine
 				#endif
 
+				//*
 				audio_sink->audio_l[i] = mixl;
 				audio_sink->audio_r[i] = mixr;
+				/*/
+				// View the input audio
+				//audio_sink->audio_l[i] = audio_buff_l[(i + reader_l)%TBL]/channel_max_l;
+				//audio_sink->audio_r[i] = audio_buff_r[(i + reader_r)%TBL]/channel_max_r;
+				// View the history frames used in difference_sync
+				//audio_sink->audio_l[i] = prev_buff_l[(frame_id_l + HISTORY_NUM_FRAMES - 1)%HISTORY_NUM_FRAMES][i/2];
+				//audio_sink->audio_r[i] = prev_buff_r[(frame_id_r + HISTORY_NUM_FRAMES - 1)%HISTORY_NUM_FRAMES][i/2];
+				//#undef RENORM_4
+				//#undef RENORM_3
+				//#undef RENORM_2
+				//#undef RENORM_1
+				// */
 			}
 
 			#if defined(RENORM_2) || defined(RENORM_3)
@@ -699,10 +688,6 @@ public:
 			audio_sink->mtx.unlock();
 			// -/
 
-			// TODO how does DIFFERENCE_SYNC affect this?
-			// fps(now); // Should be about 90 fps for the sound loop
-			// Turning this on causes the indices to get all fd up, this makes sense because ... TODO
-			// std::this_thread::sleep_for(std::chrono::milliseconds(13));
 		}
 		audio_destroy();
 		return 0;
@@ -711,8 +696,8 @@ public:
 
 	//- Members
 private:
-	float* prev_buff_l;
-	float* prev_buff_r;
+	float* prev_buff_l[HISTORY_NUM_FRAMES];
+	float* prev_buff_r[HISTORY_NUM_FRAMES];
 
 	float* audio_buff_l;
 	float* audio_buff_r;
@@ -732,8 +717,8 @@ private:
 	float freql;
 	float freqr;
 
-	float channel_max_l = 1.f;
-	float channel_max_r = 1.f;
+	float channel_max_l;
+	float channel_max_r;
 	#ifdef RENORM_2
 	float* sinArray;
 	#endif
