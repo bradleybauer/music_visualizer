@@ -325,7 +325,7 @@ void draw(struct audio_data* audio) {
 // glActivateTexture activates a certain texture unit.
 // each texture unit holds one texture of each dimension of texture
 //     {GL_TEXTURE_1D, GL_TEXTURE_2D, GL_TEXTURE_3D, GL_TEXTURE_CUBEMAP}
-// because I'm using 4, 1 dimensional textures i need to store them in separate texture units
+// because I'm using four 1 dimensional textures I need to store them in separate texture units
 //
 // glUniform1i(textureLoc, int) sets what texture unit the sampler in the shader reads from
 //

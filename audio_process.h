@@ -264,7 +264,7 @@ public:
 		float a = std::log2f(freq);
 		float b = std::log2f(121.f);
 		if (a > b)
-			freq *= std::powf(2.f, std::floor(b-a));
+			freq *= std::pow(2.f, std::floor(b-a));
 		if (!std::isnormal(freq))
 			freq = 60.f;
 		return freq;

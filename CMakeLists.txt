@@ -7,7 +7,6 @@ set(SOURCE_FILES
 	draw.cpp
 	main.cpp
 	audio_capture.cpp
-	audio_process.cpp
 )
 
 include_directories(
