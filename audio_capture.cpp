@@ -134,11 +134,17 @@ void get_pcm(float* audio_buf_l, float* audio_buf_r, int ABL) {
 	get_pcm_windows(audio_buf_l, audio_buf_r, ABL);
 }
 
-static void setup_linux(const int ABL, const int SR, struct audio_data* audio) {
+static void setup_linux(const int ABL, const int SR) {
 	int C = 2;
 #ifdef LINUX
-	getPulseDefaultSink((void*)audio);
+	char* sink_name;
+	getPulseDefaultSink((void*)&sink_name);
+	std::string sink(sink_name);
+	sink += ".monitor";
+
+	// TODO is this released?
 	buf_interlaced = new float[ABL * C];
+
 	pa_sample_spec pulseSampleSpec;
 	pulseSampleSpec.channels = C;
 	pulseSampleSpec.rate = SR;
@@ -146,10 +152,10 @@ static void setup_linux(const int ABL, const int SR, struct audio_data* audio) {
 	pa_buffer_attr pb;
 	pb.fragsize = ABL*C*sizeof(float) / 2;
 	pb.maxlength = ABL*C*sizeof(float);
-	pulseState = pa_simple_new(NULL, "Music Visualizer", PA_STREAM_RECORD, audio->source.data(), "Music Visualizer", &pulseSampleSpec, NULL,
+	pulseState = pa_simple_new(NULL, "Music Visualizer", PA_STREAM_RECORD, sink.data(), "Music Visualizer", &pulseSampleSpec, NULL,
 	                  &pb, &pulseError);
 	if (!pulseState) {
-		cout << "Could not open pulseaudio source: " << audio->source << pa_strerror(pulseError)
+		cout << "Could not open pulseaudio source: " << sink.data() << pa_strerror(pulseError)
 		     << ". To find a list of your pulseaudio sources run 'pacmd list-sources'" << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -239,9 +245,9 @@ static void setup_windows(const int ABL, const int SR) {
 
 // ABL: audio buffer length in frames
 // SR: sample rate, number of frames per second
-void audio_setup(const int ABL, const int SR, struct audio_data* audio) {
+void audio_setup(const int ABL, const int SR) {
 	// nop if windows
-	setup_linux(ABL, SR, audio);
+	setup_linux(ABL, SR);
 	// nop if linux
 	setup_windows(ABL, SR);
 }

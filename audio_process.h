@@ -382,7 +382,7 @@ public:
 	// audio_processor owns the memory it allocates here.
 	audio_processor(struct audio_data* _audio_sink,
 	                std::function<void(float*, float*, int)> _pcm_getter,
-	                std::function<void(int, int, struct audio_data*)> _audio_initializer) {
+	                std::function<void(int, int)> _audio_initializer) {
 		audio_sink = _audio_sink;
 		pcm_getter = _pcm_getter;
 		audio_initializer = _audio_initializer;
@@ -406,7 +406,7 @@ public:
 		audio_sink->freq_r = (float*)calloc(VL, sizeof(float));
 		// -/
 
-		audio_initializer(ABL, SR, audio_sink);
+		audio_initializer(ABL, SR);
 
 		//- Smoothing buffers
 		// Helps smooth the appearance of the waveform. Useful when we're not updating the waveform data at 60fps.
@@ -721,7 +721,7 @@ private:
 	float max_amplitude_so_far = 0.;
 
 	std::function<void(float*, float*, int)> pcm_getter;
-	std::function<void(int, int, struct audio_data*)> audio_initializer;
+	std::function<void(int, int)> audio_initializer;
 
 	struct audio_data* audio_sink;
 	// -/
