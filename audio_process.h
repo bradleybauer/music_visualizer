@@ -192,10 +192,7 @@ public:
 		return d;
 	}
 	static int dist_backward(int from, int to, int tbl) {
-		int d = from - to;
-		if (d < 0)
-			d += tbl;
-		return d;
+		return dist_forward(to, from, tbl);
 	}
 	static int sign(int x) {
 		if (x < 0) return -1;
@@ -327,8 +324,6 @@ public:
 	// Writing the tests/asserts in anticipation that the inputs would vary is too much work, when I know that the inputs actually will not vary.
 	//
 	static int difference_sync(int w, int r, int dist, float* prev_buff[HISTORY_NUM_FRAMES], int frame_id, float* buff) {
-		// TODO compute bounds for search?
-		//float furthest_search = min(float(dist), dist_forward(reader_r, writer, TBL)); not correct
 		if (dist_backward(r, w, TBL) > dist && dist_forward(r, w, TBL) > dist) {
 			int orig_r = r;
 			r = move_index(r, -dist, TBL);
@@ -339,9 +334,9 @@ public:
 			for (int i = 0; i < dist*2/HISTORY_SEARCH_GRANULARITY; ++i) {
 				float md = 0.f;
 				for (int b = 0; b < HISTORY_NUM_FRAMES; ++b) {
-					int cur_buf = (frame_id + HISTORY_NUM_FRAMES - 1 + b) % HISTORY_NUM_FRAMES;
-					md += mix(1.f, .5f, b/float(HISTORY_NUM_FRAMES)) * manhattan_dist(buff, prev_buff[cur_buf], r, TBL, HISTORY_BUFF_SZ);
-					//md += manhattan_dist(buff, prev_buff[b], r, TBL, HISTORY_BUFF_SZ); // even though we only send VL/2 to visualizer, computing dist over all VL seems to give better results
+					int cur_buf = (frame_id + b) % HISTORY_NUM_FRAMES;
+					//md += mix(.5f, 1.f, b/float(HISTORY_NUM_FRAMES)) * manhattan_dist(buff, prev_buff[cur_buf], r, TBL, HISTORY_BUFF_SZ);
+					md += manhattan_dist(buff, prev_buff[cur_buf], r, TBL, HISTORY_BUFF_SZ);
 				}
 				if (md < min_md) {
 					min_md = md;
@@ -524,10 +519,8 @@ public:
 				#ifdef DIFFERENCE_SYNC
 				// The mix helps reduce jitter in the choice of where to place the next wave.
 				//prev_buff[0][i] = mix(staging_buff[i], prev_buff[0][i], difference_smoother);
-				for (int i = 0; i < HISTORY_BUFF_SZ; ++i) {
-					//prev_buff[frame_id%HISTORY_NUM_FRAMES][i] = mix(staging_buff[i], prev_buff[(frame_id + HISTORY_NUM_FRAMES-1)%HISTORY_NUM_FRAMES][i], difference_smoother);
+				for (int i = 0; i < HISTORY_BUFF_SZ; ++i)
 					prev_buff[frame_id%HISTORY_NUM_FRAMES][i] = staging_buff[i];
-				}
 				#endif
 				frame_id++;
 
@@ -582,7 +575,9 @@ public:
 			// TODO test this function. The samples it writes to the circular buffer should be the same for the same sound
 			// on windows and on linux.
 			// TODO On windows this can prevent the app from closing if the music is paused.
+			//auto perf_timepoint = std::chrono::steady_clock::now();
 			pcm_getter(audio_buff_l+writer, audio_buff_r+writer, ABL);
+			//cout << (std::chrono::steady_clock::now() - perf_timepoint).count()/1e9 << endl;
 
 			//- Manage indices and fill smoothing buffers
 			writer = move_index(writer, ABL, TBL); // writer marks the index of the discontinuity in the circular buffer
