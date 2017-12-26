@@ -258,11 +258,11 @@ public:
 		const float kp = k + d;
 		return kp * float(SRF) / float(FFTLEN);
 	}
-	static float get_harmonic(float freq) {
+	static float get_harmonic_less_than(float freq, float thres) {
 		//while (freq > 121.f)
 		//	freq /= 2.f;
 		float a = std::log2f(freq);
-		float b = std::log2f(121.f);
+		float b = std::log2f(thres);
 		if (a > b)
 			freq *= std::pow(2.f, std::floor(b-a));
 		if (!std::isnormal(freq))
@@ -533,7 +533,7 @@ public:
 				#endif
 
 				#ifdef FFT_SYNC
-				freq = get_harmonic(max_frequency(fft_out));
+				freq = get_harmonic_less_than(max_frequency(fft_out), 121.f);
 				next_t += dura(1.f/freq);
 				#else
 				next_t += dura(1.f/60.f);

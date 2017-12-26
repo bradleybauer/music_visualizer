@@ -14,10 +14,9 @@ T min(T a, T b) {
 void utest_adjust_reader() {
 	// adjust_reader attempts to separate two points r (reader) and w (writer)
 	// in a circular buffer by distance tbl/2.f by moving r in steps of size step_size
-
 	// adjust_reader will fail if |w - r| is more than step_size units away from tbl/2
+	cout << "ap::adjust_reader" << endl;
 
-	cout << "audio_processor::adjust_reader" << endl;
 	typedef audio_processor ap;
 	bool fail = false;
 
@@ -28,12 +27,13 @@ void utest_adjust_reader() {
 		int db = ap::dist_backward(w, r, tbl);
 		int closest_dist = min(df, db);
 
-		cout << "\t" << "closest_dist: " << closest_dist << endl;
-		cout << "\t" << "       tbl/2: " << tbl / 2 << endl;
-		cout << "\t" << "|dist-tbl/2|: " << std::abs(closest_dist - tbl / 2) << endl;
-		cout << "\t" << "   step_size: " << step_size << endl;
 		if (std::abs(closest_dist - tbl / 2) >= step_size) {
 			fail = true;
+			cout << "Fail" << endl;
+			cout << "\t" << "closest_dist: " << closest_dist << endl;
+			cout << "\t" << "       tbl/2: " << tbl / 2 << endl;
+			cout << "\t" << "|dist-tbl/2|: " << std::abs(closest_dist - tbl / 2) << endl;
+			cout << "\t" << "   step_size: " << step_size << endl;
 		}
 	};
 
@@ -62,17 +62,13 @@ void utest_adjust_reader() {
 	}
 }
 
-// TODO: audio buffers do not need to be initialized to test advance_index()
 void utest_advance_index() {
-	// Test that the advance_index function moves the supplied index forwared properly given
+	// Test that the advance_index function moves the supplied index forwared  given
 	// the input frequency and the reader/writer positions
-	// Test that the error_msg function is called in case the reader is too close to the writer
+	// Test that the reader is placed such that reading VL samples will not read past the writer
+	cout << "ap::advance_index" << endl;
 
-	cout << "audio_processor::advance_index" << endl;
 	typedef audio_processor ap;
-
-	bool did_error = false;
-	auto error_msg = [&did_error]() { did_error = true; };
 
 	int tbl = 512*16;
 	int w = 0;
@@ -81,31 +77,50 @@ void utest_advance_index() {
 	// A 93.75hz wave, since SR == 48000 and ABL = 512
 	// Each pcm_getter could would return 1 cycle of the wave
 	float freq = SR / float(ABL);
-	float wave_len = float(ABL); // == SR / freq;
-	cout << "freq: " << freq << endl;
-	cout << "r : " << r << endl;
 	int r_new = ap::advance_index(w, r, freq, tbl);
 
 	// Check that r_new moved according to wave_len
+	int wave_len = ABL; // == SR / freq;
 	// Check that dist(r, w) is great enough
-	int df = ap::dist_forward(r, w, tbl);
-	int db = ap::dist_backward(r, w, tbl);
+	int d = min(ap::dist_backward(r_new, r, tbl), ap::dist_forward(r_new, r, tbl));
+	if (d % wave_len != 0) {
+		cout << "Fail: not moved according to wave_len" << endl;
+		return;
+	}
+	d = ap::dist_forward(r_new, w, tbl);
+	if (d < VL)
+		cout << "Fail: Reader will read discontinuity" << endl;
+	else
+		cout << "Pass" << endl;
 }
 
-void utest_get_harmonic() {
-	// if get_harmonic does not return its input multiplied by some integer power of two,
+void utest_get_harmonic_less_than() {
+	// if get_harmonic_less_than does not return its input multiplied by some non-positive integer power of two,
 	// then fail
+	// if get_harmonic_less_than does not return a numeber less than or equal to its second argument,
+	// then fail
+	cout << "ap::get_harmonic_less_than" << endl;
 
 	typedef audio_processor ap;
-	float h_freq, freq, p2;
+	float new_freq, freq, power;
 
 	freq = 61.f;
-	h_freq = ap::get_harmonic(freq);
-	p2 = std::log2(h_freq / freq);
+	new_freq = ap::get_harmonic_less_than(freq, 121.f);
+	power = std::log2(new_freq / freq);
 
-	cout << freq << endl;
-	cout << h_freq << endl;
-	cout << p2 << endl;
+	if (std::fabs(power - std::floor(power)) > 0.000001) {
+		cout << "Fail" << endl;
+		return;
+	}
+	if (power > 0.000001f) {
+		cout << "Fail" << endl;
+		return;
+	}
+	if (freq > 121.f) {
+		cout << "Fail" << endl;
+		return;
+	}
+	cout << "Pass" << endl;
 }
 
 int main() {
@@ -113,6 +128,6 @@ int main() {
 	cout << endl;
 	utest_advance_index();
 	cout << endl;
-	utest_get_harmonic();
+	utest_get_harmonic_less_than();
 	return 0;
 }
