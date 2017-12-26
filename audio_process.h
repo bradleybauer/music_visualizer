@@ -227,7 +227,7 @@ public:
 		// move r by a magnitude of foo in the -foo'(r) direction, but only take
 		// steps of size step_size
 		int grid = step_size;
-		grid = ceil(foo / float(grid)) * grid;
+		grid = int(std::ceil(foo / float(grid))) * grid;
 		return -dfoodr * grid;
 	}
 	static void fps(chrono::steady_clock::time_point& now) {
@@ -289,7 +289,7 @@ public:
 	// r: index of the reader in the circular buffer
 	// freq: frequency to compute the wavelength with
 	static int advance_index(int w, int r, float freq, int tbl) {
-		int wave_len = SR / freq;
+		int wave_len = int(SR / freq + .5f);
 		r = move_index(r, wave_len, tbl);
 		if (dist_forward(r, w, tbl) < VL) { // if dist from r to w is < what is read by graphics system
 			int delta = adjust_reader(r, w, wave_len, tbl);
@@ -621,8 +621,8 @@ public:
 				ffts_execute(fft_plan, fft_inr, fft_outr);
 				// TODO fft magnitudes are different between windows and linux
 				for (int i = 0; i < VL; i++) {
-					audio_sink->freq_l[i] = mag(fft_outl, i)/sqrt(FFTLEN);
-					audio_sink->freq_r[i] = mag(fft_outr, i)/sqrt(FFTLEN);
+					audio_sink->freq_l[i] = mag(fft_outl, i)/std::sqrtf(float(FFTLEN));
+					audio_sink->freq_r[i] = mag(fft_outr, i)/std::sqrtf(float(FFTLEN));
 				}
 			}
 			// -/
@@ -674,8 +674,8 @@ public:
 			}
 
 			#if defined(RENORM_2) || defined(RENORM_3)
-			const float bound = .66;
-			const float spring = .3; // can spring past bound... oops
+			const float bound = .66f;
+			const float spring = .3f; // can spring past bound... oops
 			renorm(audio_sink->audio_l, channel_max_l, spring, bound, VL);
 			renorm(audio_sink->audio_r, channel_max_r, spring, bound, VL);
 			#endif

@@ -129,7 +129,6 @@
     <ClInclude Include="ffts\include\ffts.h" />
     <ClInclude Include="glew.h" />
     <ClInclude Include="pulse_misc.h" />
-    <ClInclude Include="wglew.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
