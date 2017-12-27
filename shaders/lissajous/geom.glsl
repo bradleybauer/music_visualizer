@@ -1,7 +1,6 @@
 #version 330
 precision highp float;
 
-uniform int max_output_vertices_U;
 uniform int num_points;
 in int point_index[];
 

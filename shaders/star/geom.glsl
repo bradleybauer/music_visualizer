@@ -3,7 +3,6 @@ precision highp float;
 
 // Outputs a fullscreen quad
 
-uniform int max_output_vertices_U;
 uniform int num_points;
 in int point_index[];
 

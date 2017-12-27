@@ -57,7 +57,6 @@ static GLuint img_program;
 
 // uniforms
 static GLint num_points_U;
-static GLint max_output_vertices_U;
 static GLint resolution_U;
 static GLint resolution_buf_U;
 static GLint time_U;
@@ -313,7 +312,6 @@ void draw(struct audio_data* audio) {
 	glUseProgram(buf_program);
 
 	glUniform1i(num_points_U, POINTS);
-	glUniform1i(max_output_vertices_U, max_output_vertices);
 	glUniform2f(resolution_U, float(window_width), float(window_height));
 
 	time_U = glGetUniformLocation(buf_program, "T");
@@ -443,7 +441,6 @@ bool initialize_gl() {
 	// glDisableVertexAttribArray(loc);
 
 	num_points_U = glGetUniformLocation(buf_program, "num_points");
-	max_output_vertices_U = glGetUniformLocation(buf_program, "max_output_vertices");
 	resolution_U = glGetUniformLocation(buf_program, "R");
 	resolution_buf_U = glGetUniformLocation(img_program, "R");
 	time_U = glGetUniformLocation(buf_program, "T");

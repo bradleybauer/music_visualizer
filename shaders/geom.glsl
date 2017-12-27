@@ -1,19 +1,17 @@
 #version 330
 precision highp float;
 
-uniform int max_output_vertices_U;
 uniform int num_points;
 in int point_index[];
 
 // sound amplitude in red component
-uniform sampler1D SL; // left channel
-uniform sampler1D SR; // right channel
-uniform vec2 R; // resolution
-uniform float T; // time
+uniform sampler1D SL;					// left channel
+uniform sampler1D SR;					// right channel
+uniform vec2 Reso;						// resolution
+uniform float Time;						// time
 
 const float EPS = 1E-6;
 const float param = .005;
-// uniform float param;
 out vec4 uvl;
 
 layout(points) in;
