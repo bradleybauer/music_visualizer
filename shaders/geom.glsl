@@ -1,13 +1,12 @@
 #version 330
 precision highp float;
 
-uniform int num_points;
-in int point_index[];
+uniform float num_points;
 
 // sound amplitude in red component
 uniform sampler1D SL;					// left channel
 uniform sampler1D SR;					// right channel
-uniform vec2 Reso;						// resolution
+uniform vec2 Res;						// resolution
 uniform float Time;						// time
 
 const float EPS = 1E-6;
@@ -63,9 +62,9 @@ void quad(vec2 P0, vec2 P1, float t0, float t1) {
 }
 
 void main() {
-	int quad_id = point_index[0];
-	float t0 = (quad_id+0)/float(num_points);
-	float t1 = (quad_id+1)/float(num_points);
+	int quad_id = gl_PrimitiveIDIn;
+	float t0 = (quad_id+0)/(num_points);
+	float t1 = (quad_id+1)/(num_points);
 
 	float sr0 = texture(SR, t0).r;
 	float sr1 = texture(SR, t1).r;

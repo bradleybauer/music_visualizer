@@ -7,13 +7,13 @@ uniform sampler1D SR; // right
 // frequency
 uniform sampler1D FL; // left
 uniform sampler1D FR; // right
-uniform vec2 R; // resolution
-uniform float T; // time
+uniform vec2 Res; // resolution
+uniform float Time; // time
 
 out vec4 C;
 void main() {
 	C-=C;
-	vec2 U = gl_FragCoord.xy/R;
+	vec2 U = gl_FragCoord.xy/Res;
 	U.x/=6.;
 	float sl = texture(FL, U.x).r;
 	sl = log2(sl*20.)/8.;

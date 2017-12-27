@@ -1,8 +1,7 @@
 #version 330
 precision highp float;
 
-uniform int num_points;
-in int point_index[];
+uniform float num_points;
 
 layout(points) in;
 layout(triangle_strip) out;

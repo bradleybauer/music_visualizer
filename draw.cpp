@@ -57,7 +57,7 @@ static GLuint img_program;
 
 // uniforms
 static GLint num_points_U;
-static GLint resolution_U;
+static GLint resolution_img_U;
 static GLint resolution_buf_U;
 static GLint time_U;
 
@@ -175,8 +175,7 @@ static std::string FRAG = R"(
 precision highp float;
 uniform sampler2D t0; // new buffer
 uniform sampler2D t1; // previous buffer
-uniform vec2 R;
-uniform float T;
+uniform vec2 Res;
 in vec2 p;
 out vec4 c;
 //vec4 bg=vec4(0.);
@@ -201,11 +200,11 @@ const float MIX = .8;
 const float bright = 7.;
 void main() {
 	// ASPECT RATIO ADJUSTED
-		// vec2 U = gl_FragCoord.xy / R;
+		// vec2 U = gl_FragCoord.xy / Res;
 		// U = U * 2. - 1.;
-		// U.x *= max(1., R.x / R.y);
+		// U.x *= max(1., Res.x / Res.y);
 		// U.x = clamp(U.x, -1., 1.);
-		// U.y *= max(1., R.y / R.x);
+		// U.y *= max(1., Res.y / Res.x);
 		// U.y = clamp(U.y, -1., 1.);
 		// U = U * .5 + .5;
 		// if (U.x == 1. || U.x == 0.)
@@ -217,40 +216,10 @@ void main() {
 		// c = mix(c, texture(t1, p), MIX);
 
 	// NOT ASPECT RATIO ADJUSTED
-	  float new_intensity = texture(t0, p).r;
-		vec4 old_color = texture(t1, p);
-		vec4 new_color = mix(bg, fg, bright * new_intensity);
-		c = mix(new_color, old_color, MIX);
-
-	// Kali transform for fun
-		// vec2 U = gl_FragCoord.xy/R;
-		// U=U*2.-1.;
-		// U.x*=max(1.,R.x/R.y);
-		// U.y*=max(1.,R.y/R.x);
-		// for (int i = 0; i < 10; ++i) {
-		// 	U=abs(U)/dot(U,U) - vec2(.5+.5*cos(T/10.), .5+.5*sin(T/10.));
-		// }
-		// U.x = clamp(U.x,-1.,1.);
-		// U.y = clamp(U.y,-1.,1.);
-		// U=U*.5+.5;
-		// c=mix(mix(bg, 4.*fg, texture(t0, U).r), texture(t1, p), MIX);
-
-	// The attempt here is to draw color on lines that are nice and
-	// solid. The way the line shader works is that if there is a
-	// greater distance between two lines then the intensity of the
-	// color of the line beteen those two points is less than if those
-	// two points were closer... I think this could be done by simply
-	// drawing a smoothed version of the waveform overtop of the more
-	// noisy waveform. I want to emphasize that very distinct clear
-	// waveform and push the noisy part of the waveform more into the
-	// background.
-	// This effect would look great for songs that have a lot of noise
-	// and then momentarily cut the noise off and add some clean bass wave. :D
-
-	// float cc = (.6+.5*cos(T/5.));
-	// float cs = (.6+.5*sin(T/8.));
-	// vec4 palet = vec4(cc*.2/1.2,0.,cs*1./1.2,0.);
-	// c+=palet*smoothstep(.2, 1., .8*pow(new_intensity,3.));
+	float new_intensity = texture(t0, p).r;
+	vec4 old_color = texture(t1, p);
+	vec4 new_color = mix(bg, fg, bright * new_intensity);
+	c = mix(new_color, old_color, MIX);
 
 	// allow black background instead of just very dark grey
 	// c-=.002;
@@ -311,10 +280,8 @@ void draw(struct audio_data* audio) {
 	// Render to texture
 	glUseProgram(buf_program);
 
-	glUniform1i(num_points_U, POINTS);
-	glUniform2f(resolution_U, float(window_width), float(window_height));
-
-	time_U = glGetUniformLocation(buf_program, "T");
+	glUniform1f(num_points_U, float(POINTS));
+	glUniform2f(resolution_img_U, float(window_width), float(window_height));
 	glUniform1f(time_U, elapsed);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, fb);
@@ -359,9 +326,6 @@ void draw(struct audio_data* audio) {
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, window_width, window_height, GL_RGBA, GL_UNSIGNED_BYTE,
 	                last_pixels);
 
-	time_U = glGetUniformLocation(img_program, "T");
-	glUniform1f(time_U, elapsed);
-
 	glDrawArrays(GL_POINTS, 0, 1);
 
 	glReadPixels(0, 0, window_width, window_height, GL_RGBA, GL_UNSIGNED_BYTE, last_pixels);
@@ -392,12 +356,10 @@ bool initialize_gl() {
 	glfwSetMouseButtonCallback(window, mouse_button_callback);
 
 	bool ret = true;
-	GLchar* vs_c, *fs_c, *gs_c;
-	ret = readShaderFile("../shaders/vertex.glsl", vs_c);
+	GLchar *fs_c, *gs_c;
 	ret = readShaderFile("../shaders/geom.glsl", gs_c);
 	ret = readShaderFile("../shaders/image.glsl", fs_c);
 	if (!ret) {
-		ret = readShaderFile("shaders/vertex.glsl", vs_c);
 		ret = readShaderFile("shaders/geom.glsl", gs_c);
 		ret = readShaderFile("shaders/image.glsl", fs_c);
 		if (!ret) {
@@ -407,11 +369,10 @@ bool initialize_gl() {
 		}
 	}
 	GLuint vs, gs, fs;
-	ret = compile_shader(vs_c, vs, GL_VERTEX_SHADER);
+	ret = compile_shader((GLchar*)VERT.data(), vs, GL_VERTEX_SHADER);
 	ret = compile_shader(gs_c, gs, GL_GEOMETRY_SHADER);
 	ret = compile_shader(fs_c, fs, GL_FRAGMENT_SHADER);
 	ret = link_program(buf_program, vs, gs, fs);
-	ret = compile_shader((GLchar*)VERT.data(), vs, GL_VERTEX_SHADER);
 	ret = compile_shader((GLchar*)GEOM.data(), gs, GL_GEOMETRY_SHADER);
 	ret = compile_shader((GLchar*)FRAG.data(), fs, GL_FRAGMENT_SHADER);
 	ret = link_program(img_program, vs, gs, fs);
@@ -441,9 +402,9 @@ bool initialize_gl() {
 	// glDisableVertexAttribArray(loc);
 
 	num_points_U = glGetUniformLocation(buf_program, "num_points");
-	resolution_U = glGetUniformLocation(buf_program, "R");
-	resolution_buf_U = glGetUniformLocation(img_program, "R");
-	time_U = glGetUniformLocation(buf_program, "T");
+	resolution_img_U = glGetUniformLocation(buf_program, "Res");
+	resolution_buf_U = glGetUniformLocation(img_program, "Res");
+	time_U = glGetUniformLocation(buf_program, "Time");
 
 	glGenTextures(4, tex);
 

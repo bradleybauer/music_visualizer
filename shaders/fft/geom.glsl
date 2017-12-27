@@ -1,14 +1,13 @@
 #version 330
 precision highp float;
 
-uniform int num_points;
-in int point_index[];
+uniform float num_points;
 
 // frequency
 uniform sampler1D FL; // left channel
 uniform sampler1D FR; // right channel
-uniform vec2 R; // resolution
-uniform float T; // time
+uniform vec2 Res; // resolution
+uniform float Time; // time
 
 const float EPS = 1E-6;
 const float param = .005;
