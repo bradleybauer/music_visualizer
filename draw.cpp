@@ -33,33 +33,29 @@ static GLFWwindow* window;
 static const int POINTS = VISUALIZER_BUFSIZE - 1;
 // static const int POINTS = 1;
 static int max_output_vertices;
-static const int COORDS_PER_POINT = 1;
-static int point_indices[POINTS];
 
 // window dimensions
 static int window_width = 1000;
 static int window_height = 400;
 
-static GLuint vbo;       // vertex buffer object
-static GLuint vao;       // vertex array object
 static GLuint tex[4];    // textures
 static GLint tex_loc[4]; // texture uniform locations
-static GLuint fb;        // frameuffer
-static GLuint fbtex;     // framebuffer texture
-static GLint fbtex_loc;  // framebuffer texture location in display program
-static GLuint prev_pixels;
-static GLint prev_pixels_loc;
-static GLubyte* last_pixels;
-static int last_pixels_size = 4 * 1920 * 1080;
+static GLuint fbo_A;
+static GLuint fbo_B;
+static GLuint fbo_A_tex;
+static GLuint fbo_B_tex1;
+static GLuint fbo_B_tex2;
+static GLint BA_sampler_loc;
+static GLint BB_sampler_loc;
+static GLint imgB_sampler_loc;
+static GLint img_Res_loc;
 
-static GLuint buf_program;
+static GLuint buff_A_program;
+static GLuint buff_B_program;
 static GLuint img_program;
 
 // uniforms
 static GLint num_points_U;
-static GLint resolution_img_U;
-static GLint resolution_buf_U;
-static GLint time_U;
 
 static void fps() {
 	static auto prev_time = std::chrono::steady_clock::now();
@@ -84,7 +80,6 @@ static long filelength(FILE* file) {
 static bool readShaderFile(const char* filename, GLchar*& out) {
 	FILE* file = fopen(filename, "r");
 	if (file == NULL) {
-		cout << "ERROR Cannot open shader file!" << endl;
 		return false;
 	}
 	int bytesinfile = filelength(file);
@@ -110,25 +105,23 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
 static void window_size_callback(GLFWwindow* window, int width, int height) {
 	window_width = width;
 	window_height = height;
-	glViewport(0, 0, window_width, window_height);
-	if (4 * window_height * window_width > last_pixels_size) {
-		// Resize buffer
-		last_pixels_size = 4 * window_height * window_width;
-		last_pixels = (GLubyte*)realloc(last_pixels, last_pixels_size * sizeof(GLubyte));
-	}
 
-	// Resize framebuffer texture
+	// Resize textures
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, fbtex);
+	glBindTexture(GL_TEXTURE_2D, fbo_A_tex);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, window_width, window_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-	// Resize prev_pixels texture
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, prev_pixels);
+
+	glActiveTexture(GL_TEXTURE0 + 1);
+	glBindTexture(GL_TEXTURE_2D, fbo_B_tex1);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, window_width, window_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-	memset(last_pixels, 255, last_pixels_size * sizeof(GLubyte));
+
+	glActiveTexture(GL_TEXTURE0 + 2);
+	glBindTexture(GL_TEXTURE_2D, fbo_B_tex2);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, window_width, window_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 }
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
 }
+// I can get away with no void main(){} on my machine
 static std::string VERT = R"(
 #version 330
 void main(){}
@@ -170,62 +163,47 @@ void main() {
 	EndPrimitive();
 }
 )";
-static std::string FRAG = R"(
+static std::string FRAG_B = R"(
 #version 330
 precision highp float;
-uniform sampler2D t0; // new buffer
-uniform sampler2D t1; // previous buffer
+uniform sampler2D buff_A;
+uniform sampler2D buff_B;
+in vec2 p;
+out vec4 c;
+vec4 bg = vec4(52./256., 9./256., 38./256., 1.);
+vec4 fg = vec4(1.,195./256.,31./256.,1.);
+
+//vec4 fg = vec4(248./256.,73./256.,52./256.,1.);
+//vec4 bg = vec4(77./256., 94./256., 95./256., 1.);
+
+//vec4 fg = vec4(221./256.,249./256.,30./256.,1.);
+//vec4 bg = vec4(246./256., 69./256., 114./256., 1.);
+
+//vec4 fg = vec4(1);
+//vec4 bg = vec4(0);
+
+//vec4 fg = vec4(1,vec3(0));
+//vec4 bg = vec4(0);
+
+void main() {
+	float al = texture(buff_A, p).r;
+	al *= 5.;
+	vec4 new_color = mix(bg, fg, al);
+	vec4 old_color = texture(buff_B, p);
+
+	c = mix(new_color, old_color, .75);
+	c.a = 1.; // Replaces color
+}
+)";
+static std::string FRAG_IMG = R"(
+#version 330
+precision highp float;
+uniform sampler2D buff_B;
 uniform vec2 Res;
 in vec2 p;
 out vec4 c;
-//vec4 bg=vec4(0.);
-//vec4 fg=vec4(0.,204./255.,1.,1.);
-//
-//vec4 bg = vec4(1.);
-//vec4 fg = vec4(0., 204. / 255., 1., 1.);
-//
-// vec4 bg=vec4(1.);
-// vec4 fg=vec4(204./255.,0.,.1,1.);
-//
-// vec4 bg=vec4(0.);
-// vec4 fg=vec4(1.,1.,.1,1.);
-//
-// vec4 bg=vec4(0);
-// vec4 fg=vec4(1);
-//
-vec4 bg=vec4(1);
-vec4 fg=vec4(0);
-//
-const float MIX = .8;
-const float bright = 7.;
 void main() {
-	// ASPECT RATIO ADJUSTED
-		// vec2 U = gl_FragCoord.xy / Res;
-		// U = U * 2. - 1.;
-		// U.x *= max(1., Res.x / Res.y);
-		// U.x = clamp(U.x, -1., 1.);
-		// U.y *= max(1., Res.y / Res.x);
-		// U.y = clamp(U.y, -1., 1.);
-		// U = U * .5 + .5;
-		// if (U.x == 1. || U.x == 0.)
-		// 	c = bg;
-		// else if (U.y == 1. || U.y == 0.)
-		// 	c = bg;
-		// else
-		// 	c = mix(bg, fg, bright*texture(t0, U).r);
-		// c = mix(c, texture(t1, p), MIX);
-
-	// NOT ASPECT RATIO ADJUSTED
-	float new_intensity = texture(t0, p).r;
-	vec4 old_color = texture(t1, p);
-	vec4 new_color = mix(bg, fg, bright * new_intensity);
-	c = mix(new_color, old_color, MIX);
-
-	// allow black background instead of just very dark grey
-	// c-=.002;
-
-	// fade out near sides of window
-	// c = mix(bg, c, smoothstep(1., .8, abs(p.x * 2. - 1.)));
+	c=texture(buff_B, p);
 }
 )";
 static bool compile_shader(GLchar* s, GLuint& sn, GLenum stype) {
@@ -271,89 +249,125 @@ static bool link_program(GLuint& pn, GLuint& vs, GLuint& gs, GLuint fs) {
 	}
 	return true;
 }
+static int frame_id = 0;
 void draw(struct audio_data* audio) {
 	fps();
 	static auto start_time = std::chrono::steady_clock::now();
 	auto now = std::chrono::steady_clock::now();
 	double elapsed = (now - start_time).count() / 1e9;
 
-	// Render to texture
-	glUseProgram(buf_program);
-
-	glUniform1f(num_points_U, float(POINTS));
-	glUniform2f(resolution_img_U, float(window_width), float(window_height));
-	glUniform1f(time_U, elapsed);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, fb);
-	glClear(GL_COLOR_BUFFER_BIT);
-
-// glActivateTexture activates a certain texture unit.
-// each texture unit holds one texture of each dimension of texture
-//     {GL_TEXTURE_1D, GL_TEXTURE_2D, GL_TEXTURE_3D, GL_TEXTURE_CUBEMAP}
-// because I'm using four 1 dimensional textures I need to store them in separate texture units
-//
-// glUniform1i(textureLoc, int) sets what texture unit the sampler in the shader reads from
-//
-// A texture binding created with glBindTexture remains active until a different texture is
-// bound to the same target (in the active unit? I think), or until the bound texture is deleted
-// with glDeleteTextures. So I do not need to rebind
-// glBindTexture(GL_TEXTURE_1D, tex[X]);
-#define TEXMACRO(X, Y)                                                                  \
-	glActiveTexture(GL_TEXTURE0 + X);                                                     \
-	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, VISUALIZER_BUFSIZE, GL_RED, GL_FLOAT, audio->Y); \
-	glUniform1i(tex_loc[X], X);
-
+	// Update audio textures
+	// glActivateTexture activates a certain texture unit.
+	// each texture unit holds one texture of each dimension of texture
+	//     {GL_TEXTURE_1D, GL_TEXTURE_2D, GL_TEXTURE_3D, GL_TEXTURE_CUBEMAP}
+	// because I'm using four 1D textures I need to store them in separate texture units
+	//
+	// glUniform1i(textureLoc, int) sets what texture unit the sampler in the shader reads from
+	//
+	// A texture binding created with glBindTexture remains active until a different texture is
+	// bound to the same target (in the active unit? I think), or until the bound texture is deleted
+	// with glDeleteTextures. So I do not need to rebind
+	// glBindTexture(GL_TEXTURE_1D, tex[X]);
 	audio->mtx.lock();
-	TEXMACRO(0, audio_l)
-	TEXMACRO(1, audio_r)
-	TEXMACRO(2, freq_l)
-	TEXMACRO(3, freq_r)
+	glActiveTexture(GL_TEXTURE0 + 0);
+	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, VISUALIZER_BUFSIZE, GL_RED, GL_FLOAT, audio->audio_l);
+	glActiveTexture(GL_TEXTURE0 + 1);
+	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, VISUALIZER_BUFSIZE, GL_RED, GL_FLOAT, audio->audio_r);
+	glActiveTexture(GL_TEXTURE0 + 2);
+	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, VISUALIZER_BUFSIZE, GL_RED, GL_FLOAT, audio->freq_l);
+	glActiveTexture(GL_TEXTURE0 + 3);
+	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, VISUALIZER_BUFSIZE, GL_RED, GL_FLOAT, audio->freq_r);
 	audio->mtx.unlock();
-#undef TEXMACRO
 
-	glDrawArrays(GL_POINTS, 0, POINTS);
 
-	// Render to screen
-	glUseProgram(img_program);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0); // bind window manager's fbo
+
+
+
+	// Render buffer A
+	glUseProgram(buff_A_program);
+	// Upload uniforms
+	glUniform1f(num_points_U, float(POINTS));
+	for (int i = 0; i < 4; ++i) // Point samplers to texture units
+		glUniform1i(tex_loc[i], i);
+	// Draw
+	glBindFramebuffer(GL_FRAMEBUFFER, fbo_A);
+	glViewport(0, 0, window_width, window_height);
+	glClearColor(0., 0., 0., 1.);
 	glClear(GL_COLOR_BUFFER_BIT);
+	glDrawArrays(GL_POINTS, 0, POINTS);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	glUniform2f(resolution_buf_U, float(window_width), float(window_height));
-	glUniform1i(fbtex_loc, 0);
-	glUniform1i(prev_pixels_loc, 1);
-	glActiveTexture(GL_TEXTURE1);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, window_width, window_height, GL_RGBA, GL_UNSIGNED_BYTE,
-	                last_pixels);
 
+
+
+	// Render buffer B
+	glUseProgram(buff_B_program);
+	// Upload uniforms
+	glUniform1i(BA_sampler_loc, 0); // Point samplers to texture units
+	glUniform1i(BB_sampler_loc, 1 + (frame_id+1)%2); // Ping-pong
+	// Draw
+	glBindFramebuffer(GL_FRAMEBUFFER, fbo_B);
+	glDrawBuffer(GL_COLOR_ATTACHMENT0 + frame_id % 2); // Ping-pong
+	glViewport(0, 0, window_width, window_height);
+	glClearColor(0., 0., 0., 1.);
+	glClear(GL_COLOR_BUFFER_BIT);
+	glDrawArrays(GL_POINTS, 0, 1);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glViewport(0, 0, window_width, window_height);
+
+
+
+
+	// Render image
+	glUseProgram(img_program);
+	// Upload uniforms
+	glUniform1i(imgB_sampler_loc, 1 + frame_id%2); // Point samplers to texture units
+	glUniform2f(img_Res_loc, window_width, window_height);
+	// Draw
+	glClearColor(0., 0., 0., 1.);
+	glClear(GL_COLOR_BUFFER_BIT);
 	glDrawArrays(GL_POINTS, 0, 1);
 
-	glReadPixels(0, 0, window_width, window_height, GL_RGBA, GL_UNSIGNED_BYTE, last_pixels);
+
+
+
 
 	glfwSwapBuffers(window);
 	glfwPollEvents();
+	frame_id ++;
 }
 
 bool initialize_gl() {
+
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 	//glfwWindowHint(GLFW_DECORATED, false);
 	window = glfwCreateWindow(window_width, window_height, "Music Visualizer", NULL, NULL);
 	glfwMakeContextCurrent(window);
+	glfwSetKeyCallback(window, key_callback);
+	glfwSetCursorPosCallback(window, cursor_position_callback);
+	glfwSetMouseButtonCallback(window, mouse_button_callback);
 	glfwSetWindowSizeCallback(window, window_size_callback);
-	glfwSwapInterval(0);
+
 	glewExperimental = GL_TRUE;
 	glewInit();
 	const GLubyte* renderer = glGetString(GL_RENDERER);
 	const GLubyte* version = glGetString(GL_VERSION);
 	cout << "Renderer: " << renderer << endl;
 	cout << "OpenGL version supported "<< version << endl;
-	glViewport(0, 0, window_width, window_height);
-	glfwSetKeyCallback(window, key_callback);
-	glfwSetCursorPosCallback(window, cursor_position_callback);
-	glfwSetMouseButtonCallback(window, mouse_button_callback);
+
+	glfwSwapInterval(0);
+	glGetIntegerv(GL_MAX_GEOMETRY_OUTPUT_VERTICES, &max_output_vertices);
+	glDisable(GL_DEPTH_TEST);
+
+	glEnable(GL_BLEND);
+	// I chose the following blending func because it allows the user to completely replace the colors in the buffer by setting their output alpha to 1.
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // mix(old_color.rgb, new_color.rgb, new_color_alpha)
+
+	auto asdf = std::chrono::steady_clock::now();
 
 	bool ret = true;
 	GLchar *fs_c, *gs_c;
@@ -363,53 +377,50 @@ bool initialize_gl() {
 		ret = readShaderFile("shaders/geom.glsl", gs_c);
 		ret = readShaderFile("shaders/image.glsl", fs_c);
 		if (!ret) {
-			cout << "Did not open any shader files." << endl;
-			ret = false;
-			return ret;
+			ret = readShaderFile("../../shaders/geom.glsl", gs_c);
+			ret = readShaderFile("../../shaders/image.glsl", fs_c);
+			if (!ret) {
+				cout << "Could not open shader file." << endl;
+				ret = false;
+				return ret;
+			}
 		}
 	}
 	GLuint vs, gs, fs;
+	// Buff_A
 	ret = compile_shader((GLchar*)VERT.data(), vs, GL_VERTEX_SHADER);
 	ret = compile_shader(gs_c, gs, GL_GEOMETRY_SHADER);
 	ret = compile_shader(fs_c, fs, GL_FRAGMENT_SHADER);
-	ret = link_program(buf_program, vs, gs, fs);
+	ret = link_program(buff_A_program, vs, gs, fs);
+
+	// Buff_B
 	ret = compile_shader((GLchar*)GEOM.data(), gs, GL_GEOMETRY_SHADER);
-	ret = compile_shader((GLchar*)FRAG.data(), fs, GL_FRAGMENT_SHADER);
+	ret = compile_shader((GLchar*)FRAG_B.data(), fs, GL_FRAGMENT_SHADER);
+	ret = link_program(buff_B_program, vs, gs, fs);
+
+	// Image
+	ret = compile_shader((GLchar*)GEOM.data(), gs, GL_GEOMETRY_SHADER);
+	ret = compile_shader((GLchar*)FRAG_IMG.data(), fs, GL_FRAGMENT_SHADER);
 	ret = link_program(img_program, vs, gs, fs);
 	if (!ret) {
 		cout << endl << endl << "Could not find shader file OR could not compile shaders." << endl << endl;
 		return ret;
 	}
 
-	glGetIntegerv(GL_MAX_GEOMETRY_OUTPUT_VERTICES, &max_output_vertices);
-	glDisable(GL_DEPTH_TEST);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE); // for nice lines?
-	glClearColor(0., 0., 0., 1.);
+	num_points_U = glGetUniformLocation(buff_A_program, "num_points");
+	BA_sampler_loc = glGetUniformLocation(buff_B_program, "buff_A");
+	BB_sampler_loc = glGetUniformLocation(buff_B_program, "buff_B");
+	imgB_sampler_loc = glGetUniformLocation(img_program, "buff_B");
+	img_Res_loc = glGetUniformLocation(img_program, "Res");
 
-	for (int i = 0; i < POINTS; ++i)
-		point_indices[i] = i;
-	glGenBuffers(1, &vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, POINTS * sizeof(int), point_indices, GL_STATIC_DRAW);
-
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-
-	const GLuint loc = glGetAttribLocation(buf_program, "_point_index");
-	glEnableVertexAttribArray(loc);
-	glVertexAttribIPointer(loc, COORDS_PER_POINT, GL_INT, 0, NULL);
-	// glDisableVertexAttribArray(loc);
-
-	num_points_U = glGetUniformLocation(buf_program, "num_points");
-	resolution_img_U = glGetUniformLocation(buf_program, "Res");
-	resolution_buf_U = glGetUniformLocation(img_program, "Res");
-	time_U = glGetUniformLocation(buf_program, "Time");
+	// no window initial size uniform
+	// window size uniform
+	// buffer size uniform
 
 	glGenTextures(4, tex);
 
-#define ILOVEMACRO(X, Y)                                                                         \
-	tex_loc[X] = glGetUniformLocation(buf_program, Y);                                             \
+#define ILOVEMACRO(X, Y)                                                                           \
+	tex_loc[X] = glGetUniformLocation(buff_A_program, Y);                                          \
 	glUniform1i(tex_loc[X], X);                                                                    \
 	glActiveTexture(GL_TEXTURE0 + X);                                                              \
 	glBindTexture(GL_TEXTURE_1D, tex[X]);                                                          \
@@ -425,30 +436,40 @@ bool initialize_gl() {
 	ILOVEMACRO(3, "FR")
 #undef ILOVEMACRO
 
-	glGenTextures(1, &fbtex);
+    // Setup Buff A
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, fbtex);
+	glGenTextures(1, &fbo_A_tex);
+	glBindTexture(GL_TEXTURE_2D, fbo_A_tex);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, window_width, window_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	glGenFramebuffers(1, &fb);
-	glBindFramebuffer(GL_FRAMEBUFFER, fb);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbtex, 0);
+	glGenFramebuffers(1, &fbo_A);
+	glBindFramebuffer(GL_FRAMEBUFFER, fbo_A);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_A_tex, 0);
 
-	glActiveTexture(GL_TEXTURE1);
-	glGenTextures(1, &prev_pixels);
-	glBindTexture(GL_TEXTURE_2D, prev_pixels);
+	// Setup Buff B
+	glActiveTexture(GL_TEXTURE0 + 1);
+	glGenTextures(1, &fbo_B_tex1);
+	glBindTexture(GL_TEXTURE_2D, fbo_B_tex1);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, window_width, window_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	// location of the sampler2D in the fragment shader
-	fbtex_loc = glGetUniformLocation(img_program, "t0");
-	prev_pixels_loc = glGetUniformLocation(img_program, "t1");
+	glActiveTexture(GL_TEXTURE0 + 2);
+	glGenTextures(1, &fbo_B_tex2);
+	glBindTexture(GL_TEXTURE_2D, fbo_B_tex2);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, window_width, window_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	last_pixels = (GLubyte*)malloc(sizeof(GLubyte)*last_pixels_size);
+	glGenFramebuffers(1, &fbo_B);
+	glBindFramebuffer(GL_FRAMEBUFFER, fbo_B);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_B_tex1, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, fbo_B_tex2, 0);
 
+	auto diff = std::chrono::steady_clock::now() - asdf;
+	cout << diff.count()/1e9 << endl;
 	return ret;
 }
 
