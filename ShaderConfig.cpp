@@ -24,7 +24,6 @@ ShaderConfig::ShaderConfig(filesys::path conf_file_path, bool& is_ok) {
 ShaderConfig::ShaderConfig(string json_str, bool& is_ok) {
 	is_ok = true;
 
-
 	rj::Document user_conf;
 	rj::ParseResult ok = user_conf.Parse<rj::kParseCommentsFlag | rj::kParseTrailingCommasFlag>(json_str.c_str());
 	if (!ok) {
@@ -281,6 +280,21 @@ ShaderConfig::ShaderConfig(string json_str, bool& is_ok) {
 				// mRender_order contains indices into mBuffers
 				mRender_order.push_back(index);
 			}
+			
+			// Only keep the buffers that are used to render
+			std::vector<int> placed;
+			std::vector<Buffer> used_buffs;
+			for (int i = 0; i < mRender_order.size(); i++) {
+				bool in = false;
+				for (int j = 0; j < placed.size(); ++j)
+					if (mRender_order[i] == placed[j])
+						in = true;
+				if (!in) {
+					used_buffs.push_back(mBuffers[mRender_order[i]]);
+					placed.push_back(mRender_order[i]);
+				}
+			}
+			mBuffers = used_buffs;
 		}
 	}
 

@@ -5,7 +5,7 @@ using std::endl;
 using std::string;
 
 // TODO should probably use a testing frame work
-// or think of a better way to add tests to execute. I keep forgetting things when I add new tests.
+// or think of a better way to add tests to execute. Its a pain to add new tests.
 
 #include "Test.h"
 #include "ShaderConfig.h"
@@ -31,7 +31,7 @@ static bool compare(ShaderConfig& l, ShaderConfig& r) {
 
 	eq = l.mBuffers.size() == r.mBuffers.size();
 	confs_eq &= eq;
-	if(!eq) cout << "buffers.size difference" << endl;
+	if (!eq) cout << "configs specify different number of buffers" << endl;
 
 	if (eq)
 		for (int i = 0; i < l.mBuffers.size(); ++i) {
@@ -42,7 +42,7 @@ static bool compare(ShaderConfig& l, ShaderConfig& r) {
 
 	eq = l.mUniforms.size() == r.mUniforms.size();
 	confs_eq &= eq;
-	if (!eq) cout << "uniforms.size difference" << endl;
+	if (!eq) cout << "configs specify different number of uniforms" << endl;
 
 	if (eq)
 		for (int i = 0; i < l.mUniforms.size(); ++i) {
@@ -480,6 +480,76 @@ bool ShaderConfigTest::parse_invalid1() { // no audio_options member
 	else cout << PASS_MSG << endl;
 	return !is_ok;
 }
+bool ShaderConfigTest::parse_valid4() { // mBuffers only contains buffers referenced in render_order
+	string json_str = R"(
+	{
+		"buffers":{
+			"x":{
+				"size":[1,2],
+				"clear_color":[0.1,0.2,0.3],
+				"geom_iters":3,
+			},
+			"y":{
+				"size":[2,1],
+				"clear_color":[0.1,0.2,0.3],
+				"geom_iters":3,
+			},
+			"asdf":{
+				"size":[1,2],
+				"clear_color":[0.1,0.2,0.3],
+				"geom_iters":3,
+			},
+		},
+		"audio_options":{
+			"FFT_SYNC": true,
+			"DIFF_SYNC": false,
+			"FFT_SMOOTH": 1,
+			"WAVE_SMOOTH": 0
+		},
+		"render_order": ["x", "y", "x"]
+	}
+	)";
+
+	ShaderConfig mock_conf;
+	mock_conf.mAudio_ops.fft_sync = true;
+	mock_conf.mAudio_ops.diff_sync = false;
+	mock_conf.mAudio_ops.fft_smooth = 1.f;
+	mock_conf.mAudio_ops.wave_smooth = 0.f;
+	Buffer b;
+	b.name = string("x");
+	b.geom_iters = 3;
+	b.width = 1;
+	b.height = 2;
+	b.is_window_size = false;
+	b.clear_color = {.1f, .2f, .3f};
+	mock_conf.mBuffers.push_back(b);
+	b.name = string("y");
+	b.geom_iters = 3;
+	b.width = 2;
+	b.height = 1;
+	b.is_window_size = false;
+	b.clear_color = {.1f, .2f, .3f};
+	mock_conf.mBuffers.push_back(b);
+	mock_conf.mRender_order = {0,1,0};
+
+	bool is_ok;
+	ShaderConfig conf(json_str, is_ok);
+
+	if (!is_ok)
+		return false;
+
+	is_ok = compare(conf, mock_conf);
+	if (!is_ok) {
+		cout << "EXPECTED" << endl;
+		cout << mock_conf << endl << endl;
+		cout << "RETURNED" << endl;
+		cout << conf << endl << endl;
+	}
+
+	if (!is_ok) cout << FAIL_MSG << endl;
+	else cout << PASS_MSG << endl;
+	return is_ok;
+}
 bool ShaderConfigTest::parse_valid3() {
 	string json_str = R"(
 	{
@@ -523,7 +593,6 @@ bool ShaderConfigTest::parse_valid3() {
 	else cout << PASS_MSG << endl;
 	return is_ok;
 }
-
 bool ShaderConfigTest::parse_valid2() {
 	string json_str = R"(
 	{
@@ -656,6 +725,9 @@ bool ShaderConfigTest::test() {
 	cout << "json parse test valid 3: " << endl;
 	ok &= parse_valid3();
 
+	cout << "json parse test valid 4: " << endl;
+	ok &= parse_valid4();
+
 	cout << "json parse test invalid 1: " << endl;
 	ok &= parse_invalid1();
 
@@ -718,7 +790,7 @@ std::ostream& operator<<(std::ostream& os, const Buffer& o) {
 std::ostream& operator<<(std::ostream& os, const AudioOptions& o) {
 	os << std::boolalpha;
 	os << "diff_sync   : " << o.diff_sync << std::endl;
-	os << "fft_sync	: " << o.fft_sync << std::endl;
+	os << "fft_sync    : " << o.fft_sync << std::endl;
 	os << "wave_smooth : " << o.wave_smooth << std::endl;
 	os << "fft_smooth  : " << o.fft_smooth;
 	return os;

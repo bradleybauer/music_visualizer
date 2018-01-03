@@ -5,6 +5,7 @@
 #include <sstream>
 #include <fstream>
 #include <filesystem>
+
 class JsonReader {
 public:
 	static std::string read(std::experimental::filesystem::path json_path) {
@@ -29,6 +30,9 @@ public:
 			//	}
 			//}
 			//else if (std::string::npos == line.find(""))
+
+
+			// TODO find each } (execpt last) and ], and if they're not followed by a comma, then place a comma after them.
 
 			json_str << line << '\n';
 		}
