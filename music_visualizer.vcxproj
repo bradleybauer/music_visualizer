@@ -138,7 +138,7 @@
     <ClInclude Include="ffts\include\ffts.h" />
     <ClInclude Include="FileWatcher.h" />
     <ClInclude Include="glew.h" />
-    <ClInclude Include="JsonReader.h" />
+    <ClInclude Include="JsonFileReader.h" />
     <ClInclude Include="pulse_misc.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="ShaderConfig.h" />

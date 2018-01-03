@@ -26,7 +26,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\audio_process.h" />
-    <ClInclude Include="..\JsonReader.h" />
+    <ClInclude Include="..\JsonFileReader.h" />
     <ClInclude Include="Test.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

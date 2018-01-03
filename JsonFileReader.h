@@ -6,7 +6,7 @@
 #include <fstream>
 #include <filesystem>
 
-class JsonReader {
+class JsonFileReader {
 public:
 	static std::string read(std::experimental::filesystem::path json_path) {
 		std::ifstream json_file(json_path);
