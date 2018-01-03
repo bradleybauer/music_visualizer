@@ -10,9 +10,8 @@ x64
 *.user
 *.lib
 musicVisualizer\.srctrlbm
-
 musicVisualizer\.srctrldb
-
 musicVisualizer\.srctrlprj
-
 \.idea/
+misc/
+\.editorconfig

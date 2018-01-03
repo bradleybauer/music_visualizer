@@ -38,11 +38,13 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -107,7 +109,7 @@
       <AdditionalIncludeDirectories>C:\Users\gazin\Programming\internal\git\music_visualizer;C:\Users\gazin\Programming\libs\glfw-3.2.1.bin.WIN64\include;C:\Users\gazin\Programming\internal\git\music_visualizer\ffts\include</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <PreprocessorDefinitions>GLEW_STATIC;WIN32;_DEBUG;_CONSOLE;WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Full</Optimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
     </ClCompile>
     <Link>
@@ -116,10 +118,17 @@
       </SubSystem>
     </Link>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <Optimization>Full</Optimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="audio_capture.cpp" />
     <ClCompile Include="draw.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ShaderConfig.cpp" />
+    <ClCompile Include="ShaderPrograms.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="audio_capture.h" />
@@ -127,8 +136,14 @@
     <ClInclude Include="audio_process.h" />
     <ClInclude Include="draw.h" />
     <ClInclude Include="ffts\include\ffts.h" />
+    <ClInclude Include="FileWatcher.h" />
     <ClInclude Include="glew.h" />
+    <ClInclude Include="JsonReader.h" />
     <ClInclude Include="pulse_misc.h" />
+    <ClInclude Include="Renderer.h" />
+    <ClInclude Include="ShaderConfig.h" />
+    <ClInclude Include="ShaderPrograms.h" />
+    <ClInclude Include="Window.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

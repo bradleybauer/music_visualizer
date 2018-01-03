@@ -1,0 +1,41 @@
+{
+    // Please use only valid glsl names for buffers and uniforms
+
+    // Available as uBuffName in all shaders.
+    // For example: uniform sampler2D uA;
+    "buffers": {
+        "A": {
+            "size":[1, 2048],
+            "geom_iters": 1024,
+            "clear_color":[1, 1, 1]
+        },
+        "B": {
+            // Buffer will be as large as the window size
+            "size": "window_size",
+            // How many times the geometry shader will execute
+            "geom_iters":1,
+            // RGB values from the interval [0, 1]
+            "clear_color":[0, 0, 0.0]
+        }
+    },
+
+    // Render A then B
+    // Every buffer has access to the most recent output of every other buffer
+    "render_order":["A", "B", "B"],
+
+    "audio_options": {
+        "FFT_SYNC":true,
+        "DIFF_SYNC":true,
+        "FFT_SMOOTH":0.5,
+        "WAVE_SMOOTH":0.8
+    },
+
+    // Useful for setting colors from external scripts.
+    // Available in all buffers.
+    "uniforms": {
+        "my_uni": [10, 1234],
+        "your_uni":100,
+        "his_uni":[1.0, 2.0, 3.0, 4],
+        "her_uni":[0.0]
+    }
+}
