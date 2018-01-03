@@ -7,25 +7,28 @@ visualizers might look like.
 
 Currently the app can visualize constant tone sounds very well. However, when the app visualizes complicated sounds the presented waveform looks quite chaotic.
 
+On Ubuntu
 ```
+TODO apt install for required libs and headers
 git clone --recursive https://github.com/xdaimon/music_visualizer.git
-cd music_visualizer/
-mkdir build
-cd build
-cmake ..
-make -j4
-./main
+cd music_visualizer
+mkdir build; cd build; cmake ..; make -j4; ./main
 ```
+On Windows 10, build the x64 Debug solution.
 
-Depends on opengl >= 3.3, and pulseaudio.
+Depends on opengl >= 4.3
 
 Uses code from the following repositories<br>
-<a href="https://github.com/linkotec/ffts">ffts (linkotec fork)</a>
-	fast fft library<br>
+<a href="https://github.com/linkotec/ffts">ffts</a>
+	Fast fft library<br>
 <a href="https://github.com/karlstav/cava">cava</a>
-	pulseaudio setup code<br>
+	Pulseaudio setup code<br>
 <a href="https://github.com/kritzikratzi/Oscilloscope">Oscilloscope</a>
-	shader code for drawing smooth lines<br>
+	Shader code for drawing smooth lines<br>
+<a href="https://github.com/shadowndacorner/SimpleFileWatcher">SimpleFileWatcher</a>
+	Async recursive file watcher<br>
+<a href="https://github.com/rapidjson/rapidjson">RapidJson</a>
+	Fast json file reader<br>
 
 Here is a youtube video of the app displaying a waveform.<br>
 <a href="https://youtu.be/yxGM7H1RFRA">https://youtu.be/yxGM7H1RFRA</a>
