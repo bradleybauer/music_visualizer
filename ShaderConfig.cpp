@@ -8,17 +8,16 @@ using std::endl;
 using std::string;
 
 #include "ShaderConfig.h"
-#include "JsonReader.h"
+#include "JsonFileReader.h"
 #include "rapidjson/include/rapidjson/document.h"
-#include "rapidjson\include\rapidjson\error\en.h"
+#include "rapidjson/include/rapidjson/error/en.h"
 namespace rj = rapidjson;
 
 static const string WINDOW_SZ_KEY("window_size");
 static const string AUDIO_NUM_FRAMES_KEY("audio_num_frames");
 
-ShaderConfig::ShaderConfig(filesys::path conf_file_path, bool& is_ok) {
-	const string json_str = JsonReader::read(conf_file_path);
-	ShaderConfig(json_str, is_ok);
+ShaderConfig::ShaderConfig(filesys::path conf_file_path, bool& is_ok) : ShaderConfig(JsonFileReader::read(conf_file_path), is_ok)
+{
 }
 
 ShaderConfig::ShaderConfig(string json_str, bool& is_ok) {
