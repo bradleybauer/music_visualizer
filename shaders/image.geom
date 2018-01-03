@@ -1,6 +1,3 @@
-#version 330
-precision highp float;
-layout(points) in;
 layout(triangle_strip, max_vertices = 6) out;
 out vec2 p;
 void main() {

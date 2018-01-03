@@ -1,5 +1,3 @@
-#version 330
-precision highp float;
 
 uniform float num_points;
 

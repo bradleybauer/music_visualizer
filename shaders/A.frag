@@ -1,5 +1,3 @@
-#version 330
-precision highp float;
 
 const float EPS = 1E-6;
 const float TAU = 6.283185307179586;

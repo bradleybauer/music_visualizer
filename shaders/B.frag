@@ -1,5 +1,3 @@
-#version 330
-precision highp float;
 uniform sampler2D buff_A;
 uniform sampler2D buff_B;
 in vec2 p;

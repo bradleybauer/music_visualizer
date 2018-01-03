@@ -14,23 +14,11 @@ using std::cout;
 using std::endl;
 #include <chrono>
 
-#include <fstream>
-#include <sstream>
-#include <filesystem>
-namespace filesys = std::experimental::filesystem;
-
-#include <string.h>
-
+#include "gl.h"
 #include "draw.h"
 #include "audio_data.h"
 
-#ifdef WINDOWS
-#include "glew.h"
-#endif
-#ifdef LINUX
-#include <GL/glew.h>
-#endif
-#include <GLFW/glfw3.h>
+#include "Window.h"
 static GLFWwindow* window;
 
 // TODO Currently I have to toggle the following two lines in order to use different shaders. Yeah, this whole file is really just a scratch pad
@@ -73,9 +61,6 @@ static void fps() {
 		prev_time = now;
 	}
 }
-static bool readShaderFile(filesys::path filepath, std::stringstream& shader_str) {
-	return true;
-}
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
@@ -104,54 +89,6 @@ static void window_size_callback(GLFWwindow* window, int width, int height) {
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, window_width, window_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 }
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
-}
-// I can get away with no void main(){} on my machine
-static std::string VERT = R"(
-#version 330
-void main(){}
-)";
-static bool compile_shader(const GLchar* s, GLuint& sn, GLenum stype) {
-	sn = glCreateShader(stype);
-	glShaderSource(sn, 1, &s, NULL);
-	glCompileShader(sn);
-	GLint isCompiled = 0;
-	glGetShaderiv(sn, GL_COMPILE_STATUS, &isCompiled);
-	if (isCompiled == GL_FALSE) {
-		GLint maxLength = 0;
-		glGetShaderiv(sn, GL_INFO_LOG_LENGTH, &maxLength);
-		vector<GLchar> errorLog(maxLength);
-		glGetShaderInfoLog(sn, maxLength, &maxLength, &errorLog[0]);
-		for (auto c : errorLog)
-			cout << c;
-		cout << endl;
-		glDeleteShader(sn);
-		return false;
-	}
-	return true;
-}
-static bool link_program(GLuint& pn, GLuint& vs, GLuint& gs, GLuint fs) {
-	pn = glCreateProgram();
-	glAttachShader(pn, gs);
-	glAttachShader(pn, fs);
-	glAttachShader(pn, vs);
-	glLinkProgram(pn);
-	GLint isLinked = 0;
-	glGetProgramiv(pn, GL_LINK_STATUS, (int*)&isLinked);
-	if (isLinked == GL_FALSE) {
-		GLint maxLength = 0;
-		glGetProgramiv(pn, GL_INFO_LOG_LENGTH, &maxLength);
-		vector<GLchar> infoLog(maxLength);
-		glGetProgramInfoLog(pn, maxLength, &maxLength, &infoLog[0]);
-		for (auto c : infoLog)
-			cout << c;
-		cout << endl;
-		glDeleteProgram(pn);
-		glDeleteShader(vs);
-		glDeleteShader(fs);
-		glDeleteShader(gs);
-		return false;
-	}
-	return true;
 }
 static int frame_id = 0;
 void draw(struct audio_data* audio) {
@@ -243,74 +180,10 @@ void draw(struct audio_data* audio) {
 	frame_id ++;
 }
 
-static bool compile_buffer_shaders(filesys::path shader_folder, std::string buff_name, GLuint& program) {
-	cout << "Compiling shaders for buffer " + buff_name + "." << endl;
-	filesys::path filepath;
-	std::ifstream shader_file;
-	std::stringstream geom_str;
-	std::stringstream frag_str;
 
-	filepath = filesys::path(shader_folder / (buff_name + ".geom"));
-	if (! filesys::exists(filepath)) {
-		cout << "Geometry shader does not exist." << endl;
-		return false;
-	}
-	if (! filesys::is_regular_file(filepath)) {
-		cout << buff_name+".geom is not a regular file." << endl;
-		return false;
-	}
-	shader_file = std::ifstream(filepath);
-	if (! shader_file.is_open()) {
-		cout << "Error opening geometry shader." << endl;
-		return false;
-	}
-	geom_str << shader_file.rdbuf();
+bool initialize_gl() {
 
-	filepath = filesys::path(shader_folder / (buff_name + ".frag"));
-	if (! filesys::exists(filepath)) {
-		cout << "Fragment shader does not exist." << endl;
-		return false;
-	}
-	if (! filesys::is_regular_file(filepath)) {
-		cout << buff_name+".frag is not a regular file." << endl;
-		return false;
-	}
-	if (shader_file.is_open())
-		shader_file.close();
-	shader_file = std::ifstream(filepath);
-	if (! shader_file.is_open()) {
-		cout << "Error opening fragment shader." << endl;
-		return false;
-	}
-	frag_str << shader_file.rdbuf();
-
-	GLuint vs, gs, fs;
-	bool ok = compile_shader(VERT.c_str(), vs, GL_VERTEX_SHADER);
-	if (!ok) {
-		cout << "Internal error: vertex shader didn't compile." << endl;
-		return ok;
-	}
-	ok = compile_shader(geom_str.str().c_str(), gs, GL_GEOMETRY_SHADER);
-	if (!ok) {
-		cout << "Failed to compile geometry shader." << endl;
-		return false;
-	}
-	ok = compile_shader(frag_str.str().c_str(), fs, GL_FRAGMENT_SHADER);
-	if (!ok) {
-		cout << "Failed to compile fragment shader." << endl;
-		return false;
-	}
-	ok = link_program(program, vs, gs, fs);
-	if (!ok) {
-		cout << "Failed to link program." << endl;
-		return false;
-	}
-
-	cout << "Successfully compiled shader program for buffer " + buff_name + "." << endl;
-	return true;
-}
-
-bool initialize_gl(std::string shader_folder_str) {
+	// Window begins
 
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -349,34 +222,18 @@ bool initialize_gl(std::string shader_folder_str) {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // mix(old_color.rgb, new_color.rgb, new_color_alpha)
 
+
+
+
+
+	// Window ends
+	// Renderer begins
+
+
+
+
+
 	auto asdf = std::chrono::steady_clock::now();
-
-	filesys::path shader_folder = filesys::path(shader_folder_str);
-	bool ok = filesys::is_directory(shader_folder);
-	if (!ok) {
-		cout << "Shader folder path incorrect." << endl;
-		return ok;
-	}
-
-	// Buff_A
-	ok = compile_buffer_shaders(shader_folder, std::string("A"), buff_A_program);
-	// Buff_B
-	ok &= compile_buffer_shaders(shader_folder, std::string("B"), buff_B_program);
-	// Image
-	ok &= compile_buffer_shaders(shader_folder, std::string("image"), img_program);
-	if (!ok) {
-		return ok;
-	}
-
-	num_points_U = glGetUniformLocation(buff_A_program, "num_points");
-	BA_sampler_loc = glGetUniformLocation(buff_B_program, "buff_A");
-	BB_sampler_loc = glGetUniformLocation(buff_B_program, "buff_B");
-	imgB_sampler_loc = glGetUniformLocation(img_program, "buff_B");
-	img_Res_loc = glGetUniformLocation(img_program, "Res");
-
-	// no window initial size uniform
-	// window size uniform
-	// buffer size uniform
 
 	glGenTextures(4, tex);
 
@@ -431,13 +288,18 @@ bool initialize_gl(std::string shader_folder_str) {
 
 	auto diff = std::chrono::steady_clock::now() - asdf;
 	cout << diff.count()/1e9 << endl;
+	bool ok = true;
 	return ok;
+
+	// Renderer ends
 }
 
+// Window
 bool should_loop() {
 	return !glfwWindowShouldClose(window);
 }
 
+// Window
 void deinit_drawing() {
 	glfwDestroyWindow(window);
 }
