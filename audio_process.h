@@ -562,7 +562,7 @@ public:
 		int frame_id_r = 0;
 
 		while (!audio_sink->thread_join) { // Break when audio_sink->thread_join true
-			fps(now);
+			//fps(now);
 			now = chrono::steady_clock::now();
 			// We want to use next += dura(1/freq) in the loop below and not next = now + dura(1/freq) because ... TODO,
 			// BUT if now >> next, then we probably were stalled in pcm_getter and should update the next times

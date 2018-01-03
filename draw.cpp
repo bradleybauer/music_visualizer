@@ -14,6 +14,11 @@ using std::cout;
 using std::endl;
 #include <chrono>
 
+#include <fstream>
+#include <sstream>
+#include <filesystem>
+namespace filesys = std::experimental::filesystem;
+
 #include <string.h>
 
 #include "draw.h"
@@ -68,30 +73,9 @@ static void fps() {
 		prev_time = now;
 	}
 }
-static long filelength(FILE* file) {
-	long numbytes;
-	long savedpos = ftell(file);
-	fseek(file, 0, SEEK_END);
-	numbytes = ftell(file);
-	fseek(file, savedpos, SEEK_SET);
-	return numbytes;
-}
-// TODO USE C++ FILESYSTEM FEATURES
-static bool readShaderFile(const char* filename, GLchar*& out) {
-	FILE* file = fopen(filename, "r");
-	if (file == NULL) {
-		return false;
-	}
-	int bytesinfile = filelength(file);
-	out = (GLchar*)malloc(bytesinfile + 1);
-	int bytesread = fread(out, 1, bytesinfile, file);
-	out[bytesread] = 0; // Terminate the string with 0
-	fclose(file);
+static bool readShaderFile(filesys::path filepath, std::stringstream& shader_str) {
 	return true;
 }
-
-// Vim tip ']p' -> reindented paste
-
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
@@ -126,87 +110,7 @@ static std::string VERT = R"(
 #version 330
 void main(){}
 )";
-static std::string GEOM = R"(
-#version 330
-precision highp float;
-layout(points) in;
-layout(triangle_strip, max_vertices = 6) out;
-out vec2 p;
-void main() {
-	/* 1------3
-	   | \    |
-	   |   \  |
-	   |     \|
-	   0------2 */
-	const vec2 p0 = vec2(-1., -1.);
-	const vec2 p1 = vec2(-1., 1.);
-	gl_Position = vec4(p0, 0., 1.);
-	p = p0 * .5 + .5;
-	EmitVertex(); // 0
-	gl_Position = vec4(p1, 0., 1.);
-	p = p1 * .5 + .5;
-	EmitVertex(); // 1
-	gl_Position = vec4(-p1, 0., 1.);
-	p = -p1 * .5 + .5;
-	EmitVertex(); // 2
-	EndPrimitive();
-
-	gl_Position = vec4(-p1, 0., 1.);
-	p = -p1 * .5 + .5;
-	EmitVertex(); // 2
-	gl_Position = vec4(p1, 0., 1.);
-	p = p1 * .5 + .5;
-	EmitVertex(); // 1
-	gl_Position = vec4(-p0, 0., 1.);
-	p = -p0 * .5 + .5;
-	EmitVertex(); // 3
-	EndPrimitive();
-}
-)";
-static std::string FRAG_B = R"(
-#version 330
-precision highp float;
-uniform sampler2D buff_A;
-uniform sampler2D buff_B;
-in vec2 p;
-out vec4 c;
-vec4 bg = vec4(52./256., 9./256., 38./256., 1.);
-vec4 fg = vec4(1.,195./256.,31./256.,1.);
-
-//vec4 fg = vec4(248./256.,73./256.,52./256.,1.);
-//vec4 bg = vec4(77./256., 94./256., 95./256., 1.);
-
-//vec4 fg = vec4(221./256.,249./256.,30./256.,1.);
-//vec4 bg = vec4(246./256., 69./256., 114./256., 1.);
-
-//vec4 fg = vec4(1);
-//vec4 bg = vec4(0);
-
-//vec4 fg = vec4(1,vec3(0));
-//vec4 bg = vec4(0);
-
-void main() {
-	float al = texture(buff_A, p).r;
-	al *= 5.;
-	vec4 new_color = mix(bg, fg, al);
-	vec4 old_color = texture(buff_B, p);
-
-	c = mix(new_color, old_color, .75);
-	c.a = 1.; // Replaces color
-}
-)";
-static std::string FRAG_IMG = R"(
-#version 330
-precision highp float;
-uniform sampler2D buff_B;
-uniform vec2 Res;
-in vec2 p;
-out vec4 c;
-void main() {
-	c=texture(buff_B, p);
-}
-)";
-static bool compile_shader(GLchar* s, GLuint& sn, GLenum stype) {
+static bool compile_shader(const GLchar* s, GLuint& sn, GLenum stype) {
 	sn = glCreateShader(stype);
 	glShaderSource(sn, 1, &s, NULL);
 	glCompileShader(sn);
@@ -251,7 +155,7 @@ static bool link_program(GLuint& pn, GLuint& vs, GLuint& gs, GLuint fs) {
 }
 static int frame_id = 0;
 void draw(struct audio_data* audio) {
-	fps();
+	//fps();
 	static auto start_time = std::chrono::steady_clock::now();
 	auto now = std::chrono::steady_clock::now();
 	double elapsed = (now - start_time).count() / 1e9;
@@ -298,6 +202,7 @@ void draw(struct audio_data* audio) {
 	glDrawArrays(GL_POINTS, 0, POINTS);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+	// Which draw buffer and which uniform 
 
 
 
@@ -338,12 +243,79 @@ void draw(struct audio_data* audio) {
 	frame_id ++;
 }
 
-bool initialize_gl() {
+static bool compile_buffer_shaders(filesys::path shader_folder, std::string buff_name, GLuint& program) {
+	cout << "Compiling shaders for buffer " + buff_name + "." << endl;
+	filesys::path filepath;
+	std::ifstream shader_file;
+	std::stringstream geom_str;
+	std::stringstream frag_str;
+
+	filepath = filesys::path(shader_folder / (buff_name + ".geom"));
+	if (! filesys::exists(filepath)) {
+		cout << "Geometry shader does not exist." << endl;
+		return false;
+	}
+	if (! filesys::is_regular_file(filepath)) {
+		cout << buff_name+".geom is not a regular file." << endl;
+		return false;
+	}
+	shader_file = std::ifstream(filepath);
+	if (! shader_file.is_open()) {
+		cout << "Error opening geometry shader." << endl;
+		return false;
+	}
+	geom_str << shader_file.rdbuf();
+
+	filepath = filesys::path(shader_folder / (buff_name + ".frag"));
+	if (! filesys::exists(filepath)) {
+		cout << "Fragment shader does not exist." << endl;
+		return false;
+	}
+	if (! filesys::is_regular_file(filepath)) {
+		cout << buff_name+".frag is not a regular file." << endl;
+		return false;
+	}
+	if (shader_file.is_open())
+		shader_file.close();
+	shader_file = std::ifstream(filepath);
+	if (! shader_file.is_open()) {
+		cout << "Error opening fragment shader." << endl;
+		return false;
+	}
+	frag_str << shader_file.rdbuf();
+
+	GLuint vs, gs, fs;
+	bool ok = compile_shader(VERT.c_str(), vs, GL_VERTEX_SHADER);
+	if (!ok) {
+		cout << "Internal error: vertex shader didn't compile." << endl;
+		return ok;
+	}
+	ok = compile_shader(geom_str.str().c_str(), gs, GL_GEOMETRY_SHADER);
+	if (!ok) {
+		cout << "Failed to compile geometry shader." << endl;
+		return false;
+	}
+	ok = compile_shader(frag_str.str().c_str(), fs, GL_FRAGMENT_SHADER);
+	if (!ok) {
+		cout << "Failed to compile fragment shader." << endl;
+		return false;
+	}
+	ok = link_program(program, vs, gs, fs);
+	if (!ok) {
+		cout << "Failed to link program." << endl;
+		return false;
+	}
+
+	cout << "Successfully compiled shader program for buffer " + buff_name + "." << endl;
+	return true;
+}
+
+bool initialize_gl(std::string shader_folder_str) {
 
 	glfwInit();
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	//glfwWindowHint(GLFW_DECORATED, false);
 	window = glfwCreateWindow(window_width, window_height, "Music Visualizer", NULL, NULL);
 	glfwMakeContextCurrent(window);
@@ -363,48 +335,37 @@ bool initialize_gl() {
 	glGetIntegerv(GL_MAX_GEOMETRY_OUTPUT_VERTICES, &max_output_vertices);
 	glDisable(GL_DEPTH_TEST);
 
+	// This isn't used for anything
+	GLuint vao;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+
+	// I chose the following blending func because it allows the user to completely
+	// replace the colors in the buffer by setting their output alpha to 1.
+	// unfortunately it forces the user to make one of three choices:
+	// 1) replace color in the framebuffer
+	// 2) leave framebuffer unchanged
+	// 3) mix new color with old color
 	glEnable(GL_BLEND);
-	// I chose the following blending func because it allows the user to completely replace the colors in the buffer by setting their output alpha to 1.
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // mix(old_color.rgb, new_color.rgb, new_color_alpha)
 
 	auto asdf = std::chrono::steady_clock::now();
 
-	bool ret = true;
-	GLchar *fs_c, *gs_c;
-	ret = readShaderFile("../shaders/geom.glsl", gs_c);
-	ret = readShaderFile("../shaders/image.glsl", fs_c);
-	if (!ret) {
-		ret = readShaderFile("shaders/geom.glsl", gs_c);
-		ret = readShaderFile("shaders/image.glsl", fs_c);
-		if (!ret) {
-			ret = readShaderFile("../../shaders/geom.glsl", gs_c);
-			ret = readShaderFile("../../shaders/image.glsl", fs_c);
-			if (!ret) {
-				cout << "Could not open shader file." << endl;
-				ret = false;
-				return ret;
-			}
-		}
+	filesys::path shader_folder = filesys::path(shader_folder_str);
+	bool ok = filesys::is_directory(shader_folder);
+	if (!ok) {
+		cout << "Shader folder path incorrect." << endl;
+		return ok;
 	}
-	GLuint vs, gs, fs;
+
 	// Buff_A
-	ret = compile_shader((GLchar*)VERT.data(), vs, GL_VERTEX_SHADER);
-	ret = compile_shader(gs_c, gs, GL_GEOMETRY_SHADER);
-	ret = compile_shader(fs_c, fs, GL_FRAGMENT_SHADER);
-	ret = link_program(buff_A_program, vs, gs, fs);
-
+	ok = compile_buffer_shaders(shader_folder, std::string("A"), buff_A_program);
 	// Buff_B
-	ret = compile_shader((GLchar*)GEOM.data(), gs, GL_GEOMETRY_SHADER);
-	ret = compile_shader((GLchar*)FRAG_B.data(), fs, GL_FRAGMENT_SHADER);
-	ret = link_program(buff_B_program, vs, gs, fs);
-
+	ok &= compile_buffer_shaders(shader_folder, std::string("B"), buff_B_program);
 	// Image
-	ret = compile_shader((GLchar*)GEOM.data(), gs, GL_GEOMETRY_SHADER);
-	ret = compile_shader((GLchar*)FRAG_IMG.data(), fs, GL_FRAGMENT_SHADER);
-	ret = link_program(img_program, vs, gs, fs);
-	if (!ret) {
-		cout << endl << endl << "Could not find shader file OR could not compile shaders." << endl << endl;
-		return ret;
+	ok &= compile_buffer_shaders(shader_folder, std::string("image"), img_program);
+	if (!ok) {
+		return ok;
 	}
 
 	num_points_U = glGetUniformLocation(buff_A_program, "num_points");
@@ -470,7 +431,7 @@ bool initialize_gl() {
 
 	auto diff = std::chrono::steady_clock::now() - asdf;
 	cout << diff.count()/1e9 << endl;
-	return ret;
+	return ok;
 }
 
 bool should_loop() {
