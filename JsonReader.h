@@ -13,9 +13,10 @@ public:
 		std::string line;
 		while (std::getline(json_file, line)) {
 
-			// Delete any line containing a c style comment
-			if (std::string::npos != line.find("//"))
-				continue;
+			// Rapidjson can handle comments
+			//// Delete any line containing a c style comment
+			//if (std::string::npos != line.find("//"))
+			//	continue;
 
 			// TODO
 			// Allow the user to get away with some json comma errors and allow floats to be typed like 0. and .06 instead of 0.0 and 0.06

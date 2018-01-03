@@ -9,6 +9,7 @@ using std::endl;
 #include "ShaderConfig.h"
 #include "JsonReader.h"
 #include "rapidjson/include/rapidjson/document.h"
+#include "rapidjson\include\rapidjson\error\en.h"
 namespace rj = rapidjson;
 
 static const std::string WINDOW_SZ_KEY("window_size");
@@ -22,7 +23,12 @@ ShaderConfig::ShaderConfig(std::string json_str, bool& is_ok) {
 	is_ok = true;
 
 	rj::Document user_conf;
-	user_conf.Parse(json_str.c_str());
+	rj::ParseResult ok = user_conf.Parse<rj::kParseCommentsFlag | rj::kParseTrailingCommasFlag>(json_str.c_str());
+	if (!ok) {
+		cout << "JSON parse error: " << rj::GetParseError_En(ok.Code()) << " At char offset " << "(" << ok.Offset() << ")" << endl;
+		is_ok = false;
+		return;
+	}
 
 	if (! user_conf.IsObject()) {
 		cout << "Invalid json file" << endl;
@@ -118,6 +124,7 @@ ShaderConfig::ShaderConfig(std::string json_str, bool& is_ok) {
 		}
 
 		if (buffers.MemberCount() > 0) {
+			std::vector<std::string> buffer_names;
 			for (auto memb = buffers.MemberBegin(); memb != buffers.MemberEnd(); memb++) {
 				Buffer b;
 
@@ -138,6 +145,13 @@ ShaderConfig::ShaderConfig(std::string json_str, bool& is_ok) {
 					is_ok = false;
 					return;
 				}
+
+				if (buffer_names.end() != std::find(buffer_names.begin(), buffer_names.end(), b.name)) {
+					cout << "Buffers must have unique names" << endl;
+					is_ok = false;
+					return;
+				}
+				buffer_names.push_back(b.name);
 
 				if (! buffer.IsObject()) {
 					cout << "Buffer "+b.name+" is not a json object" << endl;
@@ -230,6 +244,7 @@ ShaderConfig::ShaderConfig(std::string json_str, bool& is_ok) {
 					is_ok = false;
 					return;
 				}
+
 				std::string b_name = render_order[i].GetString();
 				int index = -1;
 				for (int j = 0; j < mBuffers.size(); ++j) {

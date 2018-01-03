@@ -54,6 +54,40 @@ static bool compare(ShaderConfig& l, ShaderConfig& r) {
 	return confs_eq;
 }
 
+bool ShaderConfigTest::parse_invalid12() { // buffers with the same name
+	string json_str = R"(
+	{
+		"buffers": {
+			"mybuff": {
+				"size":[1,2],
+				"geom_iters": 12,
+				"clear_color":[1, 1, 1]
+			},
+			"mybuff": {
+				"size":[1,2],
+				"geom_iters": 12,
+				"clear_color":[1, 1, 1]
+			}
+		},
+		"audio_options":{
+			"FFT_SYNC": false,
+			"DIFF_SYNC": false,
+			"FFT_SMOOTH": 1,
+			"WAVE_SMOOTH": 0
+		},
+		"render_order":["mybuff"],
+		"uniforms" : {
+			"my_uni": [1.0]
+		}
+	}
+	)";
+
+	bool is_ok;
+	ShaderConfig conf(json_str, is_ok);
+	if (is_ok) cout << FAIL_MSG << endl;
+	else cout << PASS_MSG << endl;
+	return !is_ok;
+}
 bool ShaderConfigTest::parse_invalid11() { // incorrect uniform value
 	string json_str = R"(
 	{
@@ -562,6 +596,9 @@ bool ShaderConfigTest::test() {
 
 	cout << "json parse test invalid 11: " << endl;
 	ok &= parse_invalid11();
+
+	cout << "json parse test invalid 12: " << endl;
+	ok &= parse_invalid12();
 
 	return ok;
 }

@@ -31,6 +31,7 @@ private:
 	bool parse_invalid9();
 	bool parse_invalid10();
 	bool parse_invalid11();
+	bool parse_invalid12();
 };
 
 #include <string>
