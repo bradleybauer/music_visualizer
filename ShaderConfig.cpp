@@ -5,6 +5,7 @@
 #include <iostream>
 using std::cout;
 using std::endl;
+using std::string;
 
 #include "ShaderConfig.h"
 #include "JsonReader.h"
@@ -12,15 +13,17 @@ using std::endl;
 #include "rapidjson\include\rapidjson\error\en.h"
 namespace rj = rapidjson;
 
-static const std::string WINDOW_SZ_KEY("window_size");
-static const std::string AUDIO_NUM_FRAMES_KEY("audio_num_frames");
+static const string WINDOW_SZ_KEY("window_size");
+static const string AUDIO_NUM_FRAMES_KEY("audio_num_frames");
 
 ShaderConfig::ShaderConfig(filesys::path conf_file_path, bool& is_ok) {
-	const std::string json_str = JsonReader::read(conf_file_path);
+	const string json_str = JsonReader::read(conf_file_path);
 	ShaderConfig(json_str, is_ok);
 }
-ShaderConfig::ShaderConfig(std::string json_str, bool& is_ok) {
+
+ShaderConfig::ShaderConfig(string json_str, bool& is_ok) {
 	is_ok = true;
+
 
 	rj::Document user_conf;
 	rj::ParseResult ok = user_conf.Parse<rj::kParseCommentsFlag | rj::kParseTrailingCommasFlag>(json_str.c_str());
@@ -37,6 +40,18 @@ ShaderConfig::ShaderConfig(std::string json_str, bool& is_ok) {
 	}
 
 	if (user_conf.HasMember("audio_options")) {
+
+		//int count = 0; 
+		//for (auto memb = user_conf.MemberBegin(); memb != user_conf.MemberEnd(); memb++) {
+		//	if (memb->name == string("audio_options"))
+		//		count++;
+		//}
+		//if (count != 1) {
+		//	cout << "Can only define one audio_options object" << endl;
+		//	is_ok = false;
+		//	return;
+		//}
+
 		AudioOptions ao;
 		rj::Value& audio_options = user_conf["audio_options"];
 		if (! audio_options.IsObject()) {
@@ -124,13 +139,24 @@ ShaderConfig::ShaderConfig(std::string json_str, bool& is_ok) {
 		}
 
 		if (buffers.MemberCount() > 0) {
-			std::vector<std::string> buffer_names;
+
+			// Catch buffers with the same name
+			std::vector<string> buffer_names;
+
 			for (auto memb = buffers.MemberBegin(); memb != buffers.MemberEnd(); memb++) {
 				Buffer b;
 
 				rj::Value& buffer = memb->value;
 				b.name = memb->name.GetString();
-				if (b.name == std::string("")) {
+
+				if (buffer_names.end() != std::find(buffer_names.begin(), buffer_names.end(), b.name)) {
+					cout << "Buffers must have unique names" << endl;
+					is_ok = false;
+					return;
+				}
+				buffer_names.push_back(b.name);
+
+				if (b.name == string("")) {
 					cout << "Buffer must have a name" << endl;
 					is_ok = false;
 					return;
@@ -140,18 +166,11 @@ ShaderConfig::ShaderConfig(std::string json_str, bool& is_ok) {
 					is_ok = false;
 					return;
 				}
-				if (b.name == std::string("image")) {
+				if (b.name == string("image")) {
 					cout << "Cannot name buffer image" << endl;
 					is_ok = false;
 					return;
 				}
-
-				if (buffer_names.end() != std::find(buffer_names.begin(), buffer_names.end(), b.name)) {
-					cout << "Buffers must have unique names" << endl;
-					is_ok = false;
-					return;
-				}
-				buffer_names.push_back(b.name);
 
 				if (! buffer.IsObject()) {
 					cout << "Buffer "+b.name+" is not a json object" << endl;
@@ -245,7 +264,7 @@ ShaderConfig::ShaderConfig(std::string json_str, bool& is_ok) {
 					return;
 				}
 
-				std::string b_name = render_order[i].GetString();
+				string b_name = render_order[i].GetString();
 				int index = -1;
 				for (int j = 0; j < mBuffers.size(); ++j) {
 					if (mBuffers[j].name == b_name) {
@@ -274,11 +293,21 @@ ShaderConfig::ShaderConfig(std::string json_str, bool& is_ok) {
 		}
 
 		if (uniforms.MemberCount() > 0) {
+
+			// Catch uniforms with the same name
+			std::vector<string> uniform_names;
+
 			for (auto memb = uniforms.MemberBegin(); memb != uniforms.MemberEnd(); memb++) {
 				Uniform u;
 
 				rj::Value& uniform = memb->value;
 				u.name = memb->name.GetString();
+				if (uniform_names.end() != std::find(uniform_names.begin(), uniform_names.end(), u.name)) {
+					cout << "Uniforms must have unique names" << endl;
+					is_ok = false;
+					return;
+				}
+				uniform_names.push_back(u.name);
 
 				if (uniform.IsArray()) {
 					if (uniform.Size() > 4) {
