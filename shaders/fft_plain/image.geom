@@ -1,12 +1,4 @@
-#version 330
-precision highp float;
-
-uniform int num_points;
-in int point_index[];
-
-layout(points) in;
-layout(triangle_strip) out;
-layout(max_vertices=24) out;
+layout(triangle_strip, max_vertices=6) out;
 
 void quadAtPoint(vec2 p, vec2 size, float th) {
 	vec4 P = vec4(p,0.,1.);
@@ -33,5 +25,5 @@ void main() {
 	// Output a fullscreen quad
 	vec2 point = vec2(.5);
 	point = point * 2. - 1.;
-	quadAtPoint(point, vec2(2.));
+	quadAtPoint(point, vec2(2.), 0.);
 }

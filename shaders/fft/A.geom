@@ -58,9 +58,27 @@ void main() {
 	intensity = .1;
 	min_intensity = .01;
 
-	float sr0 = texture(iSoundR, t0).r;
-	float sr1 = texture(iSoundR, t1).r;
-	vec2 P0 = vec2(t0*2.-1., sr0);
-	vec2 P1 = vec2(t1*2.-1., sr1);
+	const float stretch = 200.;
+	float fl0 = 3.*texture(iFreqL, pow(stretch, t0-1.)-(1.-t0)/stretch).r;
+	float fl1 = 3.*texture(iFreqL, pow(stretch, t1-1.)-(1.-t1)/stretch).r;
+	// float fr0 = texture(iFreqR, pow(stretch, t0-1.)-(1.-t0)/stretch).r;
+	// float fr1 = texture(iFreqR, pow(stretch, t1-1.)-(1.-t1)/stretch).r;
+
+	vec2 P0;
+	vec2 P1;
+
+	// LOG FFT
+	// P0 = vec2(t0*2.-1., log2(10.*fl0+0.002)/18.0-.5);
+	// P1 = vec2(t1*2.-1., log2(10.*fl1+0.002)/18.0-.5);
+	// quad(P0, P1, width);
+
+	// LOG FFT
+	P0 = vec2(t0*2.-1., 2.*sqrt(40.*fl0)/23.0-.9);
+	P1 = vec2(t1*2.-1., 2.*sqrt(40.*fl1)/23.0-.9);
 	quad(P0, P1, width);
+
+	// // NORMAL FFT
+	// P0 = vec2(t0*2.-1., fl0-1.);
+	// P1 = vec2(t1*2.-1., fl1-1.);
+	// quad(P0, P1, width);
 }

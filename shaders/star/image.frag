@@ -1,34 +1,24 @@
-#version 330
-precision highp float;
-
-uniform sampler1D FL; // left channel
-uniform sampler1D FR; // left channel
-uniform vec2 Res; // resolution
-uniform float Time; // time
-
-float f(float x)
-{
+float f(float x) {
 	x /= 3.;
-	return (texture(FL, x).r + texture(FR, x).r)/2.;
+	return 3.*(texture(iFreqL, x).r + texture(iFreqR, x).r)/2.;
 }
 
 #define SPIRAL
 
 out vec4 C;
-void main()
-{
+void main() {
 	const float PI = 3.141592;
 	float threshold = .2;
-	float time = Time/100.;
+	float time = iTime/100.;
 	vec3 color1 = vec3(1);
 	vec3 color2 = vec3(0);
 
-	vec2 p = gl_FragCoord.xy/Res*2.-1.;
+	vec2 p = gl_FragCoord.xy/iRes*2.-1.;
 #ifdef SPIRAL
 	p*=1.5;
 	p-=vec2(.0,-.4);
 #endif
-	float aspect = Res.x/Res.y;
+	float aspect = iRes.x/iRes.y;
 	p.y /= aspect;
 	p *= 1. + fract(max(aspect, .7))/2.;
 
