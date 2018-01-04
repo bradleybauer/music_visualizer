@@ -40,6 +40,10 @@ static bool compare(ShaderConfig& l, ShaderConfig& r) {
 			if (!eq) cout << "Buffer " + std::to_string(i) + " difference" << endl;
 		}
 
+	eq = l.mImage == r.mImage;
+	confs_eq &= eq;
+	if (!eq) cout << "image settings differ" << endl;
+
 	eq = l.mUniforms.size() == r.mUniforms.size();
 	confs_eq &= eq;
 	if (!eq) cout << "configs specify different number of uniforms" << endl;
@@ -51,12 +55,20 @@ static bool compare(ShaderConfig& l, ShaderConfig& r) {
 			if (!eq) cout << "Uniform " + std::to_string(i) + " difference" << endl;
 		}
 
+	eq = l.mBlend == r.mBlend;
+	confs_eq &= eq;
+	if (!eq) cout << "blend is different" << endl;
+
 	return confs_eq;
 }
 
 bool ShaderConfigTest::parse_invalid14() { // more than one render_order object
 	string json_str = R"(
 	{
+		"image" : {
+			"geom_iters":1,
+			"clear_color":[0,0,0]
+		},
 		"buffers": {
 			"mybuff": {
 				"size":[1,2],
@@ -87,6 +99,10 @@ bool ShaderConfigTest::parse_invalid14() { // more than one render_order object
 bool ShaderConfigTest::parse_invalid13() { // more than one uniforms object
 	string json_str = R"(
 	{
+		"image" : {
+			"geom_iters":1,
+			"clear_color":[0,0,0]
+		},
 		"buffers": {
 			"mybuff": {
 				"size":[1,2],
@@ -119,6 +135,10 @@ bool ShaderConfigTest::parse_invalid13() { // more than one uniforms object
 bool ShaderConfigTest::parse_invalid15() { // uniforms with the same name
 	string json_str = R"(
 	{
+		"image" : {
+			"geom_iters":1,
+			"clear_color":[0,0,0]
+		},
 		"buffers": {
 			"mybuff": {
 				"size":[1,2],
@@ -149,6 +169,10 @@ bool ShaderConfigTest::parse_invalid15() { // uniforms with the same name
 bool ShaderConfigTest::parse_invalid12() { // buffers with the same name
 	string json_str = R"(
 	{
+		"image" : {
+			"geom_iters":1,
+			"clear_color":[0,0,0]
+		},
 		"buffers": {
 			"mybuff": {
 				"size":[1,2],
@@ -183,6 +207,10 @@ bool ShaderConfigTest::parse_invalid12() { // buffers with the same name
 bool ShaderConfigTest::parse_invalid11() { // incorrect uniform value
 	string json_str = R"(
 	{
+		"image" : {
+			"geom_iters":1,
+			"clear_color":[0,0,0]
+		},
 		"buffers": {
 			"mybuff": {
 				"size":[1,2],
@@ -212,6 +240,10 @@ bool ShaderConfigTest::parse_invalid11() { // incorrect uniform value
 bool ShaderConfigTest::parse_invalid10() { // incorrect uniform value
 	string json_str = R"(
 	{
+		"image" : {
+			"geom_iters":1,
+			"clear_color":[0,0,0]
+		},
 		"buffers": {
 			"mybuff": {
 				"size":[1,2],
@@ -241,6 +273,10 @@ bool ShaderConfigTest::parse_invalid10() { // incorrect uniform value
 bool ShaderConfigTest::parse_invalid9() { // FFT_SMOOTH out of range
 	string json_str = R"(
 	{
+		"image" : {
+			"geom_iters":1,
+			"clear_color":[0,0,0]
+		},
 		"buffers": {
 			"mybuff": {
 				"size":[1,2],
@@ -270,6 +306,10 @@ bool ShaderConfigTest::parse_invalid9() { // FFT_SMOOTH out of range
 bool ShaderConfigTest::parse_invalid8() { // too many clear color values
 	string json_str = R"(
 	{
+		"image" : {
+			"geom_iters":1,
+			"clear_color":[0,0,0]
+		},
 		"buffers": {
 			"mybuff": {
 				"size":[1,2],
@@ -299,6 +339,10 @@ bool ShaderConfigTest::parse_invalid8() { // too many clear color values
 bool ShaderConfigTest::parse_invalid7() { // empty buffer name
 	string json_str = R"(
 	{
+		"image" : {
+			"geom_iters":1,
+			"clear_color":[0,0,0]
+		},
 		"buffers": {
 			"": {
 				"size":[1,2],
@@ -328,6 +372,10 @@ bool ShaderConfigTest::parse_invalid7() { // empty buffer name
 bool ShaderConfigTest::parse_invalid6() { // incorrect buffer.size
 	string json_str = R"(
 	{
+		"image" : {
+			"geom_iters":1,
+			"clear_color":[0,0,0]
+		},
 		"buffers": {
 			"MyBuff": {
 				"size":"win_size",
@@ -357,6 +405,10 @@ bool ShaderConfigTest::parse_invalid6() { // incorrect buffer.size
 bool ShaderConfigTest::parse_invalid5() { // incorrect buffer.size
 	string json_str = R"(
 	{
+		"image" : {
+			"geom_iters":1,
+			"clear_color":[0,0,0]
+		},
 		"buffers": {
 			"MyBuff": {
 				"size":[12],
@@ -386,6 +438,10 @@ bool ShaderConfigTest::parse_invalid5() { // incorrect buffer.size
 bool ShaderConfigTest::parse_invalid4() { // missing buffer.size
 	string json_str = R"(
 	{
+		"image" : {
+			"geom_iters":1,
+			"clear_color":[0,0,0]
+		},
 		"buffers": {
 			"MyBuff": {
 				"geom_iters": 12,
@@ -411,59 +467,14 @@ bool ShaderConfigTest::parse_invalid4() { // missing buffer.size
 	else cout << PASS_MSG << endl;
 	return !is_ok;
 }
-bool ShaderConfigTest::parse_invalid3() { // missing render_order
-	string json_str = R"(
-	{
-		"buffers": {
-			"MyBuff": {
-				"size": "window_size",
-				"geom_iters": 12,
-				"clear_color":[1, 1, 1]
-			}
-		},
-		"audio_options":{
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
-		},
-		"uniforms" : {
-			"this_is_my_uni": [1.0, 2.0, 3.0, 4.0]
-		}
-	}
-	)";
-
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
-}
 bool ShaderConfigTest::parse_invalid2() { // missing FFT_SYNC option
 	string json_str = R"(
 	{
-		"audio_options":{
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+		"image" : {
+			"geom_iters":1,
+			"clear_color":[0,0,0]
 		},
-		"uniforms" : {
-			"this_is_my_uni": [1.0, 2.0, 3.0, 4.0]
-		}
-	}
-	)";
-
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
-}
-bool ShaderConfigTest::parse_invalid1() { // no audio_options member
-	string json_str = R"(
-	{
-		"audio":{
-			"FFT_SYNC": true,
+		"audio_options":{
 			"DIFF_SYNC": false,
 			"FFT_SMOOTH": 1,
 			"WAVE_SMOOTH": 0
@@ -483,6 +494,10 @@ bool ShaderConfigTest::parse_invalid1() { // no audio_options member
 bool ShaderConfigTest::parse_valid4() { // mBuffers only contains buffers referenced in render_order
 	string json_str = R"(
 	{
+		"image" : {
+			"geom_iters":1,
+			"clear_color":[0,0,0]
+		},
 		"buffers":{
 			"x":{
 				"size":[1,2],
@@ -511,6 +526,7 @@ bool ShaderConfigTest::parse_valid4() { // mBuffers only contains buffers refere
 	)";
 
 	ShaderConfig mock_conf;
+	mock_conf.mBlend = false;
 	mock_conf.mAudio_ops.fft_sync = true;
 	mock_conf.mAudio_ops.diff_sync = false;
 	mock_conf.mAudio_ops.fft_smooth = 1.f;
@@ -531,6 +547,9 @@ bool ShaderConfigTest::parse_valid4() { // mBuffers only contains buffers refere
 	b.clear_color = {.1f, .2f, .3f};
 	mock_conf.mBuffers.push_back(b);
 	mock_conf.mRender_order = {0,1,0};
+	mock_conf.mImage.is_window_size = true;
+	mock_conf.mImage.geom_iters = 1;
+	mock_conf.mImage.clear_color = {0.f, 0.f, 0.f};
 
 	bool is_ok;
 	ShaderConfig conf(json_str, is_ok);
@@ -553,6 +572,10 @@ bool ShaderConfigTest::parse_valid4() { // mBuffers only contains buffers refere
 bool ShaderConfigTest::parse_valid3() {
 	string json_str = R"(
 	{
+		"image" : {
+			"geom_iters":1,
+			"clear_color":[0,0,0]
+		},
 		"audio_options":{
 			"FFT_SYNC": true,
 			"DIFF_SYNC": false,
@@ -566,6 +589,7 @@ bool ShaderConfigTest::parse_valid3() {
 	)";
 
 	ShaderConfig mock_conf;
+	mock_conf.mBlend = false;
 	mock_conf.mAudio_ops.fft_sync = true;
 	mock_conf.mAudio_ops.diff_sync = false;
 	mock_conf.mAudio_ops.fft_smooth = 1.f;
@@ -574,6 +598,9 @@ bool ShaderConfigTest::parse_valid3() {
 	u.name = string("this_is_my_uni");
 	u.values = { 1.f, 2.f, 3.f, 4.f };
 	mock_conf.mUniforms.push_back(u);
+	mock_conf.mImage.geom_iters = 1;
+	mock_conf.mImage.clear_color = {0.f, 0.f, 0.f};
+	mock_conf.mImage.is_window_size = true;
 
 	bool is_ok;
 	ShaderConfig conf(json_str, is_ok);
@@ -596,6 +623,10 @@ bool ShaderConfigTest::parse_valid3() {
 bool ShaderConfigTest::parse_valid2() {
 	string json_str = R"(
 	{
+		"image" : {
+			"geom_iters":1,
+			"clear_color":[0,0,0]
+		},
 		"buffers":{
 			"MyBuff": {
 				"size": "window_size",
@@ -613,6 +644,7 @@ bool ShaderConfigTest::parse_valid2() {
 	}
 	)";
 	ShaderConfig mock_conf;
+	mock_conf.mBlend = false;
 	mock_conf.mAudio_ops.fft_sync = true;
 	mock_conf.mAudio_ops.diff_sync = false;
 	mock_conf.mAudio_ops.fft_smooth = .0f;
@@ -626,6 +658,9 @@ bool ShaderConfigTest::parse_valid2() {
 	b.clear_color = {1.f, 1.f, 1.f};
 	mock_conf.mBuffers.push_back(b);
 	mock_conf.mRender_order = {0};
+	mock_conf.mImage.is_window_size = true;
+	mock_conf.mImage.geom_iters = 1;
+	mock_conf.mImage.clear_color = {0.f, 0.f, 0.f};
 
 	bool is_ok;
 	ShaderConfig conf(json_str, is_ok);
@@ -649,6 +684,10 @@ bool ShaderConfigTest::parse_valid2() {
 bool ShaderConfigTest::parse_valid1() {
 	string json_str = R"(
 	{
+		"image" : {
+			"geom_iters":1,
+			"clear_color":[0,0,0]
+		},
 		"buffers":{
 			"A": {
 				"size": [100, 200],
@@ -671,6 +710,7 @@ bool ShaderConfigTest::parse_valid1() {
 	}
 	)";
 	ShaderConfig mock_conf;
+	mock_conf.mBlend = false;
 	mock_conf.mAudio_ops.fft_sync = true;
 	mock_conf.mAudio_ops.diff_sync = true;
 	mock_conf.mAudio_ops.fft_smooth = .6f;
@@ -693,6 +733,9 @@ bool ShaderConfigTest::parse_valid1() {
 	b.clear_color = {0.f, .5f, 0.f};
 	mock_conf.mBuffers.push_back(b);
 	mock_conf.mRender_order = {0,1,0,1};
+	mock_conf.mImage.is_window_size = true;
+	mock_conf.mImage.geom_iters = 1;
+	mock_conf.mImage.clear_color = {0.f, 0.f, 0.f};
 
 	bool is_ok;
 	ShaderConfig conf(json_str, is_ok);
@@ -728,14 +771,8 @@ bool ShaderConfigTest::test() {
 	cout << "json parse test valid 4: " << endl;
 	ok &= parse_valid4();
 
-	cout << "json parse test invalid 1: " << endl;
-	ok &= parse_invalid1();
-
 	cout << "json parse test invalid 2: " << endl;
 	ok &= parse_invalid2();
-
-	cout << "json parse test invalid 3: " << endl;
-	ok &= parse_invalid3();
 
 	cout << "json parse test invalid 4: " << endl;
 	ok &= parse_invalid4();
@@ -764,11 +801,11 @@ bool ShaderConfigTest::test() {
 	cout << "json parse test invalid 12: " << endl;
 	ok &= parse_invalid12();
 
-	cout << "json parse test invalid 13: " << endl;
-	ok &= parse_invalid13();
-
-	cout << "json parse test invalid 14: " << endl;
-	ok &= parse_invalid14();
+	// test ability to fail when json has multiple members with the same name
+	//cout << "json parse test invalid 13: " << endl;
+	//ok &= parse_invalid13();
+	//cout << "json parse test invalid 14: " << endl;
+	//ok &= parse_invalid14();
 
 	cout << "json parse test invalid 15: " << endl;
 	ok &= parse_invalid15();
@@ -818,6 +855,8 @@ std::ostream& operator<<(std::ostream& os, const ShaderConfig& o) {
 	for (int i = 0; i < o.mUniforms.size(); ++i)
 		os << o.mUniforms[i];
 	os << std::endl;
+
+	os << std::boolalpha << "Blend: " << o.mBlend << std::endl;
 
 	return os;
 }

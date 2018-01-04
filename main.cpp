@@ -15,11 +15,10 @@ using clk = std::chrono::steady_clock;
 #include "Window.h"
 #include "ShaderConfig.h"
 #include "ShaderPrograms.h"
+#include "Renderer.h"
 
-#include "draw.h"
 #include "audio_data.h"
 #include "audio_process.h"
-
 
 #if defined(WINDOWS) && defined(DEBUG)
 int WinMain() {
@@ -65,30 +64,36 @@ int main(int argc, char* argv[]) {
 	//          If shader is not paused or if mouse input is occurring.
 	//             Render current shader
 */
-	if (!initialize_gl()) { cout << "graphics borked. exiting." << endl; return 0; };
+	struct audio_data my_audio_data;
+	my_audio_data.thread_join = false;
+	audio_processor* ap = new audio_processor(&my_audio_data, &get_pcm, &audio_setup);
+	std::thread audioThread(&audio_processor::run, ap);
+
+	Window window(1000, 400);
 	glfwSetTime(0.0);
 
 	filesys::path shader_folder("shaders");
 	bool is_ok = true;
 	ShaderConfig shader_conf(shader_folder / "shader.json", is_ok);
+	if (!is_ok)
+		return 0;
 	ShaderPrograms shader_programs(shader_conf, shader_folder, is_ok);
+	if (!is_ok)
+		return 0;
+	Renderer renderer(shader_conf, shader_programs, window);
 
-	struct audio_data my_audio_data;
-	my_audio_data.thread_join = false;
+	while (window.is_alive()) {
+		//auto start = clk::now();
 
-	audio_processor* ap = new audio_processor(&my_audio_data, &get_pcm, &audio_setup);
-	std::thread audioThread(&audio_processor::run, ap);
+		renderer.render(&my_audio_data);
+		window.swap_buffers();
+		glfwPollEvents();
 
-	while (should_loop()) {
-		auto start = clk::now();
-		draw(&my_audio_data);
-		auto dura = clk::duration(std::chrono::milliseconds(14)) - (clk::now() - start);
-		std::this_thread::sleep_for(dura > clk::duration(0) ? dura : clk::duration(0));
+		//auto dura = clk::duration(std::chrono::milliseconds(14)) - (clk::now() - start);
+		//std::this_thread::sleep_for(dura > clk::duration(0) ? dura : clk::duration(0));
 	}
 	my_audio_data.thread_join = true;
 	//audioThread.join(); // I would like to exit the program the right way, but sometimes this blocks due to the windows audio system.
-	deinit_drawing();
-	glfwTerminate();
-	exit(0);
+	exit(0); // TODO need this without the above join?
 	return 0;
 }

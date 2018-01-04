@@ -28,12 +28,13 @@ struct AudioOptions {
 	float wave_smooth;
 };
 
-// A self constructing data structure
 class ShaderConfig {
 public:
 	ShaderConfig(filesys::path conf_file, bool& is_ok);
 	ShaderConfig(std::string json_str, bool& is_ok);
 
+	bool mBlend;
+	Buffer mImage;
 	std::vector<Buffer> mBuffers;
 	std::vector<int> mRender_order; // render_order[n] is an index into buffers
 	std::vector<Uniform> mUniforms;

@@ -123,9 +123,74 @@ ShaderConfig::ShaderConfig(string json_str, bool& is_ok) {
 		mAudio_ops = ao;
 	}
 	else {
-		cout << "shader.json needs audio_options setting" << endl;
+		mAudio_ops.diff_sync = true;
+		mAudio_ops.fft_sync = true;
+		mAudio_ops.fft_smooth = .75;
+		mAudio_ops.wave_smooth = .75;
+	}
+
+	if (user_conf.HasMember("blend")) {
+		if (! user_conf["blend"].IsBool()) {
+			cout << "Invalid type for blend option" << endl;
+			is_ok = false;
+			return;
+		}
+		mBlend = user_conf["blend"].GetBool();
+	}
+	else {
+		mBlend = false;
+	}
+
+	if (! user_conf.HasMember("image")) {
+		cout << "shader.json needs the image setting" << endl;
 		is_ok = false;
 		return;
+	}
+	else {
+		rj::Value& image = user_conf["image"];
+		if (! image.IsObject()) {
+			cout << "image is not a json object" << endl;
+			is_ok = false;
+			return;
+		}
+		if (!image.HasMember("geom_iters")) {
+			cout << "image does not contain the geom_iters option" << endl;
+			is_ok = false;
+			return;
+		}
+
+		rj::Value& geom_iters = image["geom_iters"];
+
+		if (! (geom_iters.IsInt() && geom_iters.GetInt() > 0)) {
+			cout << "image has incorrect value for geom_iters option" << endl;
+			is_ok = false;
+			return;
+		}
+		mImage.geom_iters = geom_iters.GetInt();
+
+		if (image.HasMember("clear_color")) {
+			rj::Value& clear_color = image["clear_color"];
+			if (! (clear_color.IsArray() && clear_color.Size() == 3)) {
+				cout << "image has incorrect value for clear_color option" << endl;
+				is_ok = false;
+				return;
+			}
+			for (int i = 0; i < 3; ++i) {
+				if (clear_color[i].IsNumber())
+					mImage.clear_color[i] = clear_color[i].GetFloat();
+				else {
+					cout << "image has incorrect value for clear_color option" << endl;
+					is_ok = false;
+					return;
+				}
+			}
+		}
+		else {
+			for (int i = 0; i < 3; ++i)
+				mImage.clear_color[i] = 0.f;
+		}
+
+		mImage.is_window_size = true;
 	}
 
 	if (user_conf.HasMember("buffers")) {
@@ -186,15 +251,33 @@ ShaderConfig::ShaderConfig(string json_str, bool& is_ok) {
 					is_ok = false;
 					return;
 				}
-				if (! buffer.HasMember("clear_color")) {
-					cout << b.name + " does not contain the clear_color option" << endl;
-					is_ok = false;
-					return;
+				if (buffer.HasMember("clear_color")) {
+					rj::Value& b_clear_color = buffer["clear_color"];
+					if (! (b_clear_color.IsArray() && b_clear_color.Size() == 3)) {
+						cout << b.name + " has incorrect value for clear_color option" << endl;
+						is_ok = false;
+						return;
+					}
+					for (int i = 0; i < 3; ++i) {
+						if (b_clear_color[i].IsNumber())
+							b.clear_color[i] = b_clear_color[i].GetFloat();
+						else {
+							cout << b.name + " has incorrect value for clear_color option" << endl;
+							is_ok = false;
+							return;
+						}
+						//else if (b_clear_color[i].IsInt())
+						//	b.clear_color[i] = b_clear_color[i].GetFloat()/256.f;
+					}
 				}
+				else {
+					for (int i = 0; i < 3; ++i)
+						b.clear_color[i] = 0.f;
+				}
+
 
 				rj::Value& b_size = buffer["size"];
 				rj::Value& b_geom_iters = buffer["geom_iters"];
-				rj::Value& b_clear_color = buffer["clear_color"];
 
 				if (b_size.IsArray() && b_size.Size() == 2) {
 					if (! b_size[0].IsInt() || ! b_size[1].IsInt()) {
@@ -224,76 +307,61 @@ ShaderConfig::ShaderConfig(string json_str, bool& is_ok) {
 				}
 				b.geom_iters = b_geom_iters.GetInt();
 
-				if (! (b_clear_color.IsArray() && b_clear_color.Size() == 3)) {
-					cout << b.name + " has incorrect value for clear_color option" << endl;
-					is_ok = false;
-					return;
-				}
-				for (int i = 0; i < 3; ++i) {
-					if (b_clear_color[i].IsNumber())
-						b.clear_color[i] = b_clear_color[i].GetFloat();
-					else {
-						cout << b.name + " has incorrect value for clear_color option" << endl;
-						is_ok = false;
-						return;
-					}
-					//else if (b_clear_color[i].IsInt())
-					//	b.clear_color[i] = b_clear_color[i].GetFloat()/256.f;
-				}
 
 				mBuffers.push_back(b);
 			}
 
-			if (! user_conf.HasMember("render_order")) {
-				cout << "shader.json needs render_order setting if there are buffers declared" << endl;
-				is_ok = false;
-				return;
-			}
-			rj::Value& render_order = user_conf["render_order"];
-			if (! (render_order.IsArray() && render_order.Size() != 0)) {
-				cout << "render_order must be an array with length > 0" << endl;
-				is_ok = false;
-				return;
-			}
-			for (unsigned int i = 0; i < render_order.Size(); ++i) {
-				if (! render_order[i].IsString()) {
-					cout << "render_order can only contain buffer name strings" << endl;
+			if (user_conf.HasMember("render_order")) {
+				rj::Value& render_order = user_conf["render_order"];
+				if (! (render_order.IsArray() && render_order.Size() != 0)) {
+					cout << "render_order must be an array with length > 0" << endl;
 					is_ok = false;
 					return;
 				}
-
-				string b_name = render_order[i].GetString();
-				int index = -1;
-				for (int j = 0; j < mBuffers.size(); ++j) {
-					if (mBuffers[j].name == b_name) {
-						index = j;
-						break;
+				for (unsigned int i = 0; i < render_order.Size(); ++i) {
+					if (! render_order[i].IsString()) {
+						cout << "render_order can only contain buffer name strings" << endl;
+						is_ok = false;
+						return;
 					}
-				}
-				if (index == -1) {
-					cout << "render_order member \"" + b_name + "\" must be the name of a buffer in \"buffers\"" << endl;
-					is_ok = false;
-					return;
+
+					string b_name = render_order[i].GetString();
+					int index = -1;
+					for (int j = 0; j < mBuffers.size(); ++j) {
+						if (mBuffers[j].name == b_name) {
+							index = j;
+							break;
+						}
+					}
+					if (index == -1) {
+						cout << "render_order member \"" + b_name + "\" must be the name of a buffer in \"buffers\"" << endl;
+						is_ok = false;
+						return;
+					}
+					
+					// mRender_order contains indices into mBuffers
+					mRender_order.push_back(index);
 				}
 				
-				// mRender_order contains indices into mBuffers
-				mRender_order.push_back(index);
-			}
-			
-			// Only keep the buffers that are used to render
-			std::vector<int> placed;
-			std::vector<Buffer> used_buffs;
-			for (int i = 0; i < mRender_order.size(); i++) {
-				bool in = false;
-				for (int j = 0; j < placed.size(); ++j)
-					if (mRender_order[i] == placed[j])
-						in = true;
-				if (!in) {
-					used_buffs.push_back(mBuffers[mRender_order[i]]);
-					placed.push_back(mRender_order[i]);
+				// Only keep the buffers that are used to render
+				std::vector<int> placed;
+				std::vector<Buffer> used_buffs;
+				for (int i = 0; i < mRender_order.size(); i++) {
+					bool in = false;
+					for (int j = 0; j < placed.size(); ++j)
+						if (mRender_order[i] == placed[j])
+							in = true;
+					if (!in) {
+						used_buffs.push_back(mBuffers[mRender_order[i]]);
+						placed.push_back(mRender_order[i]);
+					}
 				}
+				mBuffers = used_buffs;
 			}
-			mBuffers = used_buffs;
+			else {
+				for (int i = 0; i < mBuffers.size(); ++i)
+					mRender_order.push_back(i);
+			}
 		}
 	}
 

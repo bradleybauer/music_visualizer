@@ -12,18 +12,50 @@ using std::stringstream;
 #include "ShaderConfig.h"
 #include "ShaderPrograms.h"
 
-ShaderPrograms::ShaderPrograms(ShaderConfig& config, filesys::path shader_folder, bool& is_ok) {
+ShaderPrograms::ShaderPrograms(const ShaderConfig& config, const filesys::path shader_folder, bool& is_ok) {
+	stringstream uniform_header;
+	uniform_header << R"(
+		layout(location=0) uniform vec2 iMouse;
+		layout(location=1) uniform bool iMouseDown;
+		layout(location=2) uniform vec2 iRes;
+		layout(location=3) uniform float iTime;
+		layout(location=4) uniform int iFrame;
+		layout(location=5) uniform float iNumGeomIters;
+		layout(location=6) uniform sampler1D iSoundR;
+		layout(location=7) uniform sampler1D iSoundL;
+		layout(location=8) uniform sampler1D iFreqR;
+		layout(location=9) uniform sampler1D iFreqL;
+
+		#define iResolution iRes
+	)";
+
+	int num_uniforms = ShaderPrograms::num_builtin_uniforms;
+
+	// Put samplers for user buffers in header
+	for (int i = 0; i < config.mBuffers.size(); ++i) {
+		uniform_header << "layout(location=" << std::to_string(i+1 + num_uniforms) << ") uniform "
+			<< "sampler2D i" << config.mBuffers[i].name << ";\n";
+	}
+	num_uniforms += config.mBuffers.size();
+
+	// Put user's uniforms in header
+	for (int i = 0; i < config.mUniforms.size(); ++i) {
+		string type;
+		if (config.mUniforms[i].values.size() == 1) // ShaderConfig ensures size is in [1,4]
+			type = "float";
+		else
+			type = "vec" + std::to_string(config.mUniforms[i].values.size());
+
+		uniform_header << "layout(location=" << std::to_string(i+1 + num_uniforms) << ") uniform "
+			<< type << " " << config.mUniforms[i].name << ";\n";
+	}
+	num_uniforms += config.mUniforms.size();
+	uniform_header << "\n";
+
 	is_ok = true;
 	for (int i = 0; i < config.mBuffers.size(); ++i)
-		is_ok &= compile_buffer_shaders(shader_folder, config.mBuffers[i].name);
-	is_ok &= compile_buffer_shaders(shader_folder, "image");
-
-	//    user buffer samplers [num_uu, num_bs]
-	//    buffer size uniform
-	//    user uniforms [m+1, num_uu] // append as constant vectors/floats?
-
-	// Layout the uniforms to have explicit uniform locations so that we do not need to keep
-	// a list of uniform locations.
+		is_ok &= compile_buffer_shaders(shader_folder, config.mBuffers[i].name, uniform_header.str());
+	is_ok &= compile_buffer_shaders(shader_folder, "image", uniform_header.str());
 }
 
 ShaderPrograms::~ShaderPrograms() {
@@ -58,7 +90,7 @@ bool ShaderPrograms::compile_shader(const GLchar* s, GLuint& sn, GLenum stype) {
 	return true;
 }
 
-bool ShaderPrograms::link_program(GLuint& pn, GLuint& vs, GLuint& gs, GLuint fs) {
+bool ShaderPrograms::link_program(GLuint& pn, GLuint vs, GLuint gs, GLuint fs) {
 	pn = glCreateProgram();
 	glAttachShader(pn, gs);
 	glAttachShader(pn, fs);
@@ -90,29 +122,16 @@ bool ShaderPrograms::link_program(GLuint& pn, GLuint& vs, GLuint& gs, GLuint fs)
 	return true;
 }
 
-bool ShaderPrograms::compile_buffer_shaders(filesys::path shader_folder, string buff_name) {
-	cout << "Compiling shaders for buffer " + buff_name + "." << endl;
+bool ShaderPrograms::compile_buffer_shaders(const filesys::path& shader_folder, const string& buff_name, const string& uniform_header) {
 	filesys::path filepath;
 	std::ifstream shader_file;
 	stringstream geom_str;
 	stringstream frag_str;
 
-	string ver_header = R"(
-#version 430
-precision highp float;
-)";
-	string uni_header = R"(
-layout(location=0) uniform vec3 iMouse;
-layout(location=1) uniform vec2 iRes;
-layout(location=2) uniform float iTime;
-layout(location=3) uniform int iFrame;
-layout(location=4) uniform sampler1D iSoundR;
-layout(location=5) uniform sampler1D iSoundL;
-layout(location=6) uniform sampler1D iFreqR;
-layout(location=7) uniform sampler1D iFreqL;
-layout(location=8) uniform int iAudioFrames;
-
-)";
+	string version_header = R"(
+		#version 430
+		precision highp float;
+	)";
 
 	filepath = filesys::path(shader_folder / (buff_name + ".geom"));
 	if (! filesys::exists(filepath)) {
@@ -128,9 +147,9 @@ layout(location=8) uniform int iAudioFrames;
 		cout << '\t' << "Error opening geometry shader." << endl;
 		return false;
 	}
-	geom_str << ver_header;
-	geom_str << uni_header;
-	geom_str << string("layout(points) in;\n");
+	geom_str << version_header;
+	geom_str << uniform_header;
+	geom_str << string("layout(points) in;\n #define iGeomIter gl_PrimitiveIDIn \n");
 	geom_str << shader_file.rdbuf();
 
 	filepath = filesys::path(shader_folder / (buff_name + ".frag"));
@@ -149,22 +168,26 @@ layout(location=8) uniform int iAudioFrames;
 		cout << '\t' << "Error opening fragment shader." << endl;
 		return false;
 	}
-	frag_str << ver_header;
-	frag_str << uni_header;
+	frag_str << version_header;
+	frag_str << uniform_header;
 	frag_str << shader_file.rdbuf();
+	if (frag_str.str().find("mainImage", 400) != std::string::npos)
+		frag_str << "\nout vec4 asdsfasdFDSDf; void main() {mainImage(asdsfasdFDSDf, gl_FragCoord.xy);}";
 
-	string vertex_shader = ver_header + string("void main(){}");
+	string vertex_shader = version_header + string("void main(){}");
 	GLuint vs, gs, fs;
 	bool ok = compile_shader(vertex_shader.c_str(), vs, GL_VERTEX_SHADER);
 	if (!ok) {
 		cout << '\t' << "Internal error: vertex shader didn't compile." << endl;
 		return false;
 	}
+	cout << "Compiling " + buff_name + ".geom" << endl;
 	ok = compile_shader(geom_str.str().c_str(), gs, GL_GEOMETRY_SHADER);
 	if (!ok) {
 		cout << '\t' << "Failed to compile geometry shader." << endl;
 		return false;
 	}
+	cout << "Compiling " + buff_name + ".frag" << endl;
 	ok = compile_shader(frag_str.str().c_str(), fs, GL_FRAGMENT_SHADER);
 	if (!ok) {
 		cout << '\t' << "Failed to compile fragment shader." << endl;
@@ -177,8 +200,7 @@ layout(location=8) uniform int iAudioFrames;
 		return false;
 	}
 
+	cout << "Done." << endl;
 	mPrograms.push_back(program);
-
-	cout << "Successfully compiled shader program for buffer " + buff_name + "." << endl;
 	return true;
 }
