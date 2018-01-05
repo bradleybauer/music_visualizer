@@ -141,7 +141,7 @@ static const float smoother = .97f;
 #define HISTORY_NUM_FRAMES 9
 #define HISTORY_SEARCH_GRANULARITY 4
 #define HISTORY_SEARCH_RANGE 16*HISTORY_SEARCH_GRANULARITY
-static const int HISTORY_BUFF_SZ = VL/2; // we only load VL/2 samples into the visualzier
+static const int HISTORY_BUFF_SZ = VL;
 // The performance cost for the history_search/difference_sync is
 //
 // 2 * HISTORY_SEARCH_RANGE * HISTORY_NUM_FRAMES * HISTORY_BUFF_SZ
@@ -638,12 +638,8 @@ public:
 			for (int i = 0; i < VL; ++i) {
 				float oldl, oldr, newl, newr, mixl, mixr;
 
-				// we only observe VL/2 samples of audio
-				#define upsmpl(s) (s[i/2] + s[(i+1)/2])/2.f
-				newl = upsmpl(staging_buff_l);
-				newr = upsmpl(staging_buff_r);
-				// newr = upsmpl(prev_buff_r);
-				#undef upsmpl
+				newl = staging_buff_l[i];
+				newr = staging_buff_r[i];
 
 				oldl = audio_sink->audio_l[i];
 				oldr = audio_sink->audio_r[i];
