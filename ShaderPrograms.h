@@ -29,7 +29,7 @@ namespace filesys = std::experimental::filesystem;
 
 class ShaderPrograms {
 public:
-	static const int num_builtin_uniforms = 9;
+	static const int num_builtin_uniforms = 10;
 	ShaderPrograms(const ShaderConfig& config, filesys::path shader_folder, bool& is_ok);
 
 	void use_program(int i) const;

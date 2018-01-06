@@ -33,7 +33,7 @@ ShaderPrograms::ShaderPrograms(const ShaderConfig& config, filesys::path shader_
 
 	// Put samplers for user buffers in header
 	for (int i = 0; i < config.mBuffers.size(); ++i) {
-		uniform_header << "layout(location=" << std::to_string(i+1 + num_uniforms) << ") uniform "
+		uniform_header << "layout(location=" << std::to_string(i + num_uniforms) << ") uniform "
 			<< "sampler2D i" << config.mBuffers[i].name << ";\n";
 	}
 	num_uniforms += config.mBuffers.size();
@@ -46,7 +46,7 @@ ShaderPrograms::ShaderPrograms(const ShaderConfig& config, filesys::path shader_
 		else
 			type = "vec" + std::to_string(config.mUniforms[i].values.size());
 
-		uniform_header << "layout(location=" << std::to_string(i+1 + num_uniforms) << ") uniform "
+		uniform_header << "layout(location=" << std::to_string(i + num_uniforms) << ") uniform "
 			<< type << " " << config.mUniforms[i].name << ";\n";
 	}
 	num_uniforms += config.mUniforms.size();

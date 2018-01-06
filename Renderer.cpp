@@ -184,14 +184,14 @@ void Renderer::upload_uniforms(const Buffer& buff) const {
 	glUniform1f(3, elapsed_time);
 	glUniform1i(4, frame_counter);
 	glUniform1f(5, float(buff.geom_iters));
-	int uniform_offset = 5;
+	int uniform_offset = 6;
 	for (int i = 0; i < 4; ++i) // Point samplers to texture units
-		glUniform1i(uniform_offset + i+1, i);
+		glUniform1i(uniform_offset + i, i);
 	uniform_offset = ShaderPrograms::num_builtin_uniforms;
 
 	// User's samplers
 	for (int i = 0; i < num_user_buffers; ++i) // Point samplers to texture units
-		glUniform1i(uniform_offset + i+1, 2*i + buffers_last_drawn[i]);
+		glUniform1i(uniform_offset + i, 2*i + buffers_last_drawn[i]);
 	uniform_offset += config.mBuffers.size();
 
 	// User's uniforms
@@ -199,16 +199,16 @@ void Renderer::upload_uniforms(const Buffer& buff) const {
 		const std::vector<float>& uv = config.mUniforms[i].values;
 		switch (uv.size()) {
 		case 1:
-			glUniform1f(uniform_offset + i+1, uv[0]);
+			glUniform1f(uniform_offset + i, uv[0]);
 			break;
 		case 2:
-			glUniform2f(uniform_offset + i+1, uv[0], uv[1]);
+			glUniform2f(uniform_offset + i, uv[0], uv[1]);
 			break;
 		case 3:
-			glUniform3f(uniform_offset + i+1, uv[0], uv[1], uv[2]);
+			glUniform3f(uniform_offset + i, uv[0], uv[1], uv[2]);
 			break;
 		case 4:
-			glUniform4f(uniform_offset + i+1, uv[0], uv[1], uv[2], uv[3]);
+			glUniform4f(uniform_offset + i, uv[0], uv[1], uv[2], uv[3]);
 			break;
 		}
 	}
