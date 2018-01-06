@@ -166,7 +166,7 @@ bool ShaderPrograms::compile_buffer_shaders(const filesys::path& shader_folder, 
 	frag_str << version_header;
 	frag_str << uniform_header;
 	frag_str << shader_file.rdbuf();
-	if (frag_str.str().find("mainImage", 400) != std::string::npos)
+	if (frag_str.str().find("mainImage", uniform_header.size() + version_header.size()) != std::string::npos)
 		frag_str << "\nout vec4 asdsfasdFDSDf; void main() {mainImage(asdsfasdFDSDf, gl_FragCoord.xy);}";
 
 	string vertex_shader = version_header + string("void main(){}");
