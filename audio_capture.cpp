@@ -137,10 +137,9 @@ void get_pcm(float* audio_buf_l, float* audio_buf_r, int ABL) {
 static void setup_linux(const int ABL, const int SR) {
 	int C = 2;
 #ifdef LINUX
-	char* sink_name;
+	std::string* sink_name;
 	getPulseDefaultSink((void*)&sink_name);
-	std::string sink(sink_name);
-	sink += ".monitor";
+	*sink_name += ".monitor";
 
 	// TODO is this released?
 	buf_interlaced = new float[ABL * C];
@@ -152,13 +151,14 @@ static void setup_linux(const int ABL, const int SR) {
 	pa_buffer_attr pb;
 	pb.fragsize = ABL*C*sizeof(float) / 2;
 	pb.maxlength = ABL*C*sizeof(float);
-	pulseState = pa_simple_new(NULL, "Music Visualizer", PA_STREAM_RECORD, sink.data(), "Music Visualizer", &pulseSampleSpec, NULL,
+	pulseState = pa_simple_new(NULL, "Music Visualizer", PA_STREAM_RECORD, (*sink_name).c_str(), "Music Visualizer", &pulseSampleSpec, NULL,
 	                  &pb, &pulseError);
 	if (!pulseState) {
-		cout << "Could not open pulseaudio source: " << sink.data() << pa_strerror(pulseError)
+		cout << "Could not open pulseaudio source: " << (*sink_name).c_str() << " " << pa_strerror(pulseError)
 		     << ". To find a list of your pulseaudio sources run 'pacmd list-sources'" << endl;
 		exit(EXIT_FAILURE);
 	}
+	delete sink_name;
 #endif
 }
 
