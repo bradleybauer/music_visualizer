@@ -14,89 +14,49 @@ using clk = std::chrono::steady_clock;
 #include "ShaderConfig.h"
 #include "ShaderPrograms.h"
 #include "Renderer.h"
-#include "FileWatcher\FileWatcher.h"
+#include "FileWatcher.h"
 
 #include "audio_data.h"
 #include "audio_process.h"
 
-class FileWatcher : FW::FileWatchListener {
-public:
-	FileWatcher(filesys::path shader_folder) : shader_folder(shader_folder), shaders_changed(false), last_event_time()
-	{
-		file_watcher.addWatch(shader_folder.string(), (FW::FileWatchListener*)this, false);
-	}
-
-	~FileWatcher() {
-		file_watcher.removeWatch(shader_folder.string());
-	}
-
-	// More than one event can be delivered by the editor from a single save command.
-	// So process the event and set the last process time.
-	// If new event is within 200 ms of last process time, then ignore it.
-	//
-	// If shader.json or any frag or geom file has changed, then set shaders_changed.
-	void handleFileAction(FW::WatchID watchid, const FW::String& dir, const FW::String& filename_str, FW::Action action)
-	{
-		if (FW::Action::Delete == action)
-			return;
-
-		filesys::path filename = filesys::path(filename_str);
-		string extension = filename.extension().string();
-		clk::time_point now = clk::now();
-		float time_elapsed = (now - last_event_time).count() / 1e6;
-		if (time_elapsed > 200.f)
-			if (dir == "shaders")
-				if (extension == ".json" || extension == ".geom" || extension == ".frag") {
-					shaders_changed = true;
-					last_event_time = now;
-				}
-	}
-	bool shaders_changed;
-
-private:
-	clk::time_point last_event_time;
-
-	filesys::path shader_folder;
-	FW::AsyncFileWatcher file_watcher;
-};
 
 #if defined(WINDOWS) && defined(DEBUG)
 int WinMain() {
 #else
 int main(int argc, char* argv[]) {
 #endif
-/*
 
-If shader_folder does not exist
-	tell user and exit.
-If shader_folder does not contain the neccessary files
-	tell user and exit.
-Register FileWatcher on shader_folder
+	/*
+	If shader_folder does not exist
+		tell user and exit.
+	If shader_folder does not contain the neccessary files
+		tell user and exit.
+	Register FileWatcher on shader_folder
 
-Create app window and initialize opengl context.
-Create audio system (optional?)
+	Create app window and initialize opengl context.
+	Create audio system (optional?)
 
-shader_config = ShaderConfig(...)
-if !is_ok
-	tell user and exit
-shader_programs = ShaderPrograms(...)
-if !is_ok
-	tell user and exit
-renderer = Renderer(...)
-Loop until user quits
-	If (FileWatcher has seen a change in shader_folder)
-		If shader_folder contains neccessary files
-			new_shader_config = ShaderConfig(shader_folder)
-			If is_ok, then
-				new_shader_programs = ShaderPrograms(new_shader_config)
+	shader_config = ShaderConfig(...)
+	if !is_ok
+		tell user and exit
+	shader_programs = ShaderPrograms(...)
+	if !is_ok
+		tell user and exit
+	renderer = Renderer(...)
+	Loop until user quits
+		If (FileWatcher has seen a change in shader_folder)
+			If shader_folder contains neccessary files
+				new_shader_config = ShaderConfig(shader_folder)
 				If is_ok, then
-					shader_config = new_shader_config
-					shader_programs = new_shader_programs
-					renderer = new_renderer(shader_config, shader_programs)
+					new_shader_programs = ShaderPrograms(new_shader_config)
+					If is_ok, then
+						shader_config = new_shader_config
+						shader_programs = new_shader_programs
+						renderer = new_renderer(shader_config, shader_programs)
 
-	Loop until (FileWatcher observes a change in shader_folder) or (user quits)
-		Render
-*/
+		Loop until (FileWatcher observes a change in shader_folder) or (user quits)
+			Render
+	*/
 
 	filesys::path shader_folder("shaders");
 	filesys::path json_path = shader_folder / "shader.json";

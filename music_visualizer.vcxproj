@@ -137,6 +137,7 @@
     <ClInclude Include="audio_process.h" />
     <ClInclude Include="ffts\include\ffts.h" />
     <ClInclude Include="glew.h" />
+    <ClInclude Include="FileWatcher.h" />
     <ClInclude Include="JsonFileReader.h" />
     <ClInclude Include="pulse_misc.h" />
     <ClInclude Include="Renderer.h" />

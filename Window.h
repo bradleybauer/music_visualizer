@@ -7,7 +7,6 @@ class Renderer;
 
 class Window {
 	// reads width/height, size_changed, mouse
-	// writes size_changed
 	friend class Renderer;
 
 public:
