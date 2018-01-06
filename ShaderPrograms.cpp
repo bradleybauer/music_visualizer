@@ -12,7 +12,7 @@ using std::stringstream;
 #include "ShaderConfig.h"
 #include "ShaderPrograms.h"
 
-ShaderPrograms::ShaderPrograms(const ShaderConfig& config, const filesys::path shader_folder, bool& is_ok) {
+ShaderPrograms::ShaderPrograms(const ShaderConfig& config, filesys::path shader_folder, bool& is_ok) {
 	stringstream uniform_header;
 	uniform_header << R"(
 		layout(location=0) uniform vec2 iMouse;
@@ -56,11 +56,6 @@ ShaderPrograms::ShaderPrograms(const ShaderConfig& config, const filesys::path s
 	for (int i = 0; i < config.mBuffers.size(); ++i)
 		is_ok &= compile_buffer_shaders(shader_folder, config.mBuffers[i].name, uniform_header.str());
 	is_ok &= compile_buffer_shaders(shader_folder, "image", uniform_header.str());
-}
-
-ShaderPrograms::~ShaderPrograms() {
-	for (GLuint p : mPrograms)
-		glDeleteShader(p);
 }
 
 void ShaderPrograms::use_program(int i) const {
@@ -149,7 +144,7 @@ bool ShaderPrograms::compile_buffer_shaders(const filesys::path& shader_folder, 
 	}
 	geom_str << version_header;
 	geom_str << uniform_header;
-	geom_str << string("layout(points) in;\n #define iGeomIter gl_PrimitiveIDIn \n");
+	geom_str << string("layout(points) in;\n #define iGeomIter (float(gl_PrimitiveIDIn)) \n");
 	geom_str << shader_file.rdbuf();
 
 	filepath = filesys::path(shader_folder / (buff_name + ".frag"));

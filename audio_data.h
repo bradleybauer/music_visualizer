@@ -13,5 +13,3 @@ struct audio_data {
 	bool thread_join;
 	std::mutex mtx;
 };
-
-void* audioThreadMain(void* data);

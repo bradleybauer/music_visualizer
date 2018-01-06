@@ -15,23 +15,22 @@ Window::Window(int _width, int _height) : width(_width), height(_height), size_c
 	window = glfwCreateWindow(width, height, "Music Visualizer", NULL, NULL);
 	glfwMakeContextCurrent(window);
 	glfwSetWindowUserPointer(window, this);
-    auto mouse_button_func = [](GLFWwindow * window, int button, int action, int mods) {
-        static_cast<Window*>(glfwGetWindowUserPointer(window))->mouse_button_callback(button, action, mods);
+	auto mouse_button_func = [](GLFWwindow * window, int button, int action, int mods) {
+		static_cast<Window*>(glfwGetWindowUserPointer(window))->mouse_button_callback(button, action, mods);
 	};
-    auto cursor_pos_func = [](GLFWwindow * window, double xpos, double ypos) {
-        static_cast<Window*>(glfwGetWindowUserPointer(window))->cursor_position_callback(xpos, ypos);
+	auto cursor_pos_func = [](GLFWwindow * window, double xpos, double ypos) {
+		static_cast<Window*>(glfwGetWindowUserPointer(window))->cursor_position_callback(xpos, ypos);
 	};
-    auto window_size_func = [](GLFWwindow * window, int width, int height) {
-        static_cast<Window*>(glfwGetWindowUserPointer(window))->window_size_callback(width, height);
+	auto window_size_func = [](GLFWwindow * window, int width, int height) {
+		static_cast<Window*>(glfwGetWindowUserPointer(window))->window_size_callback(width, height);
 	};
 	auto keyboard_func = [](GLFWwindow* window, int key, int scancode, int action, int mods) {
-        static_cast<Window*>(glfwGetWindowUserPointer(window))->keyboard_callback(key, scancode, action, mods);
+		static_cast<Window*>(glfwGetWindowUserPointer(window))->keyboard_callback(key, scancode, action, mods);
 	};
 	glfwSetKeyCallback(window, keyboard_func);
 	glfwSetCursorPosCallback(window, cursor_pos_func);
 	glfwSetMouseButtonCallback(window, mouse_button_func);
 	glfwSetWindowSizeCallback(window, window_size_func);
-
 
 	glewExperimental = GL_TRUE;
 	glewInit();
@@ -42,6 +41,7 @@ Window::Window(int _width, int _height) : width(_width), height(_height), size_c
 
 	glfwSwapInterval(0);
 	//glGetIntegerv(GL_MAX_GEOMETRY_OUTPUT_VERTICES, &max_output_vertices);
+	//glEnable(GL_DEPTH_TEST); // maybe allow as option so that geom shaders are more useful
 	glDisable(GL_DEPTH_TEST);
 
 	// Required by gl but unused.
@@ -97,6 +97,12 @@ void Window::keyboard_callback(int key, int scancode, int action, int mods) {
 
 bool Window::is_alive() {
 	return !glfwWindowShouldClose(window); 
+}
+
+void Window::poll_events() {
+	// size_changed should've been noticed by renderer this frame, so reset
+	size_changed = false;
+	glfwPollEvents();
 }
 
 void Window::swap_buffers() {

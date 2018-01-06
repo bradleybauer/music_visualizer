@@ -11,14 +11,19 @@
 
 class Renderer {
 public:
-	Renderer(ShaderConfig& config, const ShaderPrograms& shaders, Window& window);
+	Renderer(const ShaderConfig& config, const ShaderPrograms& shaders, const Window& window);
+	Renderer& operator=(Renderer&& o);
 	~Renderer();
-	void render(struct audio_data* audio_source);
+
+	void update(struct audio_data* audio_source);
+	void render();
 
 private:
-	ShaderConfig& config; // We only mutate buff.size for buffers with size==window size
+	Renderer& operator=(Renderer& o) = delete;
+
+	const ShaderConfig& config;
 	const ShaderPrograms& shaders;
-	Window& window;
+	const Window& window;
 
 	void upload_uniforms(const Buffer& buff) const;
 

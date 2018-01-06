@@ -3,7 +3,6 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <array>
 #include <filesystem>
 namespace filesys = std::experimental::filesystem;
 
@@ -13,7 +12,7 @@ struct Buffer {
 	int height;
 	bool is_window_size;
 	int geom_iters;
-	std::array<float, 3> clear_color;
+	float clear_color[3];
 };
 
 struct Uniform {
@@ -43,4 +42,5 @@ public:
 #ifdef TEST
 	ShaderConfig() {}; // For generating mock instances
 #endif
+
 };

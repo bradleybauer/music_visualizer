@@ -21,9 +21,7 @@ private:
 	bool parse_valid3();
 	bool parse_valid4();
 
-	bool parse_invalid1();
 	bool parse_invalid2();
-	bool parse_invalid3();
 	bool parse_invalid4();
 	bool parse_invalid5();
 	bool parse_invalid6();

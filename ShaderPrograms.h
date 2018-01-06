@@ -8,8 +8,6 @@ namespace filesys = std::experimental::filesystem;
 #include "gl.h"
 #include "ShaderConfig.h"
 
-// TODO don't hardcode this!
-
 // Uniform Locations
 // location 0: vec2      iMouse
 // location 1: bool      iMouseDown
@@ -29,14 +27,15 @@ namespace filesys = std::experimental::filesystem;
 // program for buffer n is in mPrograms[n]
 // program for image shader is in mPrograms.back()
 
-
 class ShaderPrograms {
 public:
 	static const int num_builtin_uniforms = 9;
-	ShaderPrograms(const ShaderConfig& config, const filesys::path shader_folder, bool& is_ok);
-	~ShaderPrograms();
+	ShaderPrograms(const ShaderConfig& config, filesys::path shader_folder, bool& is_ok);
+
 	void use_program(int i) const;
+
 private:
+
 	bool compile_shader(const GLchar* s, GLuint& sn, GLenum stype);
 	bool link_program(GLuint& pn, GLuint vs, GLuint gs, GLuint fs);
 	bool compile_buffer_shaders(const filesys::path& shader_folder, const std::string& buff_name, const std::string& uniform_header);

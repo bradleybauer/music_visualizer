@@ -106,14 +106,14 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>C:\Users\gazin\Programming\internal\git\music_visualizer;C:\Users\gazin\Programming\libs\glfw-3.2.1.bin.WIN64\include;C:\Users\gazin\Programming\internal\git\music_visualizer\ffts\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\gazin\Programming\internal\git\music_visualizer\SimpleFileWatcher\include;C:\Users\gazin\Programming\internal\git\music_visualizer;C:\Users\gazin\Programming\libs\glfw-3.2.1.bin.WIN64\include;C:\Users\gazin\Programming\internal\git\music_visualizer\ffts\include</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <PreprocessorDefinitions>GLEW_STATIC;WIN32;_DEBUG;_CONSOLE;WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <Optimization>Full</Optimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>ffts_staticd.lib;opengl32.lib;glew32sd.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ffts_staticd.lib;opengl32.lib;glew32sd.lib;glfw3.lib;SimpleFileWatcher.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>
       </SubSystem>
     </Link>
@@ -136,7 +136,6 @@
     <ClInclude Include="audio_data.h" />
     <ClInclude Include="audio_process.h" />
     <ClInclude Include="ffts\include\ffts.h" />
-    <ClInclude Include="FileWatcher.h" />
     <ClInclude Include="glew.h" />
     <ClInclude Include="JsonFileReader.h" />
     <ClInclude Include="pulse_misc.h" />
