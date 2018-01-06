@@ -621,8 +621,8 @@ public:
 				ffts_execute(fft_plan, fft_inr, fft_outr);
 				// TODO fft magnitudes are different between windows and linux
 				for (int i = 0; i < VL; i++) {
-					audio_sink->freq_l[i] = mag(fft_outl, i)/std::sqrtf(float(FFTLEN));
-					audio_sink->freq_r[i] = mag(fft_outr, i)/std::sqrtf(float(FFTLEN));
+					audio_sink->freq_l[i] = mag(fft_outl, i)/std::sqrt(float(FFTLEN));
+					audio_sink->freq_r[i] = mag(fft_outr, i)/std::sqrt(float(FFTLEN));
 				}
 			}
 			// -/

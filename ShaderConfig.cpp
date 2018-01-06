@@ -3,6 +3,7 @@
 #include <sstream>
 #include <cctype> // isdigit
 #include <iostream>
+#include <algorithm> // find
 using std::cout;
 using std::endl;
 using std::string;
