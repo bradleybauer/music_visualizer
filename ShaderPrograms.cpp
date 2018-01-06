@@ -58,6 +58,22 @@ ShaderPrograms::ShaderPrograms(const ShaderConfig& config, filesys::path shader_
 	is_ok &= compile_buffer_shaders(shader_folder, "image", uniform_header.str());
 }
 
+ShaderPrograms & ShaderPrograms::operator=(ShaderPrograms && o) {
+	// Delete my shaders
+	for (auto p : mPrograms)
+		glDeleteProgram(p);
+	
+	// Move other's shaders
+	mPrograms = std::move(o.mPrograms);
+
+	return *this;
+}
+
+ShaderPrograms::~ShaderPrograms() {
+	for (auto p : mPrograms)
+		glDeleteProgram(p);
+}
+
 void ShaderPrograms::use_program(int i) const {
 	if (i < mPrograms.size())
 		glUseProgram(mPrograms[i]);

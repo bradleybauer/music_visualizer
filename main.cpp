@@ -152,7 +152,7 @@ Loop until user quits
 					ShaderPrograms new_shader_programs(new_shader_config, shader_folder, is_ok);
 					if (is_ok) {
 						shader_config = new_shader_config;
-						shader_programs = new_shader_programs;
+						shader_programs = std::move(new_shader_programs);
 						renderer = std::move(Renderer(shader_config, shader_programs, window));
 					}
 				}

@@ -19,6 +19,8 @@ public:
 	void render();
 
 private:
+	Renderer(Renderer&) = delete;
+	Renderer(Renderer&&) = delete;
 	Renderer& operator=(Renderer& o) = delete;
 
 	const ShaderConfig& config;

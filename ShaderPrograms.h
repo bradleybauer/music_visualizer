@@ -31,10 +31,15 @@ class ShaderPrograms {
 public:
 	static const int num_builtin_uniforms = 10;
 	ShaderPrograms(const ShaderConfig& config, filesys::path shader_folder, bool& is_ok);
+	ShaderPrograms& operator=(ShaderPrograms&&);
+	~ShaderPrograms();
 
 	void use_program(int i) const;
 
 private:
+	ShaderPrograms(ShaderPrograms&) = delete;
+	ShaderPrograms(ShaderPrograms&&) = delete;
+	ShaderPrograms& operator=(ShaderPrograms&) = delete;
 
 	bool compile_shader(const GLchar* s, GLuint& sn, GLenum stype);
 	bool link_program(GLuint& pn, GLuint vs, GLuint gs, GLuint fs);
