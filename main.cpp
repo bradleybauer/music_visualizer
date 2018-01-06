@@ -21,17 +21,20 @@ using clk = std::chrono::steady_clock;
 
 class FileWatcher : FW::FileWatchListener {
 public:
-	FileWatcher() : shaders_changed(false), last_event_time()
+	FileWatcher(filesys::path shader_folder) : shader_folder(shader_folder), shaders_changed(false), last_event_time()
 	{
+		file_watcher.addWatch(shader_folder.string(), (FW::FileWatchListener*)this, false);
 	}
-	// Because 2 events are produced when files are changed on windows,
-	// process the event,
-	// set last process time
-	// if new event within 200 ms of last process time
-	// then ignore
+
+	~FileWatcher() {
+		file_watcher.removeWatch(shader_folder.string());
+	}
+
+	// More than one event can be delivered by the editor from a single save command.
+	// So process the event and set the last process time.
+	// If new event is within 200 ms of last process time, then ignore it.
 	//
-	// If shader.json or any frag geom file has changed,
-	// then set shaders_changed
+	// If shader.json or any frag or geom file has changed, then set shaders_changed.
 	void handleFileAction(FW::WatchID watchid, const FW::String& dir, const FW::String& filename_str, FW::Action action)
 	{
 		if (FW::Action::Delete == action)
@@ -44,7 +47,6 @@ public:
 		if (time_elapsed > 200.f)
 			if (dir == "shaders")
 				if (extension == ".json" || extension == ".geom" || extension == ".frag") {
-					cout << "File changed" << endl;
 					shaders_changed = true;
 					last_event_time = now;
 				}
@@ -53,6 +55,9 @@ public:
 
 private:
 	clk::time_point last_event_time;
+
+	filesys::path shader_folder;
+	FW::AsyncFileWatcher file_watcher;
 };
 
 #if defined(WINDOWS) && defined(DEBUG)
@@ -115,9 +120,7 @@ Loop until user quits
 		exit(0);
 	}
 
-	FileWatcher watcher;
-	FW::AsyncFileWatcher file_watcher;
-	file_watcher.addWatch(shader_folder.string(), (FW::FileWatchListener*)(&watcher), false);
+	FileWatcher watcher(shader_folder);
 
 	Window window(1000, 400);
 	struct audio_data my_audio_data;
