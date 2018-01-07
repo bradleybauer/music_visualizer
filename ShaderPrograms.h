@@ -5,7 +5,7 @@
 #include "filesystem.h"
 namespace filesys = std::experimental::filesystem;
 
-#include "gl.h"
+#include <GL/glew.h>
 #include "ShaderConfig.h"
 
 // Uniform Locations

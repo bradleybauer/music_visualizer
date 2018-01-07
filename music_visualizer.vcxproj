@@ -66,12 +66,14 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>C:\Users\gazin\Programming\libs\glew-2.1.0\include;C:\Users\gazin\Programming\libs\glfw-3.2.1\include;C:\Users\gazin\Programming\internal\git\music_visualizer\SimpleFileWatcher\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\gazin\Programming\libs\glfw-3.2.1\lib-vc2015;C:\Users\gazin\Programming\libs\glew-2.1.0\lib\Release\x64;C:\Users\gazin\Programming\internal\git\music_visualizer\SimpleFileWatcher\lib\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LibraryPath>C:\Users\gazin\Programming\internal\git\music_visualizer\;$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\Users\gazin\Programming\internal\git\music_visualizer;C:\Users\gazin\Programming\internal\git\music_visualizer\SimpleFileWatcher\lib\Debug;C:\Users\gazin\Programming\libs\glfw-3.2.1\lib-vc2015;C:\Users\gazin\Programming\libs\glew-2.1.0\lib\Release\x64;C:\Users\gazin\Programming\internal\git\music_visualizer\ffts\build\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -80,13 +82,14 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>C:\Users\xdaimon\Programming\git\music_visualizer;C:\Users\xdaimon\Programming\glfw-3.2.1.bin.WIN64\include;C:\Users\xdaimon\Programming\git\music_visualizer\ffts\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>ffts_staticd.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -106,14 +109,14 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>C:\Users\gazin\Programming\internal\git\music_visualizer\SimpleFileWatcher\include;C:\Users\gazin\Programming\internal\git\music_visualizer;C:\Users\gazin\Programming\libs\glfw-3.2.1.bin.WIN64\include;C:\Users\gazin\Programming\internal\git\music_visualizer\ffts\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\gazin\Programming\libs\glew-2.1.0\include;C:\Users\gazin\Programming\internal\git\music_visualizer\SimpleFileWatcher\include;C:\Users\gazin\Programming\internal\git\music_visualizer\rapidjson\include;C:\Users\gazin\Programming\libs\glfw-3.2.1\include;C:\Users\gazin\Programming\internal\git\music_visualizer\ffts\include</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <PreprocessorDefinitions>GLEW_STATIC;WIN32;_DEBUG;_CONSOLE;WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <Optimization>Full</Optimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>ffts_staticd.lib;opengl32.lib;glew32sd.lib;glfw3.lib;SimpleFileWatcher.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ffts_staticd.lib;opengl32.lib;glew32s.lib;glfw3.lib;SimpleFileWatcher.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>
       </SubSystem>
     </Link>
@@ -136,7 +139,6 @@
     <ClInclude Include="audio_data.h" />
     <ClInclude Include="audio_process.h" />
     <ClInclude Include="ffts\include\ffts.h" />
-    <ClInclude Include="glew.h" />
     <ClInclude Include="FileWatcher.h" />
     <ClInclude Include="JsonFileReader.h" />
     <ClInclude Include="pulse_misc.h" />

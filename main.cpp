@@ -9,7 +9,6 @@ using clk = std::chrono::steady_clock;
 
 #include "filesystem.h"
 
-#include "gl.h"
 #include "Window.h"
 #include "ShaderConfig.h"
 #include "ShaderPrograms.h"

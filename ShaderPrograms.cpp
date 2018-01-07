@@ -8,7 +8,6 @@ using std::vector;
 using std::string;
 using std::stringstream;
 
-#include "gl.h"
 #include "ShaderConfig.h"
 #include "ShaderPrograms.h"
 
