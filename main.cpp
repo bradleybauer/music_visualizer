@@ -119,10 +119,23 @@ int main(int argc, char* argv[]) {
 			}
 		}
 
+		auto now = clk::now();
+
 		renderer.update(&my_audio_data);
 		renderer.render();
 		window.swap_buffers();
 		window.poll_events();
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(16) - (clk::now() - now));
+
+		//static int frames = 0;
+		//static auto last = clk::now();
+		//if (now - last > std::chrono::seconds(1)) {
+		//	last = now;
+		//	//cout << frames << endl;
+		//	frames=0;
+		//}
+		//frames++;
 	}
 	my_audio_data.thread_join = true;
 	//audioThread.join(); // I would like to exit the program the right way, but sometimes this blocks due to the windows audio system.

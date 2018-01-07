@@ -177,8 +177,7 @@ void Renderer::render() {
 
 void Renderer::upload_uniforms(const Buffer& buff) const {
 	// Builtin uniforms
-	if (window.mouse.down)
-		glUniform2f(0, window.mouse.x, window.mouse.y);
+	glUniform2f(0, window.mouse.x, window.mouse.y);
 	glUniform1i(1, window.mouse.down);
 	glUniform2f(2, window.width, window.height);
 	glUniform1f(3, elapsed_time);
