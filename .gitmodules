@@ -4,6 +4,3 @@
 [submodule "rapidjson"]
 	path = libs/rapidjson
 	url = https://github.com/Tencent/rapidjson.git
-[submodule "SimpleFileWatcher"]
-	path = libs/SimpleFileWatcher
-	url = https://github.com/xdaimon/SimpleFileWatcher.git
