@@ -13,7 +13,7 @@ cd music_visualizer
 mkdir build; cd build; cmake ..; make -j4; ./main
 ```
 
-On an updated Windows 10 machine with Visual Studio 2017: build the x64 Release configuration.
+On Windows 10 with Visual Studio 2017: build the x64 Release configuration.
 
 Depends on opengl >= 4.3
 
