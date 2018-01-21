@@ -286,7 +286,7 @@ public:
 		if (dist_forward(r, w, tbl) < VL) { // if dist from r to w is < what is read by graphics system
 			int delta = adjust_reader(r, w, wave_len, tbl);
 			r = move_index(r, delta, tbl);
-			cout << "Reader too close to writer, adjusting." << endl;
+			// cout << "Reader too close to writer, adjusting." << endl;
 		}
 		return r;
 	}
