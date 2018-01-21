@@ -1,5 +1,7 @@
 .vs
 
+build
+
 libs/ffts/*
 libs/rapidjson/*
 libs/SimpleFileWatcher/*

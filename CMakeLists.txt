@@ -4,12 +4,12 @@ project(main)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++11 -D_REENTRANT -DLINUX")
 
 set(SOURCE_FILES
-    main.cpp
-    Window.cpp
-    ShaderConfig.cpp
-    ShaderPrograms.cpp
-    Renderer.cpp
-    audio_capture.cpp
+    src/main.cpp
+    src/Window.cpp
+    src/ShaderConfig.cpp
+    src/ShaderPrograms.cpp
+    src/Renderer.cpp
+    src/audio_capture.cpp
 )
 
 include_directories(
@@ -20,11 +20,11 @@ include_directories(
 )
 
 add_subdirectory(libs/ffts)
-#add_subdirectory(SimpleFileWatcher)
+add_subdirectory(libs/SimpleFileWatcher)
 
 add_executable(main ${SOURCE_FILES})
 
 LINK_DIRECTORIES(/usr/lib/x86_64-linux-gnu/)
 
-TARGET_LINK_LIBRARIES(main stdc++fs glfw GLEW GLU GL pulse-simple pulse pthread ffts ${CMAKE_SOURCE_DIR}/libs/ffts/build/ffts/libffts.a ${CMAKE_SOURCE_DIR}/libs/SimpleFileWatcher/lib/Debug/libSimpleFileWatcher.a)
+TARGET_LINK_LIBRARIES(main stdc++fs glfw GLEW GLU GL pulse-simple pulse pthread ${CMAKE_SOURCE_DIR}/build/libs/ffts/libffts.a ${CMAKE_SOURCE_DIR}/build/libs/SimpleFileWatcher/libSimpleFileWatcher.a)
 
