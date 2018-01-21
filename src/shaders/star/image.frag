@@ -1,17 +1,32 @@
 float f(float x) {
 	x /= 3.;
-	return 3.*(texture(iFreqL, x).r + texture(iFreqR, x).r)/2.;
+	return 6.*texture(iFreqL, x).r;
 }
 
 #define SPIRAL
 
 out vec4 C;
+
+// vec4 bg = .9*vec4(52./256., 9./256., 38./256., 1.);
+// vec4 fg = 1.1*vec4(1.,195./256.,31./256.,1.);
+
+// vec4 fg = vec4(248./256.,73./256.,52./256.,1.);
+// vec4 bg = .3*vec4(77./256., 94./256., 95./256., 1.);
+
+// vec4 fg = vec4(221./256.,249./256.,30./256.,1.);
+// vec4 bg = vec4(246./256., 69./256., 114./256., 1.);
+
+vec4 fg = vec4(1);
+vec4 bg = vec4(0);
+
 void main() {
+	if (iFrame == 0) {
+		C = fg;
+		return;
+	}
 	const float PI = 3.141592;
 	float threshold = .2;
 	float time = iTime/100.;
-	vec3 color1 = vec3(1);
-	vec3 color2 = vec3(0);
 
 	vec2 p = gl_FragCoord.xy/iRes*2.-1.;
 #ifdef SPIRAL
@@ -56,8 +71,8 @@ void main() {
 	float fish_school = fract(fish_dist*.5 + fish_swim);
 	fish_school = pow(fish_school, 1.3);
 	float v = f(fish_school);
-	v = log(2.* v+.9);
-	v *= smoothstep(0.,0.05,len*(fish_school));
+	v = log(v+1.);
+	v *= smoothstep(0.,0.08,len*(fish_school));
 #else
 	// Pixel distance to fish
 	float fish_dist = 1.-len*(.8+fish_jump+fish);
@@ -72,10 +87,10 @@ void main() {
 
 	// Eat the fish
 	float v = f(fish_school);
-	v = log(2.* v+.9);
+	v = log(2.*v+1.);
 	v *= smoothstep(0.,.07, len*(.8+fish));
 #endif
 
-	C.rgb = mix(color2, color1, v);
+	C = mix(bg, fg, v);
 	C.a = 1.;
 }

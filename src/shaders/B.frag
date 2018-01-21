@@ -17,9 +17,10 @@ vec4 fg = 1.1*vec4(1.,195./256.,31./256.,1.);
 
 void main() {
 	if (iFrame == 0) {
-		c = vec4(fg);
+		c = fg;
 		return;
 	}
+
 	float al = texture(iA, p).r;
 	al *= 5.;
 	vec4 new_color = mix(bg, fg, al);

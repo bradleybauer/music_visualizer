@@ -1,11 +1,9 @@
 Welcome to the project page for my music visualizer :)
 
 Here is a comparison between what my app looks like and what other music
-visualizers might look like.
+visualizers might look like when visualizing the same sound.
 
 ![](anim.gif)
-
-Currently the app can visualize constant tone sounds very well. However, when the app visualizes complicated sounds the presented waveform looks quite chaotic.
 
 On Ubuntu
 ```
@@ -14,7 +12,7 @@ git clone --recursive https://github.com/xdaimon/music_visualizer.git
 cd music_visualizer
 mkdir build; cd build; cmake ..; make -j4; ./main
 ```
-On Windows 10, build the x64 Debug solution.
+On Windows 10 machine with the fall creators update: build the x64 Release solution.
 
 Depends on opengl >= 4.3
 
