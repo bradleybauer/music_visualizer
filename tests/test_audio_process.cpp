@@ -1,5 +1,5 @@
 #include "Test.h"
-#include "../audio_process.h"
+#include "audio_process.h"
 
 // TODO finish writing these tests.
 

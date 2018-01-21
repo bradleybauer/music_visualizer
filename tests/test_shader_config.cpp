@@ -59,6 +59,10 @@ static bool compare(ShaderConfig& l, ShaderConfig& r) {
 	confs_eq &= eq;
 	if (!eq) cout << "blend is different" << endl;
 
+	eq = (l.mInitWinSize.width == r.mInitWinSize.width) && (l.mInitWinSize.height == r.mInitWinSize.height);
+	confs_eq &= eq;
+	if (!eq) cout << "mInitWinSize differs" << endl;
+
 	return confs_eq;
 }
 
@@ -526,6 +530,8 @@ bool ShaderConfigTest::parse_valid4() { // mBuffers only contains buffers refere
 	)";
 
 	ShaderConfig mock_conf;
+	mock_conf.mInitWinSize.width = 400;
+	mock_conf.mInitWinSize.height = 400;
 	mock_conf.mBlend = false;
 	mock_conf.mAudio_ops.fft_sync = true;
 	mock_conf.mAudio_ops.diff_sync = false;
@@ -589,6 +595,8 @@ bool ShaderConfigTest::parse_valid3() {
 	)";
 
 	ShaderConfig mock_conf;
+	mock_conf.mInitWinSize.width = 400;
+	mock_conf.mInitWinSize.height = 400;
 	mock_conf.mBlend = false;
 	mock_conf.mAudio_ops.fft_sync = true;
 	mock_conf.mAudio_ops.diff_sync = false;
@@ -623,6 +631,7 @@ bool ShaderConfigTest::parse_valid3() {
 bool ShaderConfigTest::parse_valid2() {
 	string json_str = R"(
 	{
+		"initial_window_size": [200,200],
 		"image" : {
 			"geom_iters":1,
 			"clear_color":[0,0,0]
@@ -644,6 +653,8 @@ bool ShaderConfigTest::parse_valid2() {
 	}
 	)";
 	ShaderConfig mock_conf;
+	mock_conf.mInitWinSize.width = 200;
+	mock_conf.mInitWinSize.height = 200;
 	mock_conf.mBlend = false;
 	mock_conf.mAudio_ops.fft_sync = true;
 	mock_conf.mAudio_ops.diff_sync = false;
@@ -710,6 +721,8 @@ bool ShaderConfigTest::parse_valid1() {
 	}
 	)";
 	ShaderConfig mock_conf;
+	mock_conf.mInitWinSize.width = 400;
+	mock_conf.mInitWinSize.height = 400;
 	mock_conf.mBlend = false;
 	mock_conf.mAudio_ops.fft_sync = true;
 	mock_conf.mAudio_ops.diff_sync = true;

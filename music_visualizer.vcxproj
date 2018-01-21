@@ -18,6 +18,27 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\audio_capture.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\Renderer.cpp" />
+    <ClCompile Include="src\ShaderConfig.cpp" />
+    <ClCompile Include="src\ShaderPrograms.cpp" />
+    <ClCompile Include="src\Window.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\audio_capture.h" />
+    <ClInclude Include="src\audio_data.h" />
+    <ClInclude Include="src\audio_process.h" />
+    <ClInclude Include="src\filesystem.h" />
+    <ClInclude Include="src\FileWatcher.h" />
+    <ClInclude Include="src\JsonFileReader.h" />
+    <ClInclude Include="src\pulse_misc.h" />
+    <ClInclude Include="src\Renderer.h" />
+    <ClInclude Include="src\ShaderConfig.h" />
+    <ClInclude Include="src\ShaderPrograms.h" />
+    <ClInclude Include="src\Window.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D6550F63-9286-4450-A866-89587427FCCB}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
@@ -38,7 +59,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -71,9 +92,14 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>C:\Users\gazin\Programming\libs\glew-2.1.0\include;C:\Users\gazin\Programming\libs\glfw-3.2.1\include;C:\Users\gazin\Programming\internal\git\music_visualizer\SimpleFileWatcher\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\gazin\Programming\libs\glfw-3.2.1\lib-vc2015;C:\Users\gazin\Programming\libs\glew-2.1.0\lib\Release\x64;C:\Users\gazin\Programming\internal\git\music_visualizer\SimpleFileWatcher\lib\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LibraryPath>C:\Users\gazin\Programming\internal\git\music_visualizer;C:\Users\gazin\Programming\internal\git\music_visualizer\SimpleFileWatcher\lib\Debug;C:\Users\gazin\Programming\libs\glfw-3.2.1\lib-vc2015;C:\Users\gazin\Programming\libs\glew-2.1.0\lib\Release\x64;C:\Users\gazin\Programming\internal\git\music_visualizer\ffts\build\Debug;$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\Users\gazin\Programming\internal\git\music_visualizer\SimpleFileWatcher\lib\Debug;C:\Users\gazin\Programming\libs\glfw-3.2.1\lib-vc2015;C:\Users\gazin\Programming\libs\glew-2.1.0\lib\Release\x64;C:\Users\gazin\Programming\internal\git\music_visualizer\ffts\build\Debug;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LibraryPath>$(ProjectDir)\libs_win\glfw-3.2.1\lib-vc2015;$(ProjectDir)\libs_win\glew-2.1.0\lib\Release\x64;$(ProjectDir)\libs\ffts\build\Release;$(ProjectDir)\libs\SimpleFileWatcher\lib\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -112,41 +138,27 @@
       <AdditionalIncludeDirectories>C:\Users\gazin\Programming\libs\glew-2.1.0\include;C:\Users\gazin\Programming\internal\git\music_visualizer\SimpleFileWatcher\include;C:\Users\gazin\Programming\internal\git\music_visualizer\rapidjson\include;C:\Users\gazin\Programming\libs\glfw-3.2.1\include;C:\Users\gazin\Programming\internal\git\music_visualizer\ffts\include</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <PreprocessorDefinitions>GLEW_STATIC;WIN32;_DEBUG;_CONSOLE;WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <Optimization>Full</Optimization>
-      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <Optimization>Disabled</Optimization>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ffts_staticd.lib;opengl32.lib;glew32s.lib;glfw3.lib;SimpleFileWatcher.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>
       </SubSystem>
+      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <Optimization>Full</Optimization>
+      <PreprocessorDefinitions>GLEW_STATIC;WIN32;NDEBUG;_CONSOLE;WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)\src;$(ProjectDir)\libs\ffts\include;$(ProjectDir)\libs\rapidjson\include;$(ProjectDir)\libs\SimpleFileWatcher\include;$(ProjectDir)\libs_win\glew-2.1.0\include;$(ProjectDir)\libs_win\glfw-3.2.1\include</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>ffts_static.lib;opengl32.lib;glew32s.lib;glfw3.lib;SimpleFileWatcher.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="audio_capture.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="Renderer.cpp" />
-    <ClCompile Include="ShaderConfig.cpp" />
-    <ClCompile Include="ShaderPrograms.cpp" />
-    <ClCompile Include="Window.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="audio_capture.h" />
-    <ClInclude Include="audio_data.h" />
-    <ClInclude Include="audio_process.h" />
-    <ClInclude Include="ffts\include\ffts.h" />
-    <ClInclude Include="FileWatcher.h" />
-    <ClInclude Include="JsonFileReader.h" />
-    <ClInclude Include="pulse_misc.h" />
-    <ClInclude Include="Renderer.h" />
-    <ClInclude Include="ShaderConfig.h" />
-    <ClInclude Include="ShaderPrograms.h" />
-    <ClInclude Include="Window.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

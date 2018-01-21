@@ -14,17 +14,17 @@ set(SOURCE_FILES
 
 include_directories(
     .
-    rapidjson/include/
-    SimpleFileWatcher/include/
+    libs/ffts/include/
+    libs/rapidjson/include/
+    libs/SimpleFileWatcher/include/
 )
 
-add_subdirectory(ffts)
+add_subdirectory(libs/ffts)
 #add_subdirectory(SimpleFileWatcher)
 
 add_executable(main ${SOURCE_FILES})
 
 LINK_DIRECTORIES(/usr/lib/x86_64-linux-gnu/)
 
-TARGET_LINK_LIBRARIES(main stdc++fs glfw GLEW GLU GL pulse-simple pulse pthread ffts ${CMAKE_SOURCE_DIR}/build/ffts/libffts.a ${CMAKE_SOURCE_DIR}/SimpleFileWatcher/lib/Debug/libSimpleFileWatcher.a)
-
+TARGET_LINK_LIBRARIES(main stdc++fs glfw GLEW GLU GL pulse-simple pulse pthread ffts ${CMAKE_SOURCE_DIR}/libs/ffts/build/ffts/libffts.a ${CMAKE_SOURCE_DIR}/libs/SimpleFileWatcher/lib/Debug/libSimpleFileWatcher.a)
 

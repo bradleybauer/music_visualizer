@@ -1,9 +1,9 @@
 [submodule "ffts"]
-	path = ffts
+	path = libs/ffts
 	url = https://github.com/xdaimon/ffts.git
 [submodule "rapidjson"]
-	path = rapidjson
+	path = libs/rapidjson
 	url = https://github.com/Tencent/rapidjson.git
 [submodule "SimpleFileWatcher"]
-	path = SimpleFileWatcher
+	path = libs/SimpleFileWatcher
 	url = https://github.com/xdaimon/SimpleFileWatcher.git

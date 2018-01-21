@@ -1,4 +1,6 @@
 *.o
+Debug
+Release
 main
 build
 .vs
@@ -16,3 +18,4 @@ musicVisualizer\.srctrlprj
 misc/
 \.editorconfig
 *shadertoys*
+tests/Debug
