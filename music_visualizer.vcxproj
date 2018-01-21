@@ -99,7 +99,7 @@
     <LibraryPath>C:\Users\gazin\Programming\internal\git\music_visualizer\SimpleFileWatcher\lib\Debug;C:\Users\gazin\Programming\libs\glfw-3.2.1\lib-vc2015;C:\Users\gazin\Programming\libs\glew-2.1.0\lib\Release\x64;C:\Users\gazin\Programming\internal\git\music_visualizer\ffts\build\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LibraryPath>$(ProjectDir)\libs_win\glfw-3.2.1\lib-vc2015;$(ProjectDir)\libs_win\glew-2.1.0\lib\Release\x64;$(ProjectDir)\libs\ffts\build\Release;$(ProjectDir)\libs\SimpleFileWatcher\lib\Release;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(ProjectDir)libs_win\glfw-3.2.1\;$(ProjectDir)libs_win\glew-2.1.0\;$(ProjectDir)libs\ffts\build\Release;$(ProjectDir)libs\SimpleFileWatcher\lib\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

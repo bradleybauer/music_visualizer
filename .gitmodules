@@ -1,6 +1,0 @@
-[submodule "ffts"]
-	path = libs/ffts
-	url = https://github.com/xdaimon/ffts.git
-[submodule "rapidjson"]
-	path = libs/rapidjson
-	url = https://github.com/Tencent/rapidjson.git
