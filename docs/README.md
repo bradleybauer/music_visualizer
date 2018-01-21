@@ -12,7 +12,8 @@ git clone --recursive https://github.com/xdaimon/music_visualizer.git
 cd music_visualizer
 mkdir build; cd build; cmake ..; make -j4; ./main
 ```
-On Windows 10 machine with the fall creators update: build the x64 Release solution.
+
+On an updated Windows 10 machine with Visual Studio 2017: build the x64 Release configuration.
 
 Depends on opengl >= 4.3
 
