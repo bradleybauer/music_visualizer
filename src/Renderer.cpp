@@ -6,10 +6,6 @@ using std::endl;
 // TODO Test the output of the shaders. Use dummy data in audio_data. Compute similarity between expected images
 // and produced images.
 
-// TODO why do multipass shaders (from shadertoy) render incorrectly in my app?
-// colors tend to converge to a single color, is the color being clamped?
-// glClampColor(GL_CLAMP_FRAGMENT_COLOR, GL_FALSE);
-
 Renderer& Renderer::operator=(Renderer&& o)
 {
 	glDeleteFramebuffers(num_user_buffers, fbos.data());
@@ -62,7 +58,7 @@ Renderer::Renderer(const ShaderConfig& config, const ShaderPrograms& shaders, co
 		glGenTextures(1, &tex1);
 		glActiveTexture(GL_TEXTURE0 + 2*i);
 		glBindTexture(GL_TEXTURE_2D, tex1);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
@@ -70,7 +66,7 @@ Renderer::Renderer(const ShaderConfig& config, const ShaderPrograms& shaders, co
 		glActiveTexture(GL_TEXTURE0 + 2*i+1);
 		glGenTextures(1, &tex2);
 		glBindTexture(GL_TEXTURE_2D, tex2);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
@@ -133,9 +129,9 @@ void Renderer::update(audio_data * audio_source) {
 				height = window.height;
 			}
 			glActiveTexture(GL_TEXTURE0 + 2*i);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 			glActiveTexture(GL_TEXTURE0 + 2*i+1);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 		}
 		frame_counter = 0;
 		start_time = std::chrono::steady_clock::now();
