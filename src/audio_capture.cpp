@@ -22,39 +22,25 @@ static float* buf_interlaced;
 static int pulseError;
 static pa_simple* pulseState = NULL;
 #endif
+
 #ifdef WINDOWS
 static IAudioClient* m_pAudioClient = NULL;
 static IAudioCaptureClient* m_pCaptureClient = NULL;
 static IMMDeviceEnumerator* m_pEnumerator = NULL;
 static IMMDevice* m_pDevice = NULL;
 static const int m_refTimesPerMS = 10000;
-#endif
 
-static void get_pcm_linux(float* audio_buf_l, float* audio_buf_r, int ABL) {
-	int C = 2;
-#ifdef LINUX
-	if (pa_simple_read(pulseState, buf_interlaced, ABL*C*sizeof(float), &pulseError) < 0) {
-		cout << "pa_simple_read() failed: " << pa_strerror(pulseError) << endl;
-		exit(EXIT_FAILURE);
-	}
-	for (int i = 0; i < ABL; i++) {
-		audio_buf_l[i] = buf_interlaced[i * C + 0];
-		audio_buf_r[i] = buf_interlaced[i * C + 1];
-	}
-#endif
-}
-
-// TODO
-// Sample rate
-// Understand setup code and make sure it is right
-
-#ifdef WINDOWS
 static const int CACHE_SIZE = 10000;
 static int frame_cache_fill = 0;
 // This is a fifo
 static short frame_cache[CACHE_SIZE];
 #endif
-static void get_pcm_windows(float* audio_buf_l, float* audio_buf_r, int ABL) {
+
+// TODO
+// Sample rate
+// Understand setup code and make sure it is right
+
+void get_pcm(float* audio_buf_l, float* audio_buf_r, int ABL) {
 	// TODO extract the FIFO, write a test
 
 	int C = 2;
@@ -78,6 +64,8 @@ static void get_pcm_windows(float* audio_buf_l, float* audio_buf_r, int ABL) {
 		frame_cache_fill -= read;
 		// Remove from the fifo the frames we've just read
 		memcpy(frame_cache, frame_cache + C*read, sizeof(short)*C*frame_cache_fill);
+        if (frame_cache_fill >= CACHE_SIZE)
+            cout << frame_cache_fill << endl;
 	}
 
 	// if i == ABL, then we can just return. (audio_buff completely filled from frame_cache)
@@ -125,44 +113,22 @@ static void get_pcm_windows(float* audio_buf_l, float* audio_buf_r, int ABL) {
 		}
 	}
 #endif
-}
 
-void get_pcm(float* audio_buf_l, float* audio_buf_r, int ABL) {
-	// nop if windows
-	get_pcm_linux(audio_buf_l, audio_buf_r, ABL);
-	// nop if linux
-	get_pcm_windows(audio_buf_l, audio_buf_r, ABL);
-}
-
-static void setup_linux(const int ABL, const int SR) {
-	int C = 2;
 #ifdef LINUX
-	std::string* sink_name;
-	getPulseDefaultSink((void*)&sink_name);
-	*sink_name += ".monitor";
-
-	// TODO is this released?
-	buf_interlaced = new float[ABL * C];
-
-	pa_sample_spec pulseSampleSpec;
-	pulseSampleSpec.channels = C;
-	pulseSampleSpec.rate = SR;
-	pulseSampleSpec.format = PA_SAMPLE_FLOAT32NE;
-	pa_buffer_attr pb;
-	pb.fragsize = ABL*C*sizeof(float) / 2;
-	pb.maxlength = ABL*C*sizeof(float);
-	pulseState = pa_simple_new(NULL, "Music Visualizer", PA_STREAM_RECORD, (*sink_name).c_str(), "Music Visualizer", &pulseSampleSpec, NULL,
-	                  &pb, &pulseError);
-	if (!pulseState) {
-		cout << "Could not open pulseaudio source: " << (*sink_name).c_str() << " " << pa_strerror(pulseError)
-		     << ". To find a list of your pulseaudio sources run 'pacmd list-sources'" << endl;
+	if (pa_simple_read(pulseState, buf_interlaced, ABL*C*sizeof(float), &pulseError) < 0) {
+		cout << "pa_simple_read() failed: " << pa_strerror(pulseError) << endl;
 		exit(EXIT_FAILURE);
 	}
-	delete sink_name;
+	for (int i = 0; i < ABL; i++) {
+		audio_buf_l[i] = buf_interlaced[i * C + 0];
+		audio_buf_r[i] = buf_interlaced[i * C + 1];
+	}
 #endif
 }
 
-static void setup_windows(const int ABL, const int SR) {
+// ABL: audio buffer length in frames
+// SR: sample rate, number of frames per second
+void audio_setup(const int ABL, const int SR) {
 	int C = 2;
 #ifdef WINDOWS
 	// --Difficulties arise--
@@ -241,21 +207,38 @@ static void setup_windows(const int ABL, const int SR) {
 	hr = m_pAudioClient->Start();
 	if (hr) throw hr;
 #endif
-}
 
-// ABL: audio buffer length in frames
-// SR: sample rate, number of frames per second
-void audio_setup(const int ABL, const int SR) {
-	// nop if windows
-	setup_linux(ABL, SR);
-	// nop if linux
-	setup_windows(ABL, SR);
+#ifdef LINUX
+	std::string* sink_name;
+	getPulseDefaultSink((void*)&sink_name);
+	*sink_name += ".monitor";
+
+	// TODO is this released?
+	buf_interlaced = new float[ABL * C];
+
+	pa_sample_spec pulseSampleSpec;
+	pulseSampleSpec.channels = C;
+	pulseSampleSpec.rate = SR;
+	pulseSampleSpec.format = PA_SAMPLE_FLOAT32NE;
+	pa_buffer_attr pb;
+	pb.fragsize = ABL*C*sizeof(float) / 2;
+	pb.maxlength = ABL*C*sizeof(float);
+	pulseState = pa_simple_new(NULL, "Music Visualizer", PA_STREAM_RECORD, (*sink_name).c_str(), "Music Visualizer", &pulseSampleSpec, NULL,
+	                  &pb, &pulseError);
+	if (!pulseState) {
+		cout << "Could not open pulseaudio source: " << (*sink_name).c_str() << " " << pa_strerror(pulseError)
+		     << ". To find a list of your pulseaudio sources run 'pacmd list-sources'" << endl;
+		exit(EXIT_FAILURE);
+	}
+	delete sink_name;
+#endif
 }
 
 void audio_destroy() {
 #ifdef LINUX
 	pa_simple_free(pulseState);
 #endif
+
 #ifdef WINDOWS
 	HRESULT hr = m_pAudioClient->Stop();  // Stop recording.
 	if (hr) throw hr;
