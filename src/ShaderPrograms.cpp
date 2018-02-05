@@ -152,7 +152,7 @@ bool ShaderPrograms::compile_buffer_shaders(const filesys::path& shader_folder, 
 		cout << '\t' << buff_name+".geom is not a regular file." << endl;
 		return false;
 	}
-	shader_file = std::ifstream(filepath);
+	shader_file = std::ifstream(filepath.string());
 	if (! shader_file.is_open()) {
 		cout << '\t' << "Error opening geometry shader." << endl;
 		return false;
@@ -173,7 +173,7 @@ bool ShaderPrograms::compile_buffer_shaders(const filesys::path& shader_folder, 
 	}
 	if (shader_file.is_open())
 		shader_file.close();
-	shader_file = std::ifstream(filepath);
+	shader_file = std::ifstream(filepath.string());
 	if (! shader_file.is_open()) {
 		cout << '\t' << "Error opening fragment shader." << endl;
 		return false;

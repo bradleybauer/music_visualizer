@@ -8,8 +8,8 @@
 
 class JsonFileReader {
 public:
-	static std::string read(std::experimental::filesystem::path json_path) {
-		std::ifstream json_file(json_path);
+	static std::string read(filesys::path json_path) {
+		std::ifstream json_file(json_path.string());
 		std::stringstream json_str;
 		std::string line;
 		while (std::getline(json_file, line)) {

@@ -6,7 +6,6 @@
 #include <array>
 
 #include "filesystem.h"
-namespace filesys = std::experimental::filesystem;
 
 struct Buffer {
 	std::string name;
