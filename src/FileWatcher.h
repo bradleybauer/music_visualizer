@@ -4,7 +4,6 @@
 #include <chrono>
 
 #include "filesystem.h"
-namespace filesys = std::experimental::filesystem;
 
 #include "FileWatcher/FileWatcher.h"
 

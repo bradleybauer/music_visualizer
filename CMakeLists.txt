@@ -10,6 +10,7 @@ set(SOURCE_FILES
     src/ShaderPrograms.cpp
     src/Renderer.cpp
     src/audio_capture.cpp
+    src/filesystem.cpp
 )
 
 include_directories(

@@ -3,6 +3,30 @@ public:
 	virtual bool test() = 0;
 };
 
+class FilesystemTest : Test {
+public:
+	bool test();
+private:
+	bool construct1();
+	bool construct2();
+	bool construct3();
+	bool construct4();
+	bool concat1();
+	bool concat2();
+	bool concat_multiple_separators1();
+	bool concat_multiple_separators2();
+	bool concat_multiple_separators3();
+	bool concat_multiple_separators4();
+
+	bool extension1();
+	bool extension2();
+	bool extension3();
+	bool extension4();
+	bool extension5();
+	bool extension6();
+	bool extension7();
+};
+
 class AudioProcessTest : Test {
 public:
 	bool test();

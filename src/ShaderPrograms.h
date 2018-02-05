@@ -3,7 +3,6 @@
 #include <vector>
 #include <string>
 #include "filesystem.h"
-namespace filesys = std::experimental::filesystem;
 
 #include <GL/glew.h>
 #include "ShaderConfig.h"

@@ -16,5 +16,6 @@ void test(string name) {
 int main() {
     test<AudioProcessTest>("audio_process");
     test<ShaderConfigTest>("ShaderConfig");
+	test<FilesystemTest>("Filesystem");
     return 0;
 }
