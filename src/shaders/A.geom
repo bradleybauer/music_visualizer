@@ -54,8 +54,8 @@ void main() {
 	float t0 = (iGeomIter+0)/iNumGeomIters;
 	float t1 = (iGeomIter+1)/iNumGeomIters;
 
-	width = .015;
-	intensity = .1;
+	width = .0075;
+	intensity = .5;
 	min_intensity = .01;
 
 	float sr0 = texture(iSoundR, t0).r;
