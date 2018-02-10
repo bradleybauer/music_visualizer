@@ -27,5 +27,5 @@ add_executable(main ${SOURCE_FILES})
 
 LINK_DIRECTORIES(/usr/lib/x86_64-linux-gnu/)
 
-TARGET_LINK_LIBRARIES(main stdc++fs glfw GLEW GLU GL pulse-simple pulse pthread ${CMAKE_SOURCE_DIR}/build/libs/ffts/libffts.a ${CMAKE_SOURCE_DIR}/build/libs/SimpleFileWatcher/libSimpleFileWatcher.a)
+TARGET_LINK_LIBRARIES(main glfw GLEW GLU GL pulse-simple pulse pthread ${CMAKE_SOURCE_DIR}/build/libs/ffts/libffts.a ${CMAKE_SOURCE_DIR}/build/libs/SimpleFileWatcher/libSimpleFileWatcher.a)
 
