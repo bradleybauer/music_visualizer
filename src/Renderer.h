@@ -27,7 +27,7 @@ private:
 	const ShaderPrograms& shaders;
 	const Window& window;
 
-	void upload_uniforms(const Buffer& buff) const;
+	void upload_uniforms(const Buffer& buff, const int buff_index) const;
 
 	std::chrono::steady_clock::time_point start_time;
 	float elapsed_time;

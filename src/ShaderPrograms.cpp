@@ -14,16 +14,16 @@ using std::stringstream;
 ShaderPrograms::ShaderPrograms(const ShaderConfig& config, filesys::path shader_folder, bool& is_ok) {
 	stringstream uniform_header;
 	uniform_header << R"(
-		layout(location=0) uniform vec2 iMouse;
-		layout(location=1) uniform bool iMouseDown;
-		layout(location=2) uniform vec2 iRes;
-		layout(location=3) uniform float iTime;
-		layout(location=4) uniform int iFrame;
-		layout(location=5) uniform float iNumGeomIters;
-		layout(location=6) uniform sampler1D iSoundR;
-		layout(location=7) uniform sampler1D iSoundL;
-		layout(location=8) uniform sampler1D iFreqR;
-		layout(location=9) uniform sampler1D iFreqL;
+		uniform vec2 iMouse;
+		uniform bool iMouseDown;
+		uniform vec2 iRes;
+		uniform float iTime;
+		uniform int iFrame;
+		uniform float iNumGeomIters;
+		uniform sampler1D iSoundR;
+		uniform sampler1D iSoundL;
+		uniform sampler1D iFreqR;
+		uniform sampler1D iFreqL;
 
 		#define iResolution iRes
 	)";
@@ -32,8 +32,7 @@ ShaderPrograms::ShaderPrograms(const ShaderConfig& config, filesys::path shader_
 
 	// Put samplers for user buffers in header
 	for (int i = 0; i < config.mBuffers.size(); ++i) {
-		uniform_header << "layout(location=" << std::to_string(i + num_uniforms) << ") uniform "
-			<< "sampler2D i" << config.mBuffers[i].name << ";\n";
+		uniform_header << "uniform sampler2D i" << config.mBuffers[i].name << ";\n";
 	}
 	num_uniforms += config.mBuffers.size();
 
@@ -45,8 +44,7 @@ ShaderPrograms::ShaderPrograms(const ShaderConfig& config, filesys::path shader_
 		else
 			type = "vec" + std::to_string(config.mUniforms[i].values.size());
 
-		uniform_header << "layout(location=" << std::to_string(i + num_uniforms) << ") uniform "
-			<< type << " " << config.mUniforms[i].name << ";\n";
+		uniform_header << "uniform " << type << " " << config.mUniforms[i].name << ";\n";
 	}
 	num_uniforms += config.mUniforms.size();
 	uniform_header << "\n";
@@ -55,6 +53,26 @@ ShaderPrograms::ShaderPrograms(const ShaderConfig& config, filesys::path shader_
 	for (int i = 0; i < config.mBuffers.size(); ++i)
 		is_ok &= compile_buffer_shaders(shader_folder, config.mBuffers[i].name, uniform_header.str());
 	is_ok &= compile_buffer_shaders(shader_folder, "image", uniform_header.str());
+
+	// get uniform locations for each program
+	for (auto p : mPrograms) {
+		vector<GLint> uniform_locs;
+		uniform_locs.push_back(glGetUniformLocation(p, "iMouse"));
+		uniform_locs.push_back(glGetUniformLocation(p, "iMouseDown"));
+		uniform_locs.push_back(glGetUniformLocation(p, "iRes"));
+		uniform_locs.push_back(glGetUniformLocation(p, "iTime"));
+		uniform_locs.push_back(glGetUniformLocation(p, "iFrame"));
+		uniform_locs.push_back(glGetUniformLocation(p, "iNumGeomIters"));
+		uniform_locs.push_back(glGetUniformLocation(p, "iSoundR"));
+		uniform_locs.push_back(glGetUniformLocation(p, "iSoundL"));
+		uniform_locs.push_back(glGetUniformLocation(p, "iFreqR"));
+		uniform_locs.push_back(glGetUniformLocation(p, "iFreqL"));
+		for (auto b : config.mBuffers)
+			uniform_locs.push_back(glGetUniformLocation(p, ("i" + b.name).c_str()));
+		for (auto u : config.mUniforms)
+			uniform_locs.push_back(glGetUniformLocation(p, u.name.c_str()));
+		mUniformLocs.push_back(std::move(uniform_locs));
+	}
 }
 
 ShaderPrograms & ShaderPrograms::operator=(ShaderPrograms && o) {
@@ -78,6 +96,21 @@ void ShaderPrograms::use_program(int i) const {
 		glUseProgram(mPrograms[i]);
 	else
 		cout << "i = " + std::to_string(i) + " is not a program index" << endl;
+}
+
+GLint ShaderPrograms::get_uniform_loc(int program_i, int uniform_i) const {
+	if (program_i < mPrograms.size()) {
+		if (uniform_i < mUniformLocs[program_i].size()) {
+			return mUniformLocs[program_i][uniform_i];
+		}
+		else {
+			cout << "uniform_i = " + std::to_string(uniform_i) + " is not a uniform index" << endl;
+		}
+	}
+	else {
+		cout << "program_i = " + std::to_string(program_i) + " is not a program index" << endl;
+	}
+	return 0;
 }
 
 bool ShaderPrograms::compile_shader(const GLchar* s, GLuint& sn, GLenum stype) {
@@ -139,7 +172,7 @@ bool ShaderPrograms::compile_buffer_shaders(const filesys::path& shader_folder, 
 	stringstream frag_str;
 
 	string version_header = R"(
-		#version 430
+		#version 330
 		precision highp float;
 	)";
 

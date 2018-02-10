@@ -152,7 +152,7 @@ void Renderer::render() {
 			height = window.height;
 		}
 		shaders.use_program(r);
-		upload_uniforms(buff);
+		upload_uniforms(buff, r);
 		glBindFramebuffer(GL_FRAMEBUFFER, fbos[r]);
 		glDrawBuffer(GL_COLOR_ATTACHMENT0 + (buffers_last_drawn[r] + 1) % 2);
 		glViewport(0, 0, width, height);
@@ -166,7 +166,7 @@ void Renderer::render() {
 	// Render image
 	shaders.use_program(num_user_buffers); // image program is after all the user buffers in the programs list
 	const Buffer& buff = config.mImage;
-	upload_uniforms(config.mImage);
+	upload_uniforms(config.mImage, num_user_buffers);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glViewport(0, 0, window.width, window.height);
 	glClearColor(buff.clear_color[0], buff.clear_color[1], buff.clear_color[2], 1.f);
@@ -175,22 +175,22 @@ void Renderer::render() {
 	frame_counter++;
 }
 
-void Renderer::upload_uniforms(const Buffer& buff) const {
+void Renderer::upload_uniforms(const Buffer& buff, const int buff_index) const {
 	// Builtin uniforms
-	glUniform2f(0, window.mouse.x, window.mouse.y);
-	glUniform1i(1, window.mouse.down);
-	glUniform2f(2, window.width, window.height);
-	glUniform1f(3, elapsed_time);
-	glUniform1i(4, frame_counter);
-	glUniform1f(5, float(buff.geom_iters));
+	glUniform2f(shaders.get_uniform_loc(buff_index, 0), window.mouse.x, window.mouse.y);
+	glUniform1i(shaders.get_uniform_loc(buff_index, 1), window.mouse.down);
+	glUniform2f(shaders.get_uniform_loc(buff_index, 2), window.width, window.height);
+	glUniform1f(shaders.get_uniform_loc(buff_index, 3), elapsed_time);
+	glUniform1i(shaders.get_uniform_loc(buff_index, 4), frame_counter);
+	glUniform1f(shaders.get_uniform_loc(buff_index, 5), float(buff.geom_iters));
 	int uniform_offset = 6;
 	for (int i = 0; i < 4; ++i) // Point samplers to texture units
-		glUniform1i(uniform_offset + i, i);
+		glUniform1i(shaders.get_uniform_loc(buff_index, uniform_offset + i), i);
 	uniform_offset = ShaderPrograms::num_builtin_uniforms;
 
 	// User's samplers
 	for (int i = 0; i < num_user_buffers; ++i) // Point samplers to texture units
-		glUniform1i(uniform_offset + i, 2*i + buffers_last_drawn[i]);
+		glUniform1i(shaders.get_uniform_loc(buff_index, uniform_offset + i), 2*i + buffers_last_drawn[i]);
 	uniform_offset += config.mBuffers.size();
 
 	// User's uniforms
@@ -198,16 +198,16 @@ void Renderer::upload_uniforms(const Buffer& buff) const {
 		const std::vector<float>& uv = config.mUniforms[i].values;
 		switch (uv.size()) {
 		case 1:
-			glUniform1f(uniform_offset + i, uv[0]);
+			glUniform1f(shaders.get_uniform_loc(buff_index, uniform_offset + i), uv[0]);
 			break;
 		case 2:
-			glUniform2f(uniform_offset + i, uv[0], uv[1]);
+			glUniform2f(shaders.get_uniform_loc(buff_index, uniform_offset + i), uv[0], uv[1]);
 			break;
 		case 3:
-			glUniform3f(uniform_offset + i, uv[0], uv[1], uv[2]);
+			glUniform3f(shaders.get_uniform_loc(buff_index, uniform_offset + i), uv[0], uv[1], uv[2]);
 			break;
 		case 4:
-			glUniform4f(uniform_offset + i, uv[0], uv[1], uv[2], uv[3]);
+			glUniform4f(shaders.get_uniform_loc(buff_index, uniform_offset + i), uv[0], uv[1], uv[2], uv[3]);
 			break;
 		}
 	}
