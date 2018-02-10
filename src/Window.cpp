@@ -103,6 +103,8 @@ void Window::mouse_button_callback(int button, int action, int mods) {
 void Window::keyboard_callback(int key, int scancode, int action, int mods) {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
+	if (key == GLFW_KEY_Q && action == GLFW_PRESS)
+		glfwSetWindowShouldClose(window, GL_TRUE);
 }
 
 bool Window::is_alive() {
