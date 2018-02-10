@@ -8,9 +8,9 @@ visualizers might look like when visualizing the same sound.
 
 # Building
 
-<!--TODO apt install for required libs and headers-->
 On Ubuntu
 ```
+sudo apt install cmake libglfw3-dev libglew-dev libpulse-dev
 git clone --recursive https://github.com/xdaimon/music_visualizer.git
 cd music_visualizer
 mkdir build; cd build; cmake ..; make -j4
