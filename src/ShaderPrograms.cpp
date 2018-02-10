@@ -82,6 +82,7 @@ ShaderPrograms & ShaderPrograms::operator=(ShaderPrograms && o) {
 	
 	// Move other's shaders
 	mPrograms = std::move(o.mPrograms);
+	mUniformLocs = std::move(o.mUniformLocs);
 
 	return *this;
 }
