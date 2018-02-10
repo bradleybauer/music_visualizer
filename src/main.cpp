@@ -85,7 +85,11 @@ int main(int argc, char* argv[]) {
 	if (!is_ok)
 		return 0;
 
-	Window window(shader_config.mInitWinSize.width, shader_config.mInitWinSize.height);
+	is_ok = true;
+	Window window(shader_config.mInitWinSize.width, shader_config.mInitWinSize.height, is_ok);
+	if (!is_ok)
+		return 0;
+
 	struct audio_data my_audio_data;
 	my_audio_data.thread_join = false;
 	audio_processor* ap = new audio_processor(&my_audio_data, &get_pcm, &audio_setup);

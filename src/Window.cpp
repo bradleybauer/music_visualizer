@@ -6,13 +6,21 @@ using std::endl;
 
 #include "audio_data.h" // VISUALIZER_BUFSIZE
 
-Window::Window(int _width, int _height) : width(_width), height(_height), size_changed(true), mouse() {
+Window::Window(int _width, int _height, bool& is_ok) : width(_width), height(_height), size_changed(true), mouse() {
+	is_ok = false;
+
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	//glfwWindowHint(GLFW_DECORATED, false);
+
 	window = glfwCreateWindow(width, height, "Music Visualizer", NULL, NULL);
+	if (window == NULL) {
+		cout << "GLFW window creation failed." << endl;
+		return;
+	}
+
 	glfwMakeContextCurrent(window);
 	glfwSetWindowUserPointer(window, this);
 	auto mouse_button_func = [](GLFWwindow * window, int button, int action, int mods) {
@@ -61,6 +69,8 @@ Window::Window(int _width, int _height) : width(_width), height(_height), size_c
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
 	}
+
+	is_ok = true;
 }
 
 Window::~Window() {

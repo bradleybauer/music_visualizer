@@ -10,7 +10,7 @@ class Window {
 	friend class Renderer;
 
 public:
-	Window(int width, int height);
+	Window(int width, int height, bool& is_ok);
 	~Window();
 
 	void poll_events();
