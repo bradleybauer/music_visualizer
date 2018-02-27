@@ -61,6 +61,24 @@ bool FilesystemTest::test()
 	cout << "filesys extension 7:" << endl;
 	is_ok &= extension7();
 
+	cout << "filesys extension 8:" << endl;
+	is_ok &= extension8();
+
+	cout << "filesys extension 9:" << endl;
+	is_ok &= extension9();
+
+	cout << "filesys extension 10:" << endl;
+	is_ok &= extension10();
+
+	cout << "filesys extension 11:" << endl;
+	is_ok &= extension11();
+
+	cout << "filesys extension 12:" << endl;
+	is_ok &= extension12();
+
+	cout << "filesys extension 13:" << endl;
+	is_ok &= extension13();
+
 	return is_ok;
 }
 
@@ -295,3 +313,82 @@ bool FilesystemTest::extension7()
 		return false;
 	}
 }
+
+bool FilesystemTest::extension8()
+{
+	filesys::path mock("foldername/..");
+	if (mock.extension().string() == "") {
+		cout << PASS_MSG << endl;
+		return true;
+	}
+	else {
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+}
+
+bool FilesystemTest::extension9()
+{
+	filesys::path mock("/");
+	if (mock.extension().string() == "") {
+		cout << PASS_MSG << endl;
+		return true;
+	}
+	else {
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+}
+
+bool FilesystemTest::extension10()
+{
+	filesys::path mock("/..");
+	if (mock.extension().string() == "") {
+		cout << PASS_MSG << endl;
+		return true;
+	}
+	else {
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+}
+
+bool FilesystemTest::extension11()
+{
+	filesys::path mock("../");
+	if (mock.extension().string() == "") {
+		cout << PASS_MSG << endl;
+		return true;
+	}
+	else {
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+}
+
+bool FilesystemTest::extension12()
+{
+	filesys::path mock("./");
+	if (mock.extension().string() == "") {
+		cout << PASS_MSG << endl;
+		return true;
+	}
+	else {
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+}
+
+bool FilesystemTest::extension13()
+{
+	filesys::path mock("foldername/.");
+	if (mock.extension().string() == "") {
+		cout << PASS_MSG << endl;
+		return true;
+	}
+	else {
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+}
+

@@ -3,22 +3,18 @@
 
 //- Includes
 #include <iostream>
+using std::cout; using std::endl;
 #include <chrono>
+namespace chrono = std::chrono;
 #include <functional>
 #include <thread>
-#include <limits>
+#include <limits> // numeric_limits<T>::infinity()
 #include <cmath>
-// #include <cstdlib>
-#include <stdlib.h>
 
 #include "audio_data.h"
 #include "audio_capture.h"
 #include "ffts.h"
 // -/
-
-namespace chrono = std::chrono;
-using std::cout;
-using std::endl;
 
 // FFT computation library needs this
 #ifdef WINDOWS
@@ -374,10 +370,9 @@ public:
 	// audio_processor owns the memory it allocates here.
 	audio_processor(struct audio_data* _audio_sink,
 	                std::function<void(float*, float*, int)> _pcm_getter,
-	                std::function<void(int, int)> _audio_initializer) {
-		audio_sink = _audio_sink;
-		pcm_getter = _pcm_getter;
-		audio_initializer = _audio_initializer;
+	                std::function<void(int, int)> _audio_initializer)
+					: audio_sink(_audio_sink), pcm_getter(_pcm_getter),
+					audio_initializer(_audio_initializer) {
 
 		//- Internal audio buffers
 		audio_buff_l = (float*)calloc(TBL, sizeof(float));
@@ -554,7 +549,7 @@ public:
 	//- Program
 	int run() {
 
-		while (!audio_sink->thread_join) { // Break when audio_sink->thread_join true
+		while (!audio_sink->thread_join) {
 
 			// TODO test this function. The samples it writes to the circular buffer should be the same for the same sound
 			// on windows and on linux.

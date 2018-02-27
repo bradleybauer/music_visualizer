@@ -92,8 +92,10 @@ int main(int argc, char* argv[]) {
 
 	struct audio_data my_audio_data;
 	my_audio_data.thread_join = false;
-	audio_processor* ap = new audio_processor(&my_audio_data, &get_pcm, &audio_setup);
-	std::thread audioThread(&audio_processor::run, ap);
+	auto* ap = new audio_processor<chrono::steady_clock>(&my_audio_data, &get_pcm, &audio_setup);
+	std::thread audioThread(&audio_processor<chrono::steady_clock>::run, ap);
+	//audio_processor* ap = new audio_processor(&my_audio_data, &get_pcm, &audio_setup);
+	//std::thread audioThread(&audio_processor::run, ap);
 
 	ShaderPrograms shader_programs(shader_config, shader_folder, is_ok);
 	if (!is_ok)

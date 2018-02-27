@@ -25,9 +25,15 @@ private:
 	bool extension5();
 	bool extension6();
 	bool extension7();
+	bool extension8();
+	bool extension9();
+	bool extension10();
+	bool extension11();
+	bool extension12();
+	bool extension13();
 };
 
-class AudioProcessTest : Test {
+class AudioUtilityTest : Test {
 public:
 	bool test();
 private:
@@ -58,6 +64,12 @@ private:
 	bool parse_invalid13();
 	bool parse_invalid14();
 	bool parse_invalid15();
+};
+
+class AudioProcessTest : Test {
+public:
+	bool test();
+private:
 };
 
 #include <string>

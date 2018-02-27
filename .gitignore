@@ -12,3 +12,7 @@ tests/x64
 x64
 
 misc
+
+\.vscode/
+
+*.exe
