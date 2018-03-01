@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vector>
-#include <chrono>
 
 #include "Window.h"
 #include "ShaderConfig.h"

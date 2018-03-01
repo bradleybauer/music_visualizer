@@ -1,7 +1,7 @@
 #include <iostream>
-#include <vector>
 using std::cout;
 using std::endl;
+#include <vector>
 using std::vector;
 #include <fstream>
 #include <sstream>

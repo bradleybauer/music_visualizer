@@ -1,7 +1,8 @@
-#include "Renderer.h"
-#include <chrono>
+#include <iostream>
 using std::cout;
 using std::endl;
+
+#include "Renderer.h"
 
 // TODO Test the output of the shaders. Use dummy data in audio_data. Compute similarity between expected images
 // and produced images.

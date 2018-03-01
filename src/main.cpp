@@ -92,7 +92,7 @@ int main(int argc, char* argv[]) {
 	if (!is_ok)
 		return 0;
 
-	Renderer renderer (shader_config, shader_programs, window);
+	Renderer renderer(shader_config, shader_programs, window);
 
 	struct audio_data my_audio_data;
 	my_audio_data.thread_join = false;

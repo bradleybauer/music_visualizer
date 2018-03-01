@@ -1,12 +1,11 @@
-#include <string>
-#include <fstream>
-#include <sstream>
-#include <cctype> // isdigit
 #include <iostream>
-#include <algorithm> // find
 using std::cout;
 using std::endl;
+#include <string>
 using std::string;
+#include <fstream>
+#include <cctype> // isdigit
+#include <algorithm> // find
 
 #include "ShaderConfig.h"
 #include "JsonFileReader.h"
