@@ -1,11 +1,13 @@
 #include <iostream>
-#include <thread>
-#include <string>
 using std::cout;
 using std::endl;
+#include <thread>
+#include <string>
 using std::string;
 #include <chrono>
 using clk = std::chrono::steady_clock;
+#include <fstream>
+using std::ifstream;
 
 #include "filesystem.h"
 
@@ -18,6 +20,7 @@ using clk = std::chrono::steady_clock;
 #include "audio_data.h"
 #include "audio_process.h"
 
+#include "WavReader.h"
 
 #if defined(WINDOWS) && defined(DEBUG)
 int WinMain() {
@@ -58,23 +61,13 @@ int main(int argc, char* argv[]) {
 
 	filesys::path shader_folder("shaders");
 	filesys::path json_path = shader_folder / "shader.json";
-	filesys::path img_geom_path = shader_folder / "image.geom";
-	filesys::path img_frag_path = shader_folder / "image.frag";
 	if (!filesys::exists(shader_folder)) {
 		cout << "shaders folder does not exist" << endl;
-		cout << "make the diretory shaders in the folder containing this executable" << endl;
+		cout << "make a directory named 'shaders' in the folder containing this executable" << endl;
 		exit(0);
 	}
 	if (!filesys::exists(json_path)) {
-		cout << "shaders should contain a shader.json file" << endl;
-		exit(0);
-	}
-	if (!filesys::exists(img_geom_path)) {
-		cout << "shaders should contain an image.geom file" << endl;
-		exit(0);
-	}
-	if (!filesys::exists(img_frag_path)) {
-		cout << "shaders should contain an image.frag file" << endl;
+		cout << "shaders folder should contain a shader.json file" << endl;
 		exit(0);
 	}
 
@@ -90,28 +83,44 @@ int main(int argc, char* argv[]) {
 	if (!is_ok)
 		return 0;
 
-	struct audio_data my_audio_data;
-	my_audio_data.thread_join = false;
-	auto* ap = new audio_processor<chrono::steady_clock>(&my_audio_data, &get_pcm, &audio_setup);
-	std::thread audioThread(&audio_processor<chrono::steady_clock>::run, ap);
-	//audio_processor* ap = new audio_processor(&my_audio_data, &get_pcm, &audio_setup);
-	//std::thread audioThread(&audio_processor::run, ap);
-
 	ShaderPrograms shader_programs(shader_config, shader_folder, is_ok);
 	if (!is_ok)
 		return 0;
 	Renderer renderer (shader_config, shader_programs, window);
 
+	struct audio_data my_audio_data;
+	my_audio_data.thread_join = false;
+	/*
+	short* data = WavReader("mywav.wav");
+	auto get_pcm = [&](float* left, float* right, int size) {
+		static int j = 0;
+		for (int i = 0; i < size; ++i) {
+			left[i] = data[2 * j] / 32768.f;
+			right[i] = data[2 * j + 1] / 32768.f;
+			j++;
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(8));
+	};
+	*/
+	// TODO I don't like that I can supply 44100hz audio when the audio_processor expects 96khz
+	auto* ap = new audio_processor<chrono::steady_clock>(&my_audio_data, &get_pcm, &audio_setup);
+	std::thread audioThread(&audio_processor<chrono::steady_clock>::run, ap);
+
 	while (window.is_alive()) {
 		if (watcher.shaders_changed) {
 			cout << "Updating shaders." << endl;
 			watcher.shaders_changed = false;
-			if (filesys::exists(shader_folder)
-			 && filesys::exists(json_path)
-			 && filesys::exists(img_geom_path)
-			 && filesys::exists(img_frag_path))
-			{
-				is_ok = true;
+			is_ok = true;
+			if (!filesys::exists(shader_folder)) {
+				cout << "shaders folder does not exist" << endl;
+				cout << "make a directory named 'shaders' in the folder containing this executable" << endl;
+				is_ok = false;
+			}
+			if (!filesys::exists(json_path)) {
+				cout << "shaders folder should contain a shader.json file" << endl;
+				is_ok = false;
+			}
+			if (is_ok) {
 				ShaderConfig new_shader_config(json_path, is_ok);
 				if (is_ok) {
 					ShaderPrograms new_shader_programs(new_shader_config, shader_folder, is_ok);
@@ -119,8 +128,12 @@ int main(int argc, char* argv[]) {
 						shader_config = new_shader_config;
 						shader_programs = std::move(new_shader_programs);
 						renderer = std::move(Renderer(shader_config, shader_programs, window));
+						cout << "Successfully updated shader." << endl;
 					}
 				}
+			}
+			else {
+				cout << "Failed to update shader." << endl;
 			}
 		}
 
