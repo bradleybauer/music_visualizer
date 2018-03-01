@@ -94,6 +94,30 @@ int main(int argc, char* argv[]) {
 
 	Renderer renderer(shader_config, shader_programs, window);
 
+	auto update_shaders = [&]() {
+		cout << "Updating shaders." << endl;
+		bool is_ok = true;
+
+		if (!necessary_files_exist())
+			return;
+
+		ShaderConfig new_shader_config(json_path, is_ok);
+		if (!is_ok)
+			return;
+
+		ShaderPrograms new_shader_programs(new_shader_config, shader_folder, is_ok);
+		if (!is_ok)
+			return;
+
+		shader_config = new_shader_config;
+		shader_programs = std::move(new_shader_programs);
+		renderer = std::move(Renderer(shader_config, shader_programs, window));
+		if (is_ok)
+			cout << "Successfully updated shader." << endl << endl;
+		else
+			cout << "Failed to update shader." << endl << endl;
+	};
+
 	struct audio_data my_audio_data;
 	my_audio_data.thread_join = false;
 	/*
@@ -108,30 +132,14 @@ int main(int argc, char* argv[]) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(8));
 	};
 	*/
-	// TODO I don't like that I can supply 44100hz audio when the audio_processor expects 96khz
 	auto* ap = new audio_processor<chrono::steady_clock>(&my_audio_data, &get_pcm, &audio_setup);
 	std::thread audioThread(&audio_processor<chrono::steady_clock>::run, ap);
+	// TODO I don't like that I can supply 44100hz audio when the audio_processor expects 96khz
+	// TODO implement "disable_audio" option in shader.json
 
 	while (window.is_alive()) {
-		if (watcher.files_changed()) {
-			cout << "Updating shaders." << endl;
-			if (necessary_files_exist()) {
-				is_ok = true;
-				ShaderConfig new_shader_config(json_path, is_ok);
-				if (is_ok) {
-					ShaderPrograms new_shader_programs(new_shader_config, shader_folder, is_ok);
-					if (is_ok) {
-						shader_config = new_shader_config;
-						shader_programs = std::move(new_shader_programs);
-						renderer = std::move(Renderer(shader_config, shader_programs, window));
-					}
-				}
-			}
-			if (is_ok)
-				cout << "Successfully updated shader." << endl;
-			else
-				cout << "Failed to update shader." << endl;
-		}
+		if (watcher.files_changed())
+			update_shaders();
 
 		auto now = chrono::steady_clock::now();
 
@@ -141,15 +149,6 @@ int main(int argc, char* argv[]) {
 		window.poll_events();
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(16) - (chrono::steady_clock::now() - now));
-
-		//static int frames = 0;
-		//static auto last = chrono::steady_clock::now();
-		//if (now - last > std::chrono::seconds(1)) {
-		//	last = now;
-		//	//cout << frames << endl;
-		//	frames=0;
-		//}
-		//frames++;
 	}
 	my_audio_data.thread_join = true;
 	//audioThread.join(); // I would like to exit the program the right way, but sometimes this blocks due to the windows audio system.
