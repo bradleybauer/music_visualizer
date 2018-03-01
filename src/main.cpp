@@ -5,7 +5,7 @@ using std::endl;
 #include <string>
 using std::string;
 #include <chrono>
-using clk = std::chrono::steady_clock;
+namespace chrono = std::chrono;
 #include <fstream>
 using std::ifstream;
 
@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
 	/*
 	If shader_folder does not exist
 		tell user and exit.
-	If shader_folder does not contain the neccessary files
+	If shader_folder does not contain the necessary files
 		tell user and exit.
 	Register FileWatcher on shader_folder
 
@@ -61,15 +61,20 @@ int main(int argc, char* argv[]) {
 
 	filesys::path shader_folder("shaders");
 	filesys::path json_path = shader_folder / "shader.json";
-	if (!filesys::exists(shader_folder)) {
-		cout << "shaders folder does not exist" << endl;
-		cout << "make a directory named 'shaders' in the folder containing this executable" << endl;
-		exit(0);
-	}
-	if (!filesys::exists(json_path)) {
-		cout << "shaders folder should contain a shader.json file" << endl;
-		exit(0);
-	}
+	auto necessary_files_exist = [&]() -> bool {
+		if (!filesys::exists(shader_folder)) {
+			cout << "shaders folder does not exist" << endl;
+			cout << "make a directory named 'shaders' in the folder containing this executable" << endl;
+			return false;
+		}
+		if (!filesys::exists(json_path)) {
+			cout << "shaders folder should contain a shader.json file" << endl;
+			return false;
+		}
+		return true;
+	};
+	if (!necessary_files_exist())
+		return 0;
 
 	FileWatcher watcher(shader_folder);
 
@@ -86,6 +91,7 @@ int main(int argc, char* argv[]) {
 	ShaderPrograms shader_programs(shader_config, shader_folder, is_ok);
 	if (!is_ok)
 		return 0;
+
 	Renderer renderer (shader_config, shader_programs, window);
 
 	struct audio_data my_audio_data;
@@ -108,19 +114,10 @@ int main(int argc, char* argv[]) {
 
 	while (window.is_alive()) {
 		if (watcher.shaders_changed) {
-			cout << "Updating shaders." << endl;
 			watcher.shaders_changed = false;
-			is_ok = true;
-			if (!filesys::exists(shader_folder)) {
-				cout << "shaders folder does not exist" << endl;
-				cout << "make a directory named 'shaders' in the folder containing this executable" << endl;
-				is_ok = false;
-			}
-			if (!filesys::exists(json_path)) {
-				cout << "shaders folder should contain a shader.json file" << endl;
-				is_ok = false;
-			}
-			if (is_ok) {
+			cout << "Updating shaders." << endl;
+			if (necessary_files_exist()) {
+				is_ok = true;
 				ShaderConfig new_shader_config(json_path, is_ok);
 				if (is_ok) {
 					ShaderPrograms new_shader_programs(new_shader_config, shader_folder, is_ok);
@@ -132,22 +129,21 @@ int main(int argc, char* argv[]) {
 					}
 				}
 			}
-			else {
+			if (!is_ok)
 				cout << "Failed to update shader." << endl;
-			}
 		}
 
-		auto now = clk::now();
+		auto now = chrono::steady_clock::now();
 
 		renderer.update(&my_audio_data);
 		renderer.render();
 		window.swap_buffers();
 		window.poll_events();
 
-		std::this_thread::sleep_for(std::chrono::milliseconds(16) - (clk::now() - now));
+		std::this_thread::sleep_for(std::chrono::milliseconds(16) - (chrono::steady_clock::now() - now));
 
 		//static int frames = 0;
-		//static auto last = clk::now();
+		//static auto last = chrono::steady_clock::now();
 		//if (now - last > std::chrono::seconds(1)) {
 		//	last = now;
 		//	//cout << frames << endl;
@@ -158,5 +154,4 @@ int main(int argc, char* argv[]) {
 	my_audio_data.thread_join = true;
 	//audioThread.join(); // I would like to exit the program the right way, but sometimes this blocks due to the windows audio system.
 	exit(0); // TODO need this without the above join?
-	return 0;
 }
