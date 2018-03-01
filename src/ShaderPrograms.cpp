@@ -5,8 +5,9 @@ using std::endl;
 using std::vector;
 #include <fstream>
 #include <sstream>
-using std::string;
 using std::stringstream;
+#include <string>
+using std::string;
 
 #include "ShaderConfig.h"
 #include "ShaderPrograms.h"
@@ -53,6 +54,8 @@ ShaderPrograms::ShaderPrograms(const ShaderConfig& config, filesys::path shader_
 	for (int i = 0; i < config.mBuffers.size(); ++i)
 		is_ok &= compile_buffer_shaders(shader_folder, config.mBuffers[i].name, uniform_header.str());
 	is_ok &= compile_buffer_shaders(shader_folder, "image", uniform_header.str());
+	if (!is_ok)
+		return;
 
 	// get uniform locations for each program
 	for (auto p : mPrograms) {
@@ -167,6 +170,8 @@ bool ShaderPrograms::link_program(GLuint& pn, GLuint vs, GLuint gs, GLuint fs) {
 }
 
 bool ShaderPrograms::compile_buffer_shaders(const filesys::path& shader_folder, const string& buff_name, const string& uniform_header) {
+	cout << "Compiling shaders for buffer: " << buff_name << endl;
+
 	filesys::path filepath;
 	std::ifstream shader_file;
 	stringstream geom_str;
