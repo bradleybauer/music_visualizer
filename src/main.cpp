@@ -113,8 +113,7 @@ int main(int argc, char* argv[]) {
 	std::thread audioThread(&audio_processor<chrono::steady_clock>::run, ap);
 
 	while (window.is_alive()) {
-		if (watcher.shaders_changed) {
-			watcher.shaders_changed = false;
+		if (watcher.files_changed()) {
 			cout << "Updating shaders." << endl;
 			if (necessary_files_exist()) {
 				is_ok = true;

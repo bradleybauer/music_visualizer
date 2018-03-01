@@ -39,9 +39,17 @@ public:
 		shaders_changed = true;
 		last_event_time = std::chrono::steady_clock::now();
 	}
-	bool shaders_changed;
+	
+	bool files_changed() {
+		if (shaders_changed) {
+			shaders_changed = false;
+			return true;
+		}
+		return false;
+	}
 
 private:
+	bool shaders_changed;
 	std::chrono::steady_clock::time_point last_event_time;
 
 	filesys::path shader_folder;
