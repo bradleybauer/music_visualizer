@@ -124,11 +124,12 @@ int main(int argc, char* argv[]) {
 						shader_config = new_shader_config;
 						shader_programs = std::move(new_shader_programs);
 						renderer = std::move(Renderer(shader_config, shader_programs, window));
-						cout << "Successfully updated shader." << endl;
 					}
 				}
 			}
-			if (!is_ok)
+			if (is_ok)
+				cout << "Successfully updated shader." << endl;
+			else
 				cout << "Failed to update shader." << endl;
 		}
 
