@@ -11,12 +11,12 @@ namespace chrono = std::chrono;
 #include <limits> // numeric_limits<T>::infinity()
 #include <cmath>
 
+#include "AudioStream.h"
 #include "audio_data.h"
-#include "audio_capture.h"
 #include "ffts.h"
 // -/
 
-// FFT computation library needs this
+// FFT computation library needs aligned memory
 #ifdef WINDOWS
 #define Aligned_Alloc(align, sz) _aligned_malloc(sz, align)
 #else
@@ -25,21 +25,14 @@ namespace chrono = std::chrono;
 
 //- Constants
 //
-// ABL length of the system audio capture buffer (in frames)
-// ABN number of system audio capture buffers to keep
-// TBL total audio buffer length. length of all ABN buffers combined (in frames)
-// VL length of visualizer 1D texture buffers. Length of audio data that this module 'outputs' (in frames)
-// C channel count of audio
-// SR requested sample rate of the audio
-// SRF sample rate of audio given to FFT
-const int ABL = 512;
-const int ABN = 16;
-const int TBL = ABL * ABN;
-const int FFTLEN = TBL / 2;
-const int VL = VISUALIZER_BUFSIZE; // defined in audio_data.h
-const int C = 2;
-const int SR = 48000;
-const int SRF = SR / 2;
+const int ABL = 512;               // length of the system audio capture buffer (in frames)
+const int ABN = 16;                // number of system audio capture buffers to keep
+const int TBL = ABL * ABN;         // total audio buffer length. length of all ABN buffers combined (in frames)
+const int FFTLEN = TBL / 2;        
+const int VL = VISUALIZER_BUFSIZE; // length of visualizer 1D texture buffers. Length of audio data that this module 'outputs' (in frames)
+const int C = 2;                   // channel count of audio
+const int SR = 48000;              // sample rate of the audio stream
+const int SRF = SR / 2;            // sample rate of audio given to FFT
 
 // I think the FFT looks best when it has 8192/48000, or 4096/24000, time granularity. However, I
 //   like the wave to be 96000hz just because then it fits on the screen nice.
@@ -51,53 +44,29 @@ const int SRF = SR / 2;
 // -/
 
 //- Feature Toggles
-// ------------------------------------------------------
-// To turn off all the fancy stuff
-// undef
-//   FFT_SYNC
-//   DIFFERENCE_SYNC
-// def
-//   RENORM_4
-// set
-//   smoother = 1
-//   MIX = 0 in draw.cpp
-// This probably could cause screen tearing (or make it observable).
-// If you can, turn on vsync and tripple buffering in your graphics driver (easy with nvidia on windows.)
-// ------------------------------------------------------
-//
 // WAVE RENORMALIZATION
-// RENORM_1: just normalize the wave by dividing each sample by the max amplitude
-// RENORM_2: is used to cause the lissajous to tend towards a circle when the audio 'cuts out'.
-// RENORM_3: a bouncy renorm, the springy bounce effect is what occurs when we normalize by using
+// RENORM_1: divide by max absolute value in buffer.
+// RENORM_2: a bouncy renorm, the springy bounce effect is what occurs when we normalize by using
 //           max = mix(max_prev, max_current, parameter); max_prev = max. So if there is a pulse of
-//           amplitude in the sound, then a lounder sound is normalized by a smaller maximum and
+//           amplitude in the sound, then a louder sound is normalized by a smaller maximum and
 //           therefore the amplitude is greater than 1. The amplitude will be inflated for a short
 //           period of time until the dynamics of the max mixing catch up and max_prev is approximately
 //           equal to max_current.
-// RENORM_4: use max observed amplitude so far as the max to normalize by.
-// CONST_RENORM: use this to scale the raw audio samples by a constant factor.
+// RENORM_3: divide by the max observed amplitude.
+// CONST_RENORM: scale the raw audio samples by a constant factor.
 //
 // #define RENORM_1
-// #define RENORM_2
-#define RENORM_3
-// #define RENORM_4
+#define RENORM_2
+// #define RENORM_3
 // #define CONST_RENORM 10
 //
 // WAVE FFT STABILIZATION
-// Use the fft to intelligently choose when to advance the waveform.
-// Imagine running along next to a audio wave (that is not moving), and you want to take a
-// picture of the audio wave with a camera such that each picture looks almost exactly the same.
-// How do we know when to take these pictures? We need to try and take a picture every
-// time that we pass a distance of one period (one wavelength) of the audio wave. The audio
-// pointer in the circular buffer is like the camera, and every time we update the audio
-// pointer we take a picture of the audio wave with our camera.
-//
 // The audio pointer in the circular buffer should be moved such that it travels only distances
 // that are whole multiples, not fractional multiples, of the audio wave's wavelength.
 // But how do we find the wavelength of the audio wave? If we try and look for the zero's
-// of the audio wave and then note the distance between them, then we will not get an accurate
-// or consistent measure of the wavelength because the noise in the waveform can throw
-// our measure off (put lots of variance in succcessive wavelength measurements).
+// of the audio wave and note the distance between them, then we will not get an accurate
+// or consistent measure of the wavelength because the noise in the waveform will likely throw
+// our measure off.
 //
 // The wavelength of a waveform is related to the frequency by this equation
 // wavelength = velocity/frequency
@@ -106,7 +75,6 @@ const int SRF = SR / 2;
 // wavelength = number of samples of one period of the wave
 // frequency = dominant frequency of the waveform
 #define FFT_SYNC
-//
 // TODO why in the code do I use the frequency to both check WHEN to update next and WHERE to put
 // the index next. Shouldn't I only need to do one in order to find the next ideal frame of audio?
 //
@@ -148,6 +116,7 @@ static const int HISTORY_BUFF_SZ = VL;
 //
 // -/
 
+template<typename Clock>
 class audio_processor {
 public:
 
@@ -228,12 +197,12 @@ public:
 		grid = int(std::ceil(foo / float(grid))) * grid;
 		return -dfoodr * grid;
 	}
-	static chrono::steady_clock::duration dura(float x) {
+	static typename Clock::duration dura(float x) {
 		// dura() converts a second, represented as a double, into the appropriate unit of
-		// time for chrono::steady_clock and with the appropriate arithematic type
+		// time for Clock and with the appropriate arithematic type
 		// using dura() avoids errors like this : chrono::seconds(double initializer)
 		// dura() : <double,seconds> -> chrono::steady_clock::<typeof count(), time unit>
-		return chrono::duration_cast<chrono::steady_clock::duration>(
+		return chrono::duration_cast<Clock::duration>(
 				chrono::duration<float, std::ratio<1>>(x));
 	}
 	static float max_frequency(float* f) {
@@ -368,12 +337,13 @@ public:
 
 	//- Constructor
 	// audio_processor owns the memory it allocates here.
-	audio_processor(struct audio_data* _audio_sink,
-	                std::function<void(float*, float*, int)> _pcm_getter,
-	                std::function<void(int, int)> _audio_initializer)
-					: audio_sink(_audio_sink), pcm_getter(_pcm_getter),
-					audio_initializer(_audio_initializer) {
-
+	audio_processor(struct audio_data* _audio_sink, AudioStream *_audio_stream)
+					: audio_sink(_audio_sink), audio_stream(_audio_stream) {
+		if (_audio_stream->get_sample_rate() != 48e3) {
+			cout << "The audio processor is meant to consume 48000hz audio but the given audio stream produces "
+			     << _audio_stream->get_sample_rate() << "hz audio." << endl;
+			exit(1);
+		}
 		//- Internal audio buffers
 		audio_buff_l = (float*)calloc(TBL, sizeof(float));
 		audio_buff_r = (float*)calloc(TBL, sizeof(float));
@@ -392,8 +362,6 @@ public:
 		audio_sink->freq_l = (float*)calloc(VL, sizeof(float));
 		audio_sink->freq_r = (float*)calloc(VL, sizeof(float));
 		// -/
-
-		audio_initializer(ABL, SR);
 
 		//- Smoothing buffers
 		// Helps smooth the appearance of the waveform. Useful when we're not updating the waveform data at 60fps.
@@ -429,11 +397,6 @@ public:
 		//- Wave Renormalizer
 		channel_max_l = 1.f;
 		channel_max_r = 1.f;
-		#ifdef RENORM_2
-		sinArray = (float*)malloc(sizeof(float)*VL);
-		for (int i = 0; i < VL; ++i)
-			sinArray[i] = sinf(6.288f * i / float(VL));
-		#endif
 		// -/
 
 	};
@@ -464,13 +427,10 @@ public:
 		#endif
 
 		ffts_free(fft_plan);
-
-		#ifdef RENORM_2
-		free(sinArray);
-		#endif
 	}
 	// -/
 
+	//- Audio processing
 	void service_channel(int  w,
 	                     int& r,
 	                     int& frame_id,
@@ -480,8 +440,8 @@ public:
 	                     float* fft_out,
 	                     float& freq,
 	                     float& channel_max,
-	                     chrono::steady_clock::time_point now,
-	                     chrono::steady_clock::time_point& next_t) {
+	                     typename Clock::time_point now,
+	                     typename Clock::time_point& next_t) {
 			if (now > next_t) {
 
 				r = advance_index(w, r, freq, TBL);
@@ -497,7 +457,7 @@ public:
 					staging_buff[i] *= CONST_RENORM;
 					#endif
 
-					#ifdef RENORM_4
+					#ifdef RENORM_3
 					if (std::fabs(staging_buff[i]) > max_amplitude_so_far)
 						max_amplitude_so_far = std::fabs(staging_buff[i]);
 					#endif
@@ -512,10 +472,14 @@ public:
 				frame_id++;
 
 				#ifdef RENORM_1
-				renorm(staging_buff, channel_max, .5, 1.f, VL);
+				renorm(staging_buff, channel_max, 1.f, 1.f, VL);
+				#endif
+	
+				#ifdef RENORM_2
+				renorm(staging_buff, channel_max, .3f, .66f, VL);
 				#endif
 
-				#ifdef RENORM_4
+				#ifdef RENORM_3
 				renorm(staging_buff, max_amplitude_so_far, 0.f, .83f, VL);
 				#endif
 
@@ -533,149 +497,128 @@ public:
 			// const float TIME = SAMPLES / SR;
 			// next_l += dura(TIME);
 	}
+	// -/
 
-	void step() {
-	}
-
-	// I'm going to make a mock clock, so I do not want the now to be a member.
-	chrono::steady_clock::time_point now;
-	chrono::nanoseconds _60fpsDura = dura(1.f / 60.f);
-	chrono::steady_clock::time_point next_l = now + _60fpsDura;
-	chrono::steady_clock::time_point next_r = now + _60fpsDura;
-	chrono::steady_clock::time_point next_fft = now + _60fpsDura; // Compute the fft only once every 1/60 of a second
-	int frame_id_l = 0;
-	int frame_id_r = 0;
-
-	//- Program
-	int run() {
-
+	//- Audio loop
+	int loop() {
 		while (!audio_sink->thread_join) {
-
-			// TODO test this function. The samples it writes to the circular buffer should be the same for the same sound
-			// on windows and on linux.
-			// TODO On windows this can prevent the app from closing if the music is paused.
-			//auto perf_timepoint = std::chrono::steady_clock::now();
-			pcm_getter(audio_buff_l+writer, audio_buff_r+writer, ABL);
-			//cout << (std::chrono::steady_clock::now() - perf_timepoint).count()/1e9 << endl;
-
-			//fps(now);
-			now = chrono::steady_clock::now();
-			// We want to use next += dura(1/freq) in the loop below and not next = now + dura(1/freq) because ... TODO,
-			// BUT if now >> next, then we probably were stalled in pcm_getter and should update the next times
-			if (now - next_l > chrono::milliseconds(17*4)) { // less than 60/2/2 fps
-				next_r = now;
-				next_l = now;
-				next_fft = now;
-			}
-
-			//- Manage indices and fill smoothing buffers
-			writer = move_index(writer, ABL, TBL); // writer marks the index of the discontinuity in the circular buffer
-
-			service_channel(writer,         // writer
-			                reader_l,       // reader
-			                frame_id_l,
-			                prev_buff_l,    // previously visualized audio
-			                audio_buff_l,   // audio collected from system audio stream
-			                staging_buff_l, // audio for visualizer goes here
-			                fft_outl,       // fft complex outputs
-			                freql,          // most recent dominant frequency < 600hz
-			                channel_max_l,  // channel renormalization term
-			                now,            // current time point
-			                next_l);        // update staging at this timepoint again
-
-			service_channel(writer,
-			                reader_r,
-			                frame_id_r,
-			                prev_buff_r,
-			                audio_buff_r,
-			                staging_buff_r,
-			                fft_outr,
-			                freqr,
-			                channel_max_r,
-			                now,
-			                next_r);
-			// -/
-
-			//- Execute fft and fill fft output buff
-			// This downsamples and windows the audio
-			if (now > next_fft) {
-				next_fft += _60fpsDura;
-				for (int i = 0; i < FFTLEN; ++i) {
-					#define downsmpl(s) s[(i*2+writer)%TBL]
-					fft_inl[i] = downsmpl(audio_buff_l) * FFTwindow[i];
-					fft_inr[i] = downsmpl(audio_buff_r) * FFTwindow[i];
-					#undef downsmpl
-				}
-				ffts_execute(fft_plan, fft_inl, fft_outl);
-				ffts_execute(fft_plan, fft_inr, fft_outr);
-				// TODO fft magnitudes are different between windows and linux
-				for (int i = 0; i < VL; i++) {
-					audio_sink->freq_l[i] = mag(fft_outl, i)/std::sqrt(float(FFTLEN));
-					audio_sink->freq_r[i] = mag(fft_outr, i)/std::sqrt(float(FFTLEN));
-				}
-			}
-			// -/
-
-			//- Fill output buffers
-			audio_sink->mtx.lock();
-
-			// Smooth and upsample the wave
-			#ifdef RENORM_2
-			const float pow_max_l = pow(channel_max_l, .1);
-			const float pow_max_r = pow(channel_max_r, .1);
-			#endif
-			for (int i = 0; i < VL; ++i) {
-				float oldl, oldr, newl, newr, mixl, mixr;
-
-				newl = staging_buff_l[i];
-				newr = staging_buff_r[i];
-
-				oldl = audio_sink->audio_l[i];
-				oldr = audio_sink->audio_r[i];
-
-				mixl = mix(oldl, newl, smoother);
-				mixr = mix(oldr, newr, smoother);
-
-				#ifdef RENORM_2
-				mixl += (1.f-pow_max_l)*.005*sinArray[i];
-				mixr += (1.f-pow_max_r)*.005*sinArray[(i+VL/4)%VL]; // i+vl/4 : sine -> cosine
-				#endif
-
-				//*
-				audio_sink->audio_l[i] = mixl;
-				audio_sink->audio_r[i] = mixr;
-				/*/
-				// View the input audio
-				//audio_sink->audio_l[i] = audio_buff_l[(i + reader_l)%TBL]/channel_max_l;
-				//audio_sink->audio_r[i] = audio_buff_r[(i + reader_r)%TBL]/channel_max_r;
-				// View the history frames used in difference_sync
-				//audio_sink->audio_l[i] = prev_buff_l[(frame_id_l + HISTORY_NUM_FRAMES - 1)%HISTORY_NUM_FRAMES][i/2];
-				//audio_sink->audio_r[i] = prev_buff_r[(frame_id_r + HISTORY_NUM_FRAMES - 1)%HISTORY_NUM_FRAMES][i/2];
-				//#undef RENORM_4
-				//#undef RENORM_3
-				//#undef RENORM_2
-				//#undef RENORM_1
-				// */
-			}
-
-			#if defined(RENORM_2) || defined(RENORM_3)
-			const float bound = .66f;
-			const float spring = .3f; // can spring past bound... oops
-			renorm(audio_sink->audio_l, channel_max_l, spring, bound, VL);
-			renorm(audio_sink->audio_r, channel_max_r, spring, bound, VL);
-			#endif
-
-			audio_sink->mtx.unlock();
-			// -/
-
+			step();
 		}
-		audio_destroy();
 		return 0;
+	}
+	void step() {
+		// TODO test this function. The samples it writes to the circular buffer should be the same for the same sound
+		// on windows and on linux.
+		// TODO On windows this can prevent the app from closing if the music is paused.
+		//auto perf_timepoint = Clock::now();
+		audio_stream->get_next_pcm(audio_buff_l+writer, audio_buff_r+writer, ABL);
+		//double dt = (Clock::now() - perf_timepoint).count() / 1e9;
+		//summmm += dt;
+		//cout << summmm/(frame_id_l +1)<< endl;
+
+		//fps(now);
+		now = Clock::now();
+		// We want to use next += dura(1/freq) in the loop below and not next = now + dura(1/freq) because ... TODO,
+		// BUT if now >> next, then we probably were stalled in audio_stream.get_next_pcm and should update the next times
+		if (now - next_l > chrono::milliseconds(17*4)) { // less than 60/2/2 fps
+			next_r = now;
+			next_l = now;
+			next_fft = now;
+		}
+
+		//- Manage indices and fill smoothing buffers
+		writer = move_index(writer, ABL, TBL); // writer marks the index of the discontinuity in the circular buffer
+
+		service_channel(writer,         // writer
+						reader_l,       // reader
+						frame_id_l,
+						prev_buff_l,    // previously visualized audio
+						audio_buff_l,   // audio collected from system audio stream
+						staging_buff_l, // audio for visualizer goes here
+						fft_outl,       // fft complex outputs
+						freql,          // most recent dominant frequency < 600hz
+						channel_max_l,  // channel renormalization term
+						now,            // current time point
+						next_l);        // update staging at this timepoint again
+
+		service_channel(writer,
+						reader_r,
+						frame_id_r,
+						prev_buff_r,
+						audio_buff_r,
+						staging_buff_r,
+						fft_outr,
+						freqr,
+						channel_max_r,
+						now,
+						next_r);
+		// -/
+
+		//- Execute fft and fill fft output buff
+		// This downsamples and windows the audio
+		if (now > next_fft) {
+			next_fft += _60fpsDura;
+			for (int i = 0; i < FFTLEN; ++i) {
+				#define downsmpl(s) s[(i*2+writer)%TBL]
+				fft_inl[i] = downsmpl(audio_buff_l) * FFTwindow[i];
+				fft_inr[i] = downsmpl(audio_buff_r) * FFTwindow[i];
+				#undef downsmpl
+			}
+			ffts_execute(fft_plan, fft_inl, fft_outl);
+			ffts_execute(fft_plan, fft_inr, fft_outr);
+			// TODO fft magnitudes are different between windows and linux
+			for (int i = 0; i < VL; i++) {
+				audio_sink->freq_l[i] = mag(fft_outl, i)/std::sqrt(float(FFTLEN));
+				audio_sink->freq_r[i] = mag(fft_outr, i)/std::sqrt(float(FFTLEN));
+			}
+		}
+		// -/
+
+		//- Fill output buffers
+		audio_sink->mtx.lock();
+
+		// Smooth and upsample the wave
+		for (int i = 0; i < VL; ++i) {
+			float oldl, oldr, newl, newr, mixl, mixr;
+
+			newl = staging_buff_l[i];
+			newr = staging_buff_r[i];
+
+			oldl = audio_sink->audio_l[i];
+			oldr = audio_sink->audio_r[i];
+
+			mixl = mix(oldl, newl, smoother);
+			mixr = mix(oldr, newr, smoother);
+
+			//*
+			audio_sink->audio_l[i] = mixl;
+			audio_sink->audio_r[i] = mixr;
+			/*/
+			// View the input audio
+			//audio_sink->audio_l[i] = audio_buff_l[(i + reader_l)%TBL]/channel_max_l;
+			//audio_sink->audio_r[i] = audio_buff_r[(i + reader_r)%TBL]/channel_max_r;
+			// View the history frames used in difference_sync
+			//audio_sink->audio_l[i] = prev_buff_l[(frame_id_l + HISTORY_NUM_FRAMES - 1)%HISTORY_NUM_FRAMES][i/2];
+			//audio_sink->audio_r[i] = prev_buff_r[(frame_id_r + HISTORY_NUM_FRAMES - 1)%HISTORY_NUM_FRAMES][i/2];
+			// */
+		}
+
+		audio_sink->mtx.unlock();
+		// -/
+
 	}
 	// -/
 
-	//- Members
 private:
+	//- Members
+	typename Clock::time_point now;
+	chrono::nanoseconds _60fpsDura = dura(1.f / 60.f);
+	typename Clock::time_point next_l = now + _60fpsDura;
+	typename Clock::time_point next_r = now + _60fpsDura;
+	typename Clock::time_point next_fft = now + _60fpsDura; // Compute the fft only once every 1/60 of a second
+	int frame_id_l = 0;
+	int frame_id_r = 0;
+
 	float* prev_buff_l[HISTORY_NUM_FRAMES];
 	float* prev_buff_r[HISTORY_NUM_FRAMES];
 
@@ -699,15 +642,10 @@ private:
 
 	float channel_max_l;
 	float channel_max_r;
-	#ifdef RENORM_2
-	float* sinArray;
-	#endif
 
 	float max_amplitude_so_far = 0.;
 
-	std::function<void(float*, float*, int)> pcm_getter;
-	std::function<void(int, int)> audio_initializer;
-
 	struct audio_data* audio_sink;
+	AudioStream* audio_stream;
 	// -/
 };

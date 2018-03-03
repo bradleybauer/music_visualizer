@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="..\src\filesystem.cpp" />
     <ClCompile Include="..\src\ShaderConfig.cpp" />
+    <ClCompile Include="..\src\WavAudioStream.cpp" />
     <ClCompile Include="fake_clock.cpp" />
     <ClCompile Include="run_tests.cpp" />
     <ClCompile Include="test_audio_process.cpp" />
