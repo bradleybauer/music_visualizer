@@ -1,3 +1,5 @@
+#pragma once
+
 #include <pulse/error.h>
 #include <pulse/pulseaudio.h>
 #include <pulse/simple.h>
@@ -6,8 +8,8 @@
 
 pa_mainloop* m_pulseaudio_mainloop;
 void cb(pa_context* pulseaudio_context, const pa_server_info* i, void* data) {
-	std::string** sink_name = (std::string**) data;
-	*sink_name = new std::string(i->default_sink_name);
+	std::string* sink_name = (std::string*) data;
+	*sink_name = std::string(i->default_sink_name);
 	pa_mainloop_quit(m_pulseaudio_mainloop, 0);
 }
 void pulseaudio_context_state_callback(pa_context* pulseaudio_context, void* data) {
