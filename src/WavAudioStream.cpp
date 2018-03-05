@@ -5,6 +5,7 @@ using std::endl;
 using std::ifstream;
 using std::ios;
 #include <cstdio>
+#include <stdexcept>
 
 #include "WavAudioStream.h"
 
@@ -35,18 +36,12 @@ struct chunk_t {
 };
 
 // Reads entire file into buffer
-WavAudioStream::WavAudioStream(const filesys::path &wav_path, bool &is_ok) {
-	if (filesys::exists(wav_path)) {
-		cout << "WavAudioStream: wav file not found" << endl;
-		is_ok = false;
-		return;
-	}
+WavAudioStream::WavAudioStream(const filesys::path &wav_path) {
+	if (!filesys::exists(wav_path))
+		throw std::runtime_error("WavAudioStream: wav file not found");
 	ifstream fin(wav_path.string(), std::ios::binary);
-	if (!fin.is_open()) {
-		cout << "WavAudioStream: file did not open" << endl;
-		is_ok = false;
-		return;
-	}
+	if (!fin.is_open())
+		throw std::runtime_error("WavAudioStream: file did not open" );
 	fin.unsetf(ios::skipws);
 
 	//Read WAV header
@@ -96,12 +91,12 @@ WavAudioStream::WavAudioStream(const filesys::path &wav_path, bool &is_ok) {
 
 WavAudioStream::~WavAudioStream() {
 	if (buf_interlaced)
-		free(buf_interlaced);
+		delete[] buf_interlaced;
 }
 
 void WavAudioStream::get_next_pcm(float * buff_l, float * buff_r, int buff_size) {
 	// TODO
-	cout << "WavAudioStream not implemented yet" << endl;
+	cout << "WavAudioStream.get_next_pcm not implemented yet" << endl;
 	exit(1);
 }
 

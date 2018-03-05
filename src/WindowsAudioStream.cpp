@@ -1,5 +1,7 @@
 #include <iostream>
 using std::cout; using std::endl;
+#include <stdexcept>
+using std::runtime_error;
 
 #include "WindowsAudioStream.h"
 
@@ -8,7 +10,7 @@ using std::cout; using std::endl;
 #include <audiopolicy.h>
 #include <mmreg.h>
 
-WindowsAudioStream::WindowsAudioStream(bool &is_ok) {
+WindowsAudioStream::WindowsAudioStream() {
 	// --Difficulties arise--
 	// PCM CAPTURE CONTROL FLOW
 	// PCM SAMPLE RATE
@@ -39,36 +41,20 @@ WindowsAudioStream::WindowsAudioStream(bool &is_ok) {
 		m_CLSID_MMDeviceEnumerator, NULL,
 		CLSCTX_ALL, m_IID_IMMDeviceEnumerator,
 		(void**)&m_pEnumerator);
-	if (hr) {
-		cout << "WindowsAudioStream error" << endl;
-		is_ok = false;
-		return;
-	}
+	if (hr) throw runtime_error("WindowsAudioStream() error 1");
 
 	hr = m_pEnumerator->GetDefaultAudioEndpoint(
 		//eCapture, eConsole, &pDevice); //set this to capture from default recording device instead of render device
 		eRender, eConsole, &m_pDevice);
-	if (hr) {
-		cout << "WindowsAudioStream error" << endl;
-		is_ok = false;
-		return;
-	}
+	if (hr) throw runtime_error("WindowsAudioStream() error 2");
 
 	hr = m_pDevice->Activate(
 		m_IID_IAudioClient, CLSCTX_ALL,
 		NULL, (void**)&m_pAudioClient);
-	if (hr) {
-		cout << "WindowsAudioStream error" << endl;
-		is_ok = false;
-		return;
-	}
+	if (hr) throw runtime_error("WindowsAudioStream() error 3");
 
 	hr = m_pAudioClient->GetMixFormat(&m_pwfx);
-	if (hr) {
-		cout << "WindowsAudioStream error" << endl;
-		is_ok = false;
-		return;
-	}
+	if (hr) throw runtime_error("WindowsAudioStream() error 4");
 
 	const int bits_per_byte = 8;
 	m_pwfx->wBitsPerSample = sizeof(short) * bits_per_byte;
@@ -88,42 +74,26 @@ WindowsAudioStream::WindowsAudioStream(bool &is_ok) {
 		0,
 		m_pwfx,
 		NULL);
-	if (hr) {
-		cout << "WindowsAudioStream error" << endl;
-		is_ok = false;
-		return;
-	}
+	if (hr) throw runtime_error("WindowsAudioStream() error 5");
 
 	// Get the size of the allocated buffer.
 	hr = m_pAudioClient->GetBufferSize(&m_bufferFrameCount);
-	if (hr) {
-		cout << "WindowsAudioStream error" << endl;
-		is_ok = false;
-		return;
-	}
+	if (hr) throw runtime_error("WindowsAudioStream() error 6");
 
 	hr = m_pAudioClient->GetService(
 		m_IID_IAudioCaptureClient,
 		(void**)&m_pCaptureClient);
-	if (hr) {
-		cout << "WindowsAudioStream error" << endl;
-		is_ok = false;
-		return;
-	}
+	if (hr) throw runtime_error("WindowsAudioStream() error 6");
 
 	// Start capturing audio
 	hr = m_pAudioClient->Start();
-	if (hr) {
-		cout << "WindowsAudioStream error" << endl;
-		is_ok = false;
-		return;
-	}
+	if (hr) throw runtime_error("WindowsAudioStream() error 7");
 }
 
 WindowsAudioStream::~WindowsAudioStream() {
 	HRESULT hr = m_pAudioClient->Stop();
 	if (hr) {
-		cout << "WindowsAudioStream error" << endl;
+		cout << "~WindowsAudioStream error" << endl;
 		return;
 	}
 }
@@ -149,8 +119,6 @@ void WindowsAudioStream::get_next_pcm(float * buff_l, float * buff_r, int buff_s
 		frame_cache_fill -= read;
 		// Remove from the fifo the frames we've just read
 		memcpy(frame_cache, frame_cache + C*read, sizeof(short)*C*frame_cache_fill);
-        if (frame_cache_fill >= CACHE_SIZE)
-            cout << frame_cache_fill << endl;
 	}
 
 	// if i == buff_size, then we can just return. (audio_buff completely filled from frame_cache)
@@ -165,8 +133,8 @@ void WindowsAudioStream::get_next_pcm(float * buff_l, float * buff_r, int buff_s
 	while (i < buff_size) {
 		hr = m_pCaptureClient->GetNextPacketSize(&packetLength);
 		if (hr) {
-			cout << "WindowsAudioStream error" << endl;
-			return;
+			cout << "WindowsAudioStream::get_next_pcm error 1" << endl;
+			exit(1);
 		}
 
 		if (packetLength != 0) {
@@ -176,8 +144,8 @@ void WindowsAudioStream::get_next_pcm(float * buff_l, float * buff_r, int buff_s
 				&numFramesAvailable,
 				&flags, NULL, NULL);
 			if (hr) {
-				cout << "WindowsAudioStream error" << endl;
-				return;
+				cout << "WindowsAudioStream::get_next_pcm error 2" << endl;
+				exit(1);
 			}
 
 			// Copy the available capture data to the audio sink.
@@ -191,7 +159,7 @@ void WindowsAudioStream::get_next_pcm(float * buff_l, float * buff_r, int buff_s
 			// If we didn't use all the frames returned by the system
 			if (j != numFramesAvailable) {
 				if (frame_cache_fill + (numFramesAvailable - j) >= CACHE_SIZE) {
-					cout << "fifo overflow in audio_capture::get_pcm" << endl;
+					cout << "WindowsAudioStream::get_next_pcm fifo overflow" << endl;
 					exit(-1);
 				}
 				// Then copy what we didn't use to the frame_cache
@@ -201,8 +169,8 @@ void WindowsAudioStream::get_next_pcm(float * buff_l, float * buff_r, int buff_s
 
 			hr = m_pCaptureClient->ReleaseBuffer(numFramesAvailable);
 			if (hr) {
-				cout << "WindowsAudioStream error" << endl;
-				return;
+				cout << "WindowsAudioStream::get_next_pcm error 3" << endl;
+				exit(1);
 			}
 		}
 	}

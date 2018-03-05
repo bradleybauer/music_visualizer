@@ -29,8 +29,8 @@ struct AudioOptions {
 
 class ShaderConfig {
 public:
-	ShaderConfig(filesys::path conf_file, bool& is_ok);
-	ShaderConfig(std::string json_str, bool& is_ok);
+	ShaderConfig(filesys::path conf_file);
+	ShaderConfig(std::string json_str); // used in testing
 
 	struct {
 		int width;

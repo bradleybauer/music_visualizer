@@ -1,14 +1,13 @@
 #include <iostream>
 using std::cout;
 using std::endl;
+#include <stdexcept>
+using std::runtime_error;
 
 #include "Window.h"
-
 #include "audio_data.h" // VISUALIZER_BUFSIZE
 
-Window::Window(int _width, int _height, bool& is_ok) : width(_width), height(_height), size_changed(true), mouse() {
-	is_ok = false;
-
+Window::Window(int _width, int _height) : width(_width), height(_height), size_changed(true), mouse() {
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -16,10 +15,7 @@ Window::Window(int _width, int _height, bool& is_ok) : width(_width), height(_he
 	//glfwWindowHint(GLFW_DECORATED, false);
 
 	window = glfwCreateWindow(width, height, "Music Visualizer", NULL, NULL);
-	if (window == NULL) {
-		cout << "GLFW window creation failed." << endl;
-		return;
-	}
+	if (window == NULL) throw runtime_error("GLFW window creation failed.");
 
 	glfwMakeContextCurrent(window);
 	glfwSetWindowUserPointer(window, this);
@@ -69,8 +65,6 @@ Window::Window(int _width, int _height, bool& is_ok) : width(_width), height(_he
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
 	}
-
-	is_ok = true;
 }
 
 Window::~Window() {

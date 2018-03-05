@@ -1,8 +1,10 @@
 #include <iostream>
-#include <string>
 using std::cout;
 using std::endl;
+#include <string>
 using std::string;
+#include <stdexcept>
+using std::runtime_error;
 
 // TODO should probably use a testing frame work
 // or think of a better way to add tests to execute. Its a pain to add new tests.
@@ -94,11 +96,16 @@ bool ShaderConfigTest::parse_invalid14() { // more than one render_order object
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error &msg) {
+		cout << msg.what() << endl;
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+	cout << PASS_MSG << endl;
+	return true;
 }
 bool ShaderConfigTest::parse_invalid13() { // more than one uniforms object
 	string json_str = R"(
@@ -130,11 +137,16 @@ bool ShaderConfigTest::parse_invalid13() { // more than one uniforms object
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error &msg) {
+		cout << msg.what() << endl;
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+	cout << PASS_MSG << endl;
+	return true;
 }
 bool ShaderConfigTest::parse_invalid15() { // uniforms with the same name
 	string json_str = R"(
@@ -164,11 +176,16 @@ bool ShaderConfigTest::parse_invalid15() { // uniforms with the same name
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error &msg) {
+		cout << msg.what() << endl;
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+	cout << PASS_MSG << endl;
+	return true;
 }
 bool ShaderConfigTest::parse_invalid12() { // buffers with the same name
 	string json_str = R"(
@@ -202,11 +219,16 @@ bool ShaderConfigTest::parse_invalid12() { // buffers with the same name
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error &msg) {
+		cout << msg.what() << endl;
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+	cout << PASS_MSG << endl;
+	return true;
 }
 bool ShaderConfigTest::parse_invalid11() { // incorrect uniform value
 	string json_str = R"(
@@ -235,11 +257,16 @@ bool ShaderConfigTest::parse_invalid11() { // incorrect uniform value
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error &msg) {
+		cout << msg.what() << endl;
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+	cout << PASS_MSG << endl;
+	return true;
 }
 bool ShaderConfigTest::parse_invalid10() { // incorrect uniform value
 	string json_str = R"(
@@ -268,11 +295,16 @@ bool ShaderConfigTest::parse_invalid10() { // incorrect uniform value
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error &msg) {
+		cout << msg.what() << endl;
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+	cout << PASS_MSG << endl;
+	return true;
 }
 bool ShaderConfigTest::parse_invalid9() { // FFT_SMOOTH out of range
 	string json_str = R"(
@@ -301,11 +333,16 @@ bool ShaderConfigTest::parse_invalid9() { // FFT_SMOOTH out of range
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error &msg) {
+		cout << msg.what() << endl;
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+	cout << PASS_MSG << endl;
+	return true;
 }
 bool ShaderConfigTest::parse_invalid8() { // too many clear color values
 	string json_str = R"(
@@ -334,11 +371,16 @@ bool ShaderConfigTest::parse_invalid8() { // too many clear color values
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error &msg) {
+		cout << msg.what() << endl;
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+	cout << PASS_MSG << endl;
+	return true;
 }
 bool ShaderConfigTest::parse_invalid7() { // empty buffer name
 	string json_str = R"(
@@ -367,11 +409,16 @@ bool ShaderConfigTest::parse_invalid7() { // empty buffer name
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error &msg) {
+		cout << msg.what() << endl;
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+	cout << PASS_MSG << endl;
+	return true;
 }
 bool ShaderConfigTest::parse_invalid6() { // incorrect buffer.size
 	string json_str = R"(
@@ -400,11 +447,16 @@ bool ShaderConfigTest::parse_invalid6() { // incorrect buffer.size
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error &msg) {
+		cout << msg.what() << endl;
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+	cout << PASS_MSG << endl;
+	return true;
 }
 bool ShaderConfigTest::parse_invalid5() { // incorrect buffer.size
 	string json_str = R"(
@@ -433,11 +485,16 @@ bool ShaderConfigTest::parse_invalid5() { // incorrect buffer.size
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error &msg) {
+		cout << msg.what() << endl;
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+	cout << PASS_MSG << endl;
+	return true;
 }
 bool ShaderConfigTest::parse_invalid4() { // missing buffer.size
 	string json_str = R"(
@@ -465,11 +522,16 @@ bool ShaderConfigTest::parse_invalid4() { // missing buffer.size
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error &msg) {
+		cout << msg.what() << endl;
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+	cout << PASS_MSG << endl;
+	return true;
 }
 bool ShaderConfigTest::parse_invalid2() { // missing FFT_SYNC option
 	string json_str = R"(
@@ -489,11 +551,16 @@ bool ShaderConfigTest::parse_invalid2() { // missing FFT_SYNC option
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error &msg) {
+		cout << msg.what() << endl;
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+	cout << PASS_MSG << endl;
+	return true;
 }
 bool ShaderConfigTest::parse_valid4() { // mBuffers only contains buffers referenced in render_order
 	string json_str = R"(
@@ -557,23 +624,23 @@ bool ShaderConfigTest::parse_valid4() { // mBuffers only contains buffers refere
 	mock_conf.mImage.geom_iters = 1;
 	mock_conf.mImage.clear_color = {0.f, 0.f, 0.f};
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-
-	if (!is_ok)
-		return false;
-
-	is_ok = compare(conf, mock_conf);
-	if (!is_ok) {
-		cout << "EXPECTED" << endl;
-		cout << mock_conf << endl << endl;
-		cout << "RETURNED" << endl;
-		cout << conf << endl << endl;
+	try {
+		ShaderConfig conf(json_str);
+		if (!compare(conf, mock_conf)) {
+			cout << "EXPECTED" << endl;
+			cout << mock_conf << endl << endl;
+			cout << "RETURNED" << endl;
+			cout << conf << endl << endl;
+			throw;
+		}
 	}
-
-	if (!is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return is_ok;
+	catch (runtime_error &msg) {
+		cout << msg.what() << endl;
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+	cout << PASS_MSG << endl;
+	return true;
 }
 bool ShaderConfigTest::parse_valid3() {
 	string json_str = R"(
@@ -610,23 +677,23 @@ bool ShaderConfigTest::parse_valid3() {
 	mock_conf.mImage.clear_color = {0.f, 0.f, 0.f};
 	mock_conf.mImage.is_window_size = true;
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-
-	if (!is_ok)
-		return false;
-
-	is_ok = compare(conf, mock_conf);
-	if (!is_ok) {
-		cout << "EXPECTED" << endl;
-		cout << mock_conf << endl << endl;
-		cout << "RETURNED" << endl;
-		cout << conf << endl << endl;
+	try {
+		ShaderConfig conf(json_str);
+		if (!compare(conf, mock_conf)) {
+			cout << "EXPECTED" << endl;
+			cout << mock_conf << endl << endl;
+			cout << "RETURNED" << endl;
+			cout << conf << endl << endl;
+			throw;
+		}
 	}
-
-	if (!is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return is_ok;
+	catch (runtime_error &msg) {
+		cout << msg.what() << endl;
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+	cout << PASS_MSG << endl;
+	return true;
 }
 bool ShaderConfigTest::parse_valid2() {
 	string json_str = R"(
@@ -673,23 +740,23 @@ bool ShaderConfigTest::parse_valid2() {
 	mock_conf.mImage.geom_iters = 1;
 	mock_conf.mImage.clear_color = {0.f, 0.f, 0.f};
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-
-	if (!is_ok)
-		return false;
-
-	is_ok = compare(conf, mock_conf);
-	if (!is_ok) {
-		cout << "EXPECTED" << endl;
-		cout << mock_conf << endl << endl;
-		cout << "RETURNED" << endl;
-		cout << conf << endl << endl;
+	try {
+		ShaderConfig conf(json_str);
+		if (!compare(conf, mock_conf)) {
+			cout << "EXPECTED" << endl;
+			cout << mock_conf << endl << endl;
+			cout << "RETURNED" << endl;
+			cout << conf << endl << endl;
+			throw;
+		}
 	}
-
-	if (!is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return is_ok;
+	catch (runtime_error &msg) {
+		cout << msg.what() << endl;
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+	cout << PASS_MSG << endl;
+	return true;
 }
 
 bool ShaderConfigTest::parse_valid1() {
@@ -750,23 +817,23 @@ bool ShaderConfigTest::parse_valid1() {
 	mock_conf.mImage.geom_iters = 1;
 	mock_conf.mImage.clear_color = {0.f, 0.f, 0.f};
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-
-	if (!is_ok)
-		return false;
-
-	is_ok = compare(conf, mock_conf);
-	if (!is_ok) {
-		cout << "EXPECTED" << endl;
-		cout << mock_conf << endl << endl;
-		cout << "RETURNED" << endl;
-		cout << conf << endl << endl;
+	try {
+		ShaderConfig conf(json_str);
+		if (!compare(conf, mock_conf)) {
+			cout << "EXPECTED" << endl;
+			cout << mock_conf << endl << endl;
+			cout << "RETURNED" << endl;
+			cout << conf << endl << endl;
+			throw;
+		}
 	}
-
-	if (!is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return is_ok;
+	catch (runtime_error &msg) {
+		cout << msg.what() << endl;
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+	cout << PASS_MSG << endl;
+	return true;
 }
 
 bool ShaderConfigTest::test() {
@@ -828,7 +895,7 @@ bool ShaderConfigTest::test() {
 
 // Convenience operators
 
-std::ostream& operator<<(std::ostream& os, const Buffer& o) {
+static std::ostream& operator<<(std::ostream& os, const Buffer& o) {
 	os << std::boolalpha;
 	os << "name   : " << o.name << std::endl;
 	os << "width  : " << o.width << std::endl;
@@ -837,7 +904,7 @@ std::ostream& operator<<(std::ostream& os, const Buffer& o) {
 	return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const AudioOptions& o) {
+static std::ostream& operator<<(std::ostream& os, const AudioOptions& o) {
 	os << std::boolalpha;
 	os << "diff_sync   : " << o.diff_sync << std::endl;
 	os << "fft_sync    : " << o.fft_sync << std::endl;
@@ -846,7 +913,7 @@ std::ostream& operator<<(std::ostream& os, const AudioOptions& o) {
 	return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const Uniform& o) {
+static std::ostream& operator<<(std::ostream& os, const Uniform& o) {
 	os << "name	 : " << o.name << std::endl;
 	os << "values = {";
 	for (int i = 0; i < o.values.size(); ++i)
@@ -855,7 +922,7 @@ std::ostream& operator<<(std::ostream& os, const Uniform& o) {
 	return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const ShaderConfig& o) {
+static std::ostream& operator<<(std::ostream& os, const ShaderConfig& o) {
 	os << o.mAudio_ops << endl;
 
 	for (int i = 0; i < o.mBuffers.size(); ++i)
@@ -874,14 +941,14 @@ std::ostream& operator<<(std::ostream& os, const ShaderConfig& o) {
 	return os;
 }
 
-bool operator==(const AudioOptions& l, const AudioOptions& o) {
+static bool operator==(const AudioOptions& l, const AudioOptions& o) {
 	return l.fft_sync == o.fft_sync &&
 		l.diff_sync == o.diff_sync &&
 		l.fft_smooth == o.fft_smooth &&
 		l.wave_smooth == o.wave_smooth;
 }
 
-bool operator==(const Buffer& l, const Buffer& o) {
+static bool operator==(const Buffer& l, const Buffer& o) {
 	return l.name == o.name &&
 		l.width == o.width &&
 		l.height == o.height &&
@@ -890,7 +957,7 @@ bool operator==(const Buffer& l, const Buffer& o) {
 		l.clear_color == o.clear_color;
 }
 
-bool operator==(const Uniform& l, const Uniform& o) {
+static bool operator==(const Uniform& l, const Uniform& o) {
 	return l.name == o.name &&
 		l.values == o.values;
 }

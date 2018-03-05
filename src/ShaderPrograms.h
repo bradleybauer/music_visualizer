@@ -29,7 +29,7 @@
 class ShaderPrograms {
 public:
 	static const int num_builtin_uniforms = 10;
-	ShaderPrograms(const ShaderConfig& config, filesys::path shader_folder, bool& is_ok);
+	ShaderPrograms(const ShaderConfig& config, filesys::path shader_folder);
 	ShaderPrograms& operator=(ShaderPrograms&&);
 	~ShaderPrograms();
 
@@ -43,7 +43,7 @@ private:
 
 	bool compile_shader(const GLchar* s, GLuint& sn, GLenum stype);
 	bool link_program(GLuint& pn, GLuint vs, GLuint gs, GLuint fs);
-	bool compile_buffer_shaders(const filesys::path& shader_folder, const std::string& buff_name, const std::string& uniform_header);
+	void compile_buffer_shaders(const filesys::path& shader_folder, const std::string& buff_name, const std::string& uniform_header);
 
 	std::vector<GLuint> mPrograms;
 	std::vector<std::vector<GLint>> mUniformLocs;

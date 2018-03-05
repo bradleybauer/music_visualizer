@@ -4,7 +4,7 @@
 
 class WavAudioStream : public AudioStream {
 public:
-	WavAudioStream(const filesys::path &wav_path, bool &is_ok);
+	WavAudioStream(const filesys::path & wav_path);
 	~WavAudioStream();
 	void get_next_pcm(float* buff_l, float* buff_r, int buff_size);
 	int get_sample_rate();
