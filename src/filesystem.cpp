@@ -3,10 +3,6 @@ using namespace filesys;
 
 static const char sep = '/';
 
-path::path() : rep(std::string(""))
-{
-}
-
 path::path(const std::string& path) : rep(path)
 {
 	// Store path without trailing separators
