@@ -19,8 +19,10 @@ namespace chrono = std::chrono;
 // FFT computation library needs aligned memory
 #ifdef WINDOWS
 #define Aligned_Alloc(align, sz) _aligned_malloc(sz, align)
+#define Aligned_Free(ptr) _aligned_free(ptr)
 #else
 #define Aligned_Alloc(align, sz) aligned_alloc(align, sz)
+#define Aligned_Free(ptr) free(ptr)
 #endif
 
 //- Constants
@@ -337,11 +339,11 @@ public:
 
 	//- Constructor
 	// audio_processor owns the memory it allocates here.
-	audio_processor(struct audio_data* _audio_sink, AudioStream *_audio_stream)
+	audio_processor(struct audio_data* _audio_sink, AudioStream &_audio_stream)
 					: audio_sink(_audio_sink), audio_stream(_audio_stream) {
-		if (_audio_stream->get_sample_rate() != 48e3) {
+		if (_audio_stream.get_sample_rate() != int(48e3)) {
 			cout << "The audio processor is meant to consume 48000hz audio but the given audio stream produces "
-			     << _audio_stream->get_sample_rate() << "hz audio." << endl;
+			     << _audio_stream.get_sample_rate() << "hz audio." << endl;
 			exit(1);
 		}
 		//- Internal audio buffers
@@ -413,10 +415,10 @@ public:
 		free(staging_buff_l);
 		free(staging_buff_r);
 
-		free(fft_inl);
-		free(fft_inr);
-		free(fft_outl);
-		free(fft_outl);
+		Aligned_Free(fft_inl);
+		Aligned_Free(fft_inr);
+		Aligned_Free(fft_outl);
+		Aligned_Free(fft_outr);
 		free(FFTwindow);
 
 		#ifdef DIFFERENCE_SYNC
@@ -511,7 +513,7 @@ public:
 		// on windows and on linux.
 		// TODO On windows this can prevent the app from closing if the music is paused.
 		//auto perf_timepoint = Clock::now();
-		audio_stream->get_next_pcm(audio_buff_l+writer, audio_buff_r+writer, ABL);
+		audio_stream.get_next_pcm(audio_buff_l+writer, audio_buff_r+writer, ABL);
 		//double dt = (Clock::now() - perf_timepoint).count() / 1e9;
 		//summmm += dt;
 		//cout << summmm/(frame_id_l +1)<< endl;
@@ -646,6 +648,6 @@ private:
 	float max_amplitude_so_far = 0.;
 
 	struct audio_data* audio_sink;
-	AudioStream* audio_stream;
+	AudioStream & audio_stream;
 	// -/
 };
