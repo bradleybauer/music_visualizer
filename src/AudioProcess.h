@@ -10,6 +10,7 @@ namespace chrono = std::chrono;
 #include <mutex>
 #include <cmath> // std::abs
 #include <complex>
+#include <string.h>
 using std::complex;
 
 // TODO make the thread functionality builtin?
@@ -44,7 +45,7 @@ struct audio_data {
 static const int ABL = 512;               // length of the system audio capture buffer (in frames)
 static const int ABN = 16;                // number of system audio capture buffers to keep
 static const int TBL = ABL * ABN;         // total audio buffer length. length of all ABN buffers combined (in frames)
-static const int FFTLEN = TBL / 2;        
+static const int FFTLEN = TBL / 2;
 static const int VL = VISUALIZER_BUFSIZE; // length of visualizer 1D texture buffers. Length of audio data that this module 'outputs' (in frames)
 static const int C = 2;                   // channel count of audio
 static const int SR = 48000;              // sample rate of the audio stream
@@ -253,8 +254,14 @@ private:
 template<typename Clock>
 AudioProcess<Clock>::AudioProcess(AudioStream & _audio_stream) : audio_stream(_audio_stream), audio_sink() {
 	if (audio_stream.get_sample_rate() != int(48e3)) {
-		cout << "The audio processor is meant to consume 48000hz audio but the given audio stream produces "
+		cout << "The AudioProcess is meant to consume 48000hz audio but the given AudioStream produces "
 			 << audio_stream.get_sample_rate() << "hz audio." << endl;
+		exit(1);
+	}
+	if (audio_stream.get_max_buff_size() < ABL) {
+		cout << "AudioProcess needs at least " << ABL << " frames per call to get_next_pcm"
+			 << " but the given AudioStream only provides " << audio_stream.get_max_buff_size()
+			 << "." << endl;
 		exit(1);
 	}
 
@@ -403,7 +410,7 @@ inline void AudioProcess<Clock>::step() {
 	//cout << summmm/(frame_id_l +1)<< endl;
 
 	//fps(now);
-	now = typename Clock::now();
+	now = Clock::now();
 	// We want to use next += dura(1/freq) in the loop below and not next = now + dura(1/freq) because ... TODO,
 	// BUT if now >> next, then we probably were stalled in audio_stream.get_next_pcm and should update the next times
 	if (now - next_l > chrono::milliseconds(17*4)) { // less than 60/2/2 fps
@@ -700,6 +707,6 @@ inline typename Clock::duration AudioProcess<Clock>::dura(float x) {
 	// time for Clock and with the appropriate arithematic type
 	// using dura() avoids errors like this : chrono::seconds(double initializer)
 	// dura() : <double,seconds> -> chrono::steady_clock::<typeof count(), time unit>
-	return chrono::duration_cast<Clock::duration>(
+	return chrono::duration_cast<typename Clock::duration>(
 			chrono::duration<float, std::ratio<1>>(x));
 }

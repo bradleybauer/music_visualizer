@@ -5,8 +5,8 @@ namespace filesys {
     class path {
     public:
 		path() = default;
-        path(const std::string& path);
-		path(const char* path) : path(std::string(path)) {};
+		path(const std::string& path);
+		path(const char* path) : filesys::path::path(std::string(path)) {};
 
 		std::string string() const;
 		path extension() const;

@@ -86,6 +86,8 @@ WavAudioStream::WavAudioStream(const filesys::path &wav_path) {
 	for (int i = 0; i < samples_count; ++i) {
 		fin.read((char*)&buf_interlaced[i], sample_size);
 	}
+
+	// TODO do not load the whole file to memory
 }
 
 WavAudioStream::~WavAudioStream() {
@@ -101,4 +103,8 @@ void WavAudioStream::get_next_pcm(float * buff_l, float * buff_r, int buff_size)
 
 int WavAudioStream::get_sample_rate() {
 	return sample_rate;
+}
+
+int WavAudioStream::get_max_buff_size() {
+	return max_buff_size;
 }

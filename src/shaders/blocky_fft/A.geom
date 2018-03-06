@@ -20,14 +20,14 @@ void main() {
 
 	n+=width/4.;
 
-        float stretch = 100.;
-        float f = integ(pow(stretch, n-1.)-(1.-n)/stretch);
+	float stretch = 100.;
+	float f = integ(pow(stretch, n-1.)-(1.-n)/stretch);
 
 	// LOG
-	// vec2 p = vec2(n*2.-1., log(40.*f+0.002)/6.+.5);
+	vec2 p = vec2(n*2.-1., log(40.*f)/4.+.4);
 
 	// SQRT
-	vec2 p = vec2(n*2.-1., .5*sqrt(f));
+	// vec2 p = vec2(n*2.-1., .5*sqrt(f));
 
 	// NORMAL FFT
 	// p = vec2(n*2.-1., .5*f-1.);

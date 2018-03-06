@@ -19,7 +19,11 @@ using std::runtime_error;
 #include "Renderer.h"
 
 #include "AudioProcess.h"
+#ifdef WINDOWS
 #include "WindowsAudioStream.h"
+#else
+#include "LinuxAudioProvider.h"
+#endif
 
 #if defined(WINDOWS) && defined(DEBUG)
 int WinMain() {
@@ -63,7 +67,11 @@ int main(int argc, char* argv[]) {
 		shader_config = new ShaderConfig(json_path);
 		window = new Window(shader_config->mInitWinSize.width, shader_config->mInitWinSize.height);
 		shader_programs = new ShaderPrograms(*shader_config, shader_folder);
+#ifdef WINDOWS
 		as = new WindowsAudioStream();
+#else
+		as = new LinuxAudioStream();
+#endif
 	}
 	catch (runtime_error &msg) {
 		cout << msg.what() << endl;

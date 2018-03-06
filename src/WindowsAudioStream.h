@@ -13,9 +13,11 @@ public:
 	~WindowsAudioStream();
 	void get_next_pcm(float* buff_l, float* buff_r, int buff_size);
 	int get_sample_rate();
+	int get_max_buff_size();
 
 private:
 	int sample_rate;
+	const int max_buff_size = 512;
 
 	IAudioClient* m_pAudioClient = NULL;
 	IAudioCaptureClient* m_pCaptureClient = NULL;
