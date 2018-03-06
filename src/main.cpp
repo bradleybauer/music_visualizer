@@ -19,7 +19,6 @@ using std::runtime_error;
 #include "ShaderPrograms.h"
 #include "Renderer.h"
 
-#include "audio_data.h"
 #include "audio_process.h"
 #include "WindowsAudioStream.h"
 
@@ -75,10 +74,8 @@ int main(int argc, char* argv[]) {
 	Renderer renderer(*shader_config, *shader_programs, *window);
 	cout << "Successfully compiled shaders." << endl;
 
-	struct audio_data my_audio_data;
-	my_audio_data.thread_join = false;
-	audio_processor<steady_clock> ap(&my_audio_data, *as);
-	std::thread audioThread(&audio_processor<steady_clock>::loop, ap);
+	audio_processor<steady_clock> ap(*as);
+	std::thread audioThread(&audio_processor<steady_clock>::loop, &ap);
 	// TODO implement "disable_audio" option in shader.json
 
 	auto update_shaders = [&]() {
@@ -101,17 +98,14 @@ int main(int argc, char* argv[]) {
 	while (window->is_alive()) {
 		if (watcher.files_changed())
 			update_shaders();
-
 		auto now = steady_clock::now();
-
-		renderer.update(&my_audio_data);
+		renderer.update(ap);
 		renderer.render();
 		window->swap_buffers();
 		window->poll_events();
-
 		std::this_thread::sleep_for(std::chrono::milliseconds(16) - (steady_clock::now() - now));
 	}
-	my_audio_data.thread_join = true;
+	ap.stop();
 	//audioThread.join(); // I would like to exit the program the right way, but sometimes this blocks due to the windows audio system.
 	exit(0);
 }

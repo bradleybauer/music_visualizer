@@ -7,12 +7,13 @@ using std::cout; using std::endl;
 #include <chrono>
 namespace chrono = std::chrono;
 #include <functional>
-#include <thread>
 #include <limits> // numeric_limits<T>::infinity()
 #include <cmath>
+#include <mutex>
+
+// TODO make the thread functionality builtin?
 
 #include "AudioStream.h"
-#include "audio_data.h"
 #include "ffts.h"
 // -/
 
@@ -24,6 +25,16 @@ namespace chrono = std::chrono;
 #define Aligned_Alloc(align, sz) aligned_alloc(align, sz)
 #define Aligned_Free(ptr) free(ptr)
 #endif
+
+const int VISUALIZER_BUFSIZE = 1024;
+struct audio_data {
+	float* audio_l;
+	float* audio_r;
+	float* freq_l;
+	float* freq_r;
+	bool thread_join;
+	std::mutex mtx;
+};
 
 //- Constants
 //
@@ -339,11 +350,10 @@ public:
 
 	//- Constructor
 	// audio_processor owns the memory it allocates here.
-	audio_processor(struct audio_data* _audio_sink, AudioStream &_audio_stream)
-					: audio_sink(_audio_sink), audio_stream(_audio_stream) {
-		if (_audio_stream.get_sample_rate() != int(48e3)) {
+	audio_processor(AudioStream &_audio_stream) : audio_stream(_audio_stream), audio_sink() {
+		if (audio_stream.get_sample_rate() != int(48e3)) {
 			cout << "The audio processor is meant to consume 48000hz audio but the given audio stream produces "
-			     << _audio_stream.get_sample_rate() << "hz audio." << endl;
+			     << audio_stream.get_sample_rate() << "hz audio." << endl;
 			exit(1);
 		}
 		//- Internal audio buffers
@@ -359,10 +369,10 @@ public:
 		#endif
 
 		//- Output buffers
-		audio_sink->audio_l = (float*)calloc(VL, sizeof(float));
-		audio_sink->audio_r = (float*)calloc(VL, sizeof(float));
-		audio_sink->freq_l = (float*)calloc(VL, sizeof(float));
-		audio_sink->freq_r = (float*)calloc(VL, sizeof(float));
+		audio_sink.audio_l = (float*)calloc(VL, sizeof(float));
+		audio_sink.audio_r = (float*)calloc(VL, sizeof(float));
+		audio_sink.freq_l = (float*)calloc(VL, sizeof(float));
+		audio_sink.freq_r = (float*)calloc(VL, sizeof(float));
 		// -/
 
 		//- Smoothing buffers
@@ -406,10 +416,11 @@ public:
 
 	//- Destructor
 	~audio_processor() {
-		free(audio_sink->audio_l);
-		free(audio_sink->audio_r);
-		free(audio_sink->freq_l);
-		free(audio_sink->freq_r);
+		audio_sink.thread_join = true;
+		free(audio_sink.audio_l);
+		free(audio_sink.audio_r);
+		free(audio_sink.freq_l);
+		free(audio_sink.freq_r);
 		free(audio_buff_l);
 		free(audio_buff_r);
 		free(staging_buff_l);
@@ -503,7 +514,7 @@ public:
 
 	//- Audio loop
 	int loop() {
-		while (!audio_sink->thread_join) {
+		while (!audio_sink.thread_join) {
 			step();
 		}
 		return 0;
@@ -570,14 +581,14 @@ public:
 			ffts_execute(fft_plan, fft_inr, fft_outr);
 			// TODO fft magnitudes are different between windows and linux
 			for (int i = 0; i < VL; i++) {
-				audio_sink->freq_l[i] = mag(fft_outl, i)/std::sqrt(float(FFTLEN));
-				audio_sink->freq_r[i] = mag(fft_outr, i)/std::sqrt(float(FFTLEN));
+				audio_sink.freq_l[i] = mag(fft_outl, i)/std::sqrt(float(FFTLEN));
+				audio_sink.freq_r[i] = mag(fft_outr, i)/std::sqrt(float(FFTLEN));
 			}
 		}
 		// -/
 
 		//- Fill output buffers
-		audio_sink->mtx.lock();
+		audio_sink.mtx.lock();
 
 		// Smooth and upsample the wave
 		for (int i = 0; i < VL; ++i) {
@@ -586,30 +597,38 @@ public:
 			newl = staging_buff_l[i];
 			newr = staging_buff_r[i];
 
-			oldl = audio_sink->audio_l[i];
-			oldr = audio_sink->audio_r[i];
+			oldl = audio_sink.audio_l[i];
+			oldr = audio_sink.audio_r[i];
 
 			mixl = mix(oldl, newl, smoother);
 			mixr = mix(oldr, newr, smoother);
 
 			//*
-			audio_sink->audio_l[i] = mixl;
-			audio_sink->audio_r[i] = mixr;
+			audio_sink.audio_l[i] = mixl;
+			audio_sink.audio_r[i] = mixr;
 			/*/
 			// View the input audio
-			//audio_sink->audio_l[i] = audio_buff_l[(i + reader_l)%TBL]/channel_max_l;
-			//audio_sink->audio_r[i] = audio_buff_r[(i + reader_r)%TBL]/channel_max_r;
+			//audio_sink.audio_l[i] = audio_buff_l[(i + reader_l)%TBL]/channel_max_l;
+			//audio_sink.audio_r[i] = audio_buff_r[(i + reader_r)%TBL]/channel_max_r;
 			// View the history frames used in difference_sync
-			//audio_sink->audio_l[i] = prev_buff_l[(frame_id_l + HISTORY_NUM_FRAMES - 1)%HISTORY_NUM_FRAMES][i/2];
-			//audio_sink->audio_r[i] = prev_buff_r[(frame_id_r + HISTORY_NUM_FRAMES - 1)%HISTORY_NUM_FRAMES][i/2];
+			//audio_sink.audio_l[i] = prev_buff_l[(frame_id_l + HISTORY_NUM_FRAMES - 1)%HISTORY_NUM_FRAMES][i/2];
+			//audio_sink.audio_r[i] = prev_buff_r[(frame_id_r + HISTORY_NUM_FRAMES - 1)%HISTORY_NUM_FRAMES][i/2];
 			// */
 		}
 
-		audio_sink->mtx.unlock();
+		audio_sink.mtx.unlock();
 		// -/
 
 	}
 	// -/
+
+	audio_data& get_audio_data() {
+		return audio_sink;
+	}
+
+	void stop() {
+		audio_sink.thread_join = true;
+	}
 
 private:
 	//- Members
@@ -647,7 +666,7 @@ private:
 
 	float max_amplitude_so_far = 0.;
 
-	struct audio_data* audio_sink;
+	struct audio_data audio_sink;
 	AudioStream & audio_stream;
 	// -/
 };

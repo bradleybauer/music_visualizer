@@ -6,7 +6,7 @@
 #include "ShaderConfig.h"
 #include "ShaderPrograms.h"
 
-#include "audio_data.h"
+#include "audio_process.h"
 
 class Renderer {
 public:
@@ -14,7 +14,8 @@ public:
 	Renderer& operator=(Renderer&& o);
 	~Renderer();
 
-	void update(struct audio_data* audio_source);
+	void update(audio_processor<chrono::steady_clock> &processor);
+	void update();
 	void render();
 
 private:

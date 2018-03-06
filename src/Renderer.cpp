@@ -95,7 +95,7 @@ Renderer::~Renderer() {
 	// Textures in texs are unboud from their targets
 }
 
-void Renderer::update(audio_data * audio_source) {
+void Renderer::update(audio_processor<std::chrono::steady_clock> &processor) {
 	// Update audio textures
 	// glActivateTexture activates a certain texture unit.
 	// each texture unit holds one texture of each dimension of texture
@@ -108,17 +108,22 @@ void Renderer::update(audio_data * audio_source) {
 	// bound to the same target (in the active unit? I think), or until the bound texture is deleted
 	// with glDeleteTextures. So I do not need to rebind
 	// glBindTexture(GL_TEXTURE_1D, tex[X]);
-	audio_source->mtx.lock();
+	audio_data &data = processor.get_audio_data();
+	data.mtx.lock();
 	glActiveTexture(GL_TEXTURE0 + 0);
-	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, VISUALIZER_BUFSIZE, GL_RED, GL_FLOAT, audio_source->audio_r);
+	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, VISUALIZER_BUFSIZE, GL_RED, GL_FLOAT, data.audio_r);
 	glActiveTexture(GL_TEXTURE0 + 1);
-	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, VISUALIZER_BUFSIZE, GL_RED, GL_FLOAT, audio_source->audio_l);
+	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, VISUALIZER_BUFSIZE, GL_RED, GL_FLOAT, data.audio_l);
 	glActiveTexture(GL_TEXTURE0 + 2);
-	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, VISUALIZER_BUFSIZE, GL_RED, GL_FLOAT, audio_source->freq_r);
+	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, VISUALIZER_BUFSIZE, GL_RED, GL_FLOAT, data.freq_r);
 	glActiveTexture(GL_TEXTURE0 + 3);
-	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, VISUALIZER_BUFSIZE, GL_RED, GL_FLOAT, audio_source->freq_l);
-	audio_source->mtx.unlock();
+	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, VISUALIZER_BUFSIZE, GL_RED, GL_FLOAT, data.freq_l);
+	data.mtx.unlock();
 
+	update();
+}
+
+void Renderer::update() {
 	if (window.size_changed) {
 		// Resize textures for window sized buffers
 		for (int i = 0; i < config.mBuffers.size(); ++i) {
