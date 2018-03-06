@@ -1,5 +1,5 @@
 {
-    "initial_window_size":[300,300],
+    "initial_window_size":[600,200],
     // Please use only valid glsl names for buffers and uniforms
     // Please do not specify options more than once
 
@@ -17,15 +17,23 @@
             // Buffer will have the same size as the window size
             "size": "window_size",
             // How many times the geometry shader will execute
-            "geom_iters":80,
+            "geom_iters":60,
             // RGB values from the interval [0, 1]
             /// Default is [0,0,0]
             "clear_color":[0, 0, 0]
         }
     },
 
+    "audio_options": {
+        "audio_enabled":true,
+        "fft_sync":false,
+        "diff_sync":false,
+        "wave_smooth":0.0,
+        "fft_smooth":0.0 // not implemented yet
+    },
+
     // Do you want glEnable(GL_BLEND) ?
     // blend func (srcAlpha, 1-srcAlpha)
     // Default is false
-    "blend":false,
+    "blend":false
 }

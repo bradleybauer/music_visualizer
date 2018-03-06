@@ -2,6 +2,17 @@ layout(triangle_strip, max_vertices=24) out;
 
 out vec2 P;
 
+float integ(float x) {
+    float f = texture(iFreqL, x).r*2.;
+    f += texture(iFreqL, x+1./2048.).r*.5;
+    f += texture(iFreqL, x-1./2048.).r*.5;
+    f += texture(iFreqL, x+2./2048.).r*.5;
+    f += texture(iFreqL, x-2./2048.).r*.5;
+    f += texture(iFreqL, x+3./2048.).r*.5;
+    f += texture(iFreqL, x-3./2048.).r*.5;
+    return f/5.;
+}
+
 void main() {
 	float n = iGeomIter/iNumGeomIters;
 
@@ -9,10 +20,17 @@ void main() {
 
 	n+=width/4.;
 
-        float f = 10.*texture(iFreqL, n).r;
-	float s0 = f;
+        float stretch = 100.;
+        float f = integ(pow(stretch, n-1.)-(1.-n)/stretch);
 
-	vec2 p = vec2(n*2.-1., s0);
+	// LOG
+	// vec2 p = vec2(n*2.-1., log(40.*f+0.002)/6.+.5);
+
+	// SQRT
+	vec2 p = vec2(n*2.-1., .5*sqrt(f));
+
+	// NORMAL FFT
+	// p = vec2(n*2.-1., .5*f-1.);
 
         float height = .5;
 	gl_Position = vec4(p.x        , -1.   , 0., 1.);

@@ -58,8 +58,8 @@ void main() {
 	intensity = .1;
 	min_intensity = .01;
 
-	float sr0 = texture(iSoundL, t0).r;
-	float sr1 = texture(iSoundL, t1).r;
+	float sr0 = texture(iSoundR, t0).r;
+	float sr1 = texture(iSoundR, t1).r;
 	vec2 P0 = vec2(t0*2.-1., sr0);
 	vec2 P1 = vec2(t1*2.-1., sr1);
 	quad(P0, P1, width);

@@ -1,6 +1,6 @@
 float f(float x) {
 	x /= 3.;
-	return 6.*texture(iFreqL, x).r;
+	return .3*texture(iFreqL, x).r;
 }
 
 #define SPIRAL
@@ -12,9 +12,6 @@ out vec4 C;
 
 // vec4 fg = vec4(248./256.,73./256.,52./256.,1.);
 // vec4 bg = .3*vec4(77./256., 94./256., 95./256., 1.);
-
-// vec4 fg = vec4(221./256.,249./256.,30./256.,1.);
-// vec4 bg = vec4(246./256., 69./256., 114./256., 1.);
 
 vec4 fg = vec4(1);
 vec4 bg = vec4(0);
