@@ -1,24 +1,20 @@
 #pragma once
 
-#include <iostream>
 #include <string>
 #include <sstream>
 #include <fstream>
 #include "filesystem.h"
+#include <stdexcept>
 
 class JsonFileReader {
 public:
-	static std::string read(filesys::path json_path) {
+	static std::string read(const filesys::path &json_path) {
+		if (! filesys::exists(json_path))
+			throw std:: runtime_error(json_path.string() + " does not exist");
 		std::ifstream json_file(json_path.string());
 		std::stringstream json_str;
 		std::string line;
 		while (std::getline(json_file, line)) {
-
-			// Rapidjson can handle comments
-			//// Delete any line containing a c style comment
-			//if (std::string::npos != line.find("//"))
-			//	continue;
-
 			// TODO
 			// Allow the user to get away with some json comma errors and allow floats to be typed like 0. and .06 instead of 0.0 and 0.06
 

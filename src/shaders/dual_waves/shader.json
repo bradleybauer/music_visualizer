@@ -1,12 +1,14 @@
 {
+	"initial_window_size":[600,400],
 	"image":{
 		"geom_iters":1,
 		"clear_color":[0,0,0]
 	},
 	"audio_options":{
-		"FFT_SMOOTH":0.0,
-		"WAVE_SMOOTH":0.0,
-		"FFT_SYNC":true,
-		"DIFF_SYNC":true
+		"audio_enabled":true,
+		"fft_smooth":0.0, // not implemented yet
+		"wave_smooth":0.7,
+		"fft_sync":true,
+		"diff_sync":true
 	}
 }

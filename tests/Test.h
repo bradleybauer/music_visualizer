@@ -1,9 +1,4 @@
-class Test {
-public:
-	virtual bool test() = 0;
-};
-
-class FilesystemTest : Test {
+class FilesystemTest {
 public:
 	bool test();
 private:
@@ -25,9 +20,15 @@ private:
 	bool extension5();
 	bool extension6();
 	bool extension7();
+	bool extension8();
+	bool extension9();
+	bool extension10();
+	bool extension11();
+	bool extension12();
+	bool extension13();
 };
 
-class AudioProcessTest : Test {
+class AudioUtilityTest {
 public:
 	bool test();
 private:
@@ -36,7 +37,7 @@ private:
 	bool get_harmonic_less_than();
 };
 
-class ShaderConfigTest : Test {
+class ShaderConfigTest {
 public:
 	bool test();
 private:
@@ -60,9 +61,14 @@ private:
 	bool parse_invalid15();
 };
 
+class AudioProcessTest {
+public:
+	bool test();
+};
+
 #include <string>
 static const std::string PASS_MSG("                                                                          Pass");
 static const std::string FAIL_MSG("                                                                          Fail");
 
-// enable default constructors so mock classes are easier to make
+// enable certain default constructors so mock classes are easier to make
 #define TEST

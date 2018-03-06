@@ -16,7 +16,7 @@
             // Buffer will have the same size as the window size
             "size": "window_size",
             // How many times the geometry shader will execute
-            "geom_iters":2048,
+            "geom_iters":1024,
             // RGB values from the interval [0, 1]
             "clear_color":[0, 0, 0]
         },
@@ -32,10 +32,11 @@
     "render_order":["A", "B"],
 
     "audio_options": {
-        "FFT_SYNC":true,
-        "DIFF_SYNC":true,
-        "FFT_SMOOTH":0.5,
-        "WAVE_SMOOTH":0.8
+        "audio_enabled":true,
+        "fft_sync":true,
+        "diff_sync":true,
+        "fft_smooth":0.5, // not implemented yet
+        "wave_smooth":0.8
     },
 
     // Useful for setting colors from external scripts.

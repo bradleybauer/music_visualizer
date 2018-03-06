@@ -1,17 +1,21 @@
 #include <iostream>
-#include <vector>
 using std::cout;
 using std::endl;
+#include <vector>
 using std::vector;
 #include <fstream>
-#include <sstream>
+#include <string>
 using std::string;
+using std::to_string;
+#include <sstream>
 using std::stringstream;
+#include <stdexcept>
+using std::runtime_error;
 
 #include "ShaderConfig.h"
 #include "ShaderPrograms.h"
 
-ShaderPrograms::ShaderPrograms(const ShaderConfig& config, filesys::path shader_folder, bool& is_ok) {
+ShaderPrograms::ShaderPrograms(const ShaderConfig& config, filesys::path shader_folder) {
 	stringstream uniform_header;
 	uniform_header << R"(
 		uniform vec2 iMouse;
@@ -31,28 +35,27 @@ ShaderPrograms::ShaderPrograms(const ShaderConfig& config, filesys::path shader_
 	int num_uniforms = ShaderPrograms::num_builtin_uniforms;
 
 	// Put samplers for user buffers in header
-	for (int i = 0; i < config.mBuffers.size(); ++i) {
-		uniform_header << "uniform sampler2D i" << config.mBuffers[i].name << ";\n";
+	for (auto buff : config.mBuffers) {
+		uniform_header << "uniform sampler2D i" << buff.name << ";\n";
 	}
 	num_uniforms += config.mBuffers.size();
 
 	// Put user's uniforms in header
-	for (int i = 0; i < config.mUniforms.size(); ++i) {
+	for (auto uniform : config.mUniforms) {
 		string type;
-		if (config.mUniforms[i].values.size() == 1) // ShaderConfig ensures size is in [1,4]
+		if (uniform.values.size() == 1) // ShaderConfig ensures size is in [1,4]
 			type = "float";
 		else
-			type = "vec" + std::to_string(config.mUniforms[i].values.size());
+			type = "vec" + to_string(uniform.values.size());
 
-		uniform_header << "uniform " << type << " " << config.mUniforms[i].name << ";\n";
+		uniform_header << "uniform " << type << " " << uniform.name << ";\n";
 	}
 	num_uniforms += config.mUniforms.size();
 	uniform_header << "\n";
 
-	is_ok = true;
-	for (int i = 0; i < config.mBuffers.size(); ++i)
-		is_ok &= compile_buffer_shaders(shader_folder, config.mBuffers[i].name, uniform_header.str());
-	is_ok &= compile_buffer_shaders(shader_folder, "image", uniform_header.str());
+	for (auto buff : config.mBuffers)
+		compile_buffer_shaders(shader_folder, buff.name, uniform_header.str());
+	compile_buffer_shaders(shader_folder, "image", uniform_header.str());
 
 	// get uniform locations for each program
 	for (auto p : mPrograms) {
@@ -96,22 +99,19 @@ void ShaderPrograms::use_program(int i) const {
 	if (i < mPrograms.size())
 		glUseProgram(mPrograms[i]);
 	else
-		cout << "i = " + std::to_string(i) + " is not a program index" << endl;
+		cout << "i = " + to_string(i) + " is not a program index" << endl;
 }
 
 GLint ShaderPrograms::get_uniform_loc(int program_i, int uniform_i) const {
-	if (program_i < mPrograms.size()) {
-		if (uniform_i < mUniformLocs[program_i].size()) {
-			return mUniformLocs[program_i][uniform_i];
-		}
-		else {
-			cout << "uniform_i = " + std::to_string(uniform_i) + " is not a uniform index" << endl;
-		}
+	if (program_i >= mPrograms.size()) {
+		cout << "program_i = " + to_string(program_i) + " is not a program index" << endl;
+		return 0;
 	}
-	else {
-		cout << "program_i = " + std::to_string(program_i) + " is not a program index" << endl;
+	if (uniform_i >= mUniformLocs[program_i].size()) {
+		cout << "uniform_i = " + to_string(uniform_i) + " is not a uniform index" << endl;
+		return 0;
 	}
-	return 0;
+	return mUniformLocs[program_i][uniform_i];
 }
 
 bool ShaderPrograms::compile_shader(const GLchar* s, GLuint& sn, GLenum stype) {
@@ -166,7 +166,9 @@ bool ShaderPrograms::link_program(GLuint& pn, GLuint vs, GLuint gs, GLuint fs) {
 	return true;
 }
 
-bool ShaderPrograms::compile_buffer_shaders(const filesys::path& shader_folder, const string& buff_name, const string& uniform_header) {
+void ShaderPrograms::compile_buffer_shaders(const filesys::path& shader_folder, const string& buff_name, const string& uniform_header) {
+	cout << "Compiling shaders for buffer: " << buff_name << endl;
+
 	filesys::path filepath;
 	std::ifstream shader_file;
 	stringstream geom_str;
@@ -178,40 +180,28 @@ bool ShaderPrograms::compile_buffer_shaders(const filesys::path& shader_folder, 
 	)";
 
 	filepath = filesys::path(shader_folder / (buff_name + ".geom"));
-	if (! filesys::exists(filepath)) {
-		cout << '\t' << "Geometry shader does not exist." << endl;
-		return false;
-	}
-	if (! filesys::is_regular_file(filepath)) {
-		cout << '\t' << buff_name+".geom is not a regular file." << endl;
-		return false;
-	}
+	if (! filesys::exists(filepath))
+		throw runtime_error("\tGeometry shader does not exist.");
+	if (! filesys::is_regular_file(filepath))
+		throw runtime_error("\t" + buff_name + ".geom is not a regular file.");
 	shader_file = std::ifstream(filepath.string());
-	if (! shader_file.is_open()) {
-		cout << '\t' << "Error opening geometry shader." << endl;
-		return false;
-	}
+	if (! shader_file.is_open())
+		throw runtime_error("\tError opening geometry shader.");
 	geom_str << version_header;
 	geom_str << uniform_header;
 	geom_str << string("layout(points) in;\n #define iGeomIter (float(gl_PrimitiveIDIn)) \n");
 	geom_str << shader_file.rdbuf();
-
-	filepath = filesys::path(shader_folder / (buff_name + ".frag"));
-	if (! filesys::exists(filepath)) {
-		cout << '\t' << "Fragment shader does not exist." << endl;
-		return false;
-	}
-	if (! filesys::is_regular_file(filepath)) {
-		cout << '\t' << buff_name+".frag is not a regular file." << endl;
-		return false;
-	}
 	if (shader_file.is_open())
 		shader_file.close();
+
+	filepath = filesys::path(shader_folder / (buff_name + ".frag"));
+	if (! filesys::exists(filepath))
+		throw runtime_error("\tFragment shader does not exist.");
+	if (! filesys::is_regular_file(filepath))
+		throw runtime_error("\t" + buff_name + ".frag is not a regular file.");
 	shader_file = std::ifstream(filepath.string());
-	if (! shader_file.is_open()) {
-		cout << '\t' << "Error opening fragment shader." << endl;
-		return false;
-	}
+	if (! shader_file.is_open())
+		throw runtime_error("\tError opening fragment shader.");
 	frag_str << version_header;
 	frag_str << uniform_header;
 	frag_str << shader_file.rdbuf();
@@ -221,30 +211,20 @@ bool ShaderPrograms::compile_buffer_shaders(const filesys::path& shader_folder, 
 	string vertex_shader = version_header + string("void main(){}");
 	GLuint vs, gs, fs;
 	bool ok = compile_shader(vertex_shader.c_str(), vs, GL_VERTEX_SHADER);
-	if (!ok) {
-		cout << '\t' << "Internal error: vertex shader didn't compile." << endl;
-		return false;
-	}
+	if (!ok)
+		throw runtime_error("\tInternal error: vertex shader didn't compile.");
 	cout << "Compiling " + buff_name + ".geom" << endl;
 	ok = compile_shader(geom_str.str().c_str(), gs, GL_GEOMETRY_SHADER);
-	if (!ok) {
-		cout << '\t' << "Failed to compile geometry shader." << endl;
-		return false;
-	}
+	if (!ok)
+		throw runtime_error("Failed to compile geometry shader.");
 	cout << "Compiling " + buff_name + ".frag" << endl;
 	ok = compile_shader(frag_str.str().c_str(), fs, GL_FRAGMENT_SHADER);
-	if (!ok) {
-		cout << '\t' << "Failed to compile fragment shader." << endl;
-		return false;
-	}
+	if (!ok)
+		throw runtime_error("Failed to compile fragment shader.");
 	GLuint program;
 	ok = link_program(program, vs, gs, fs);
-	if (!ok) {
-		cout << '\t' << "Failed to link program." << endl;
-		return false;
-	}
+	if (!ok)
+		throw runtime_error("Failed to link program.");
 
-	cout << "Done." << endl;
 	mPrograms.push_back(program);
-	return true;
 }

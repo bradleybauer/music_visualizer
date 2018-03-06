@@ -1,8 +1,10 @@
 #include <iostream>
-#include <string>
 using std::cout;
 using std::endl;
+#include <string>
 using std::string;
+#include <stdexcept>
+using std::runtime_error;
 
 // TODO should probably use a testing frame work
 // or think of a better way to add tests to execute. Its a pain to add new tests.
@@ -81,10 +83,11 @@ bool ShaderConfigTest::parse_invalid14() { // more than one render_order object
 			}
 		},
 		"audio_options":{
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"audio_enabled":true,
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order":["mybuff"],
 		"render_order":["mybuff"],
@@ -94,11 +97,16 @@ bool ShaderConfigTest::parse_invalid14() { // more than one render_order object
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error& msg) {
+		cout << msg.what() << endl;
+		cout << PASS_MSG << endl;
+		return true;
+	}
+	cout << FAIL_MSG << endl;
+	return false;
 }
 bool ShaderConfigTest::parse_invalid13() { // more than one uniforms object
 	string json_str = R"(
@@ -115,10 +123,11 @@ bool ShaderConfigTest::parse_invalid13() { // more than one uniforms object
 			}
 		},
 		"audio_options":{
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"audio_enabled":true,
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order":["mybuff"],
 		"uniforms" : {
@@ -130,11 +139,16 @@ bool ShaderConfigTest::parse_invalid13() { // more than one uniforms object
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error& msg) {
+		cout << msg.what() << endl;
+		cout << PASS_MSG << endl;
+		return true;
+	}
+	cout << FAIL_MSG << endl;
+	return false;
 }
 bool ShaderConfigTest::parse_invalid15() { // uniforms with the same name
 	string json_str = R"(
@@ -151,10 +165,11 @@ bool ShaderConfigTest::parse_invalid15() { // uniforms with the same name
 			}
 		},
 		"audio_options":{
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"audio_enabled":true,
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order":["mybuff"],
 		"uniforms" : {
@@ -164,11 +179,16 @@ bool ShaderConfigTest::parse_invalid15() { // uniforms with the same name
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error& msg) {
+		cout << msg.what() << endl;
+		cout << PASS_MSG << endl;
+		return true;
+	}
+	cout << FAIL_MSG << endl;
+	return false;
 }
 bool ShaderConfigTest::parse_invalid12() { // buffers with the same name
 	string json_str = R"(
@@ -190,10 +210,11 @@ bool ShaderConfigTest::parse_invalid12() { // buffers with the same name
 			}
 		},
 		"audio_options":{
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"audio_enabled":true,
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order":["mybuff"],
 		"uniforms" : {
@@ -202,11 +223,16 @@ bool ShaderConfigTest::parse_invalid12() { // buffers with the same name
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error& msg) {
+		cout << msg.what() << endl;
+		cout << PASS_MSG << endl;
+		return true;
+	}
+	cout << FAIL_MSG << endl;
+	return false;
 }
 bool ShaderConfigTest::parse_invalid11() { // incorrect uniform value
 	string json_str = R"(
@@ -223,10 +249,11 @@ bool ShaderConfigTest::parse_invalid11() { // incorrect uniform value
 			}
 		},
 		"audio_options":{
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"audio_enabled":true,
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order":["mybuff"],
 		"uniforms" : {
@@ -235,11 +262,16 @@ bool ShaderConfigTest::parse_invalid11() { // incorrect uniform value
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error& msg) {
+		cout << msg.what() << endl;
+		cout << PASS_MSG << endl;
+		return true;
+	}
+	cout << FAIL_MSG << endl;
+	return false;
 }
 bool ShaderConfigTest::parse_invalid10() { // incorrect uniform value
 	string json_str = R"(
@@ -256,10 +288,11 @@ bool ShaderConfigTest::parse_invalid10() { // incorrect uniform value
 			}
 		},
 		"audio_options":{
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"audio_enabled":true,
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order":["mybuff"],
 		"uniforms" : {
@@ -268,13 +301,18 @@ bool ShaderConfigTest::parse_invalid10() { // incorrect uniform value
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error& msg) {
+		cout << msg.what() << endl;
+		cout << PASS_MSG << endl;
+		return true;
+	}
+	cout << FAIL_MSG << endl;
+	return false;
 }
-bool ShaderConfigTest::parse_invalid9() { // FFT_SMOOTH out of range
+bool ShaderConfigTest::parse_invalid9() { // fft_smooth out of range
 	string json_str = R"(
 	{
 		"image" : {
@@ -289,10 +327,11 @@ bool ShaderConfigTest::parse_invalid9() { // FFT_SMOOTH out of range
 			}
 		},
 		"audio_options":{
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1.2,
-			"WAVE_SMOOTH": 0
+			"audio_enabled":true,
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1.2,
+			"wave_smooth": 0
 		},
 		"render_order":["mybuff"],
 		"uniforms" : {
@@ -301,11 +340,16 @@ bool ShaderConfigTest::parse_invalid9() { // FFT_SMOOTH out of range
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error& msg) {
+		cout << msg.what() << endl;
+		cout << PASS_MSG << endl;
+		return true;
+	}
+	cout << FAIL_MSG << endl;
+	return false;
 }
 bool ShaderConfigTest::parse_invalid8() { // too many clear color values
 	string json_str = R"(
@@ -322,10 +366,11 @@ bool ShaderConfigTest::parse_invalid8() { // too many clear color values
 			}
 		},
 		"audio_options":{
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"audio_enabled":true,
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order":["mybuff"],
 		"uniforms" : {
@@ -334,11 +379,16 @@ bool ShaderConfigTest::parse_invalid8() { // too many clear color values
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error& msg) {
+		cout << msg.what() << endl;
+		cout << PASS_MSG << endl;
+		return true;
+	}
+	cout << FAIL_MSG << endl;
+	return false;
 }
 bool ShaderConfigTest::parse_invalid7() { // empty buffer name
 	string json_str = R"(
@@ -355,10 +405,11 @@ bool ShaderConfigTest::parse_invalid7() { // empty buffer name
 			}
 		},
 		"audio_options":{
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"audio_enabled":true,
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order":["MyBuff"],
 		"uniforms" : {
@@ -367,11 +418,16 @@ bool ShaderConfigTest::parse_invalid7() { // empty buffer name
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error& msg) {
+		cout << msg.what() << endl;
+		cout << PASS_MSG << endl;
+		return true;
+	}
+	cout << FAIL_MSG << endl;
+	return false;
 }
 bool ShaderConfigTest::parse_invalid6() { // incorrect buffer.size
 	string json_str = R"(
@@ -388,10 +444,11 @@ bool ShaderConfigTest::parse_invalid6() { // incorrect buffer.size
 			}
 		},
 		"audio_options":{
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"audio_enabled":true,
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order":["MyBuff"],
 		"uniforms" : {
@@ -400,11 +457,16 @@ bool ShaderConfigTest::parse_invalid6() { // incorrect buffer.size
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error& msg) {
+		cout << msg.what() << endl;
+		cout << PASS_MSG << endl;
+		return true;
+	}
+	cout << FAIL_MSG << endl;
+	return false;
 }
 bool ShaderConfigTest::parse_invalid5() { // incorrect buffer.size
 	string json_str = R"(
@@ -421,10 +483,11 @@ bool ShaderConfigTest::parse_invalid5() { // incorrect buffer.size
 			}
 		},
 		"audio_options":{
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"audio_enabled": true,
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order":["MyBuff"],
 		"uniforms" : {
@@ -433,11 +496,16 @@ bool ShaderConfigTest::parse_invalid5() { // incorrect buffer.size
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error& msg) {
+		cout << msg.what() << endl;
+		cout << PASS_MSG << endl;
+		return true;
+	}
+	cout << FAIL_MSG << endl;
+	return false;
 }
 bool ShaderConfigTest::parse_invalid4() { // missing buffer.size
 	string json_str = R"(
@@ -453,10 +521,11 @@ bool ShaderConfigTest::parse_invalid4() { // missing buffer.size
 			}
 		},
 		"audio_options":{
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"audio_enabled":true,
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order":["MyBuff"],
 		"uniforms" : {
@@ -465,13 +534,18 @@ bool ShaderConfigTest::parse_invalid4() { // missing buffer.size
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error& msg) {
+		cout << msg.what() << endl;
+		cout << PASS_MSG << endl;
+		return true;
+	}
+	cout << FAIL_MSG << endl;
+	return false;
 }
-bool ShaderConfigTest::parse_invalid2() { // missing FFT_SYNC option
+bool ShaderConfigTest::parse_invalid2() { // missing fft_sync option
 	string json_str = R"(
 	{
 		"image" : {
@@ -479,9 +553,10 @@ bool ShaderConfigTest::parse_invalid2() { // missing FFT_SYNC option
 			"clear_color":[0,0,0]
 		},
 		"audio_options":{
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"audio_enabled":true,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"uniforms" : {
 			"this_is_my_uni": [1.0, 2.0, 3.0, 4.0]
@@ -489,11 +564,16 @@ bool ShaderConfigTest::parse_invalid2() { // missing FFT_SYNC option
 	}
 	)";
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-	if (is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return !is_ok;
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error& msg) {
+		cout << msg.what() << endl;
+		cout << PASS_MSG << endl;
+		return true;
+	}
+	cout << FAIL_MSG << endl;
+	return false;
 }
 bool ShaderConfigTest::parse_valid4() { // mBuffers only contains buffers referenced in render_order
 	string json_str = R"(
@@ -520,10 +600,11 @@ bool ShaderConfigTest::parse_valid4() { // mBuffers only contains buffers refere
 			},
 		},
 		"audio_options":{
-			"FFT_SYNC": true,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"audio_enabled":true,
+			"fft_sync": true,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order": ["x", "y", "x"]
 	}
@@ -533,6 +614,7 @@ bool ShaderConfigTest::parse_valid4() { // mBuffers only contains buffers refere
 	mock_conf.mInitWinSize.width = 400;
 	mock_conf.mInitWinSize.height = 400;
 	mock_conf.mBlend = false;
+	mock_conf.mAudio_ops.audio_enabled = true;
 	mock_conf.mAudio_ops.fft_sync = true;
 	mock_conf.mAudio_ops.diff_sync = false;
 	mock_conf.mAudio_ops.fft_smooth = 1.f;
@@ -557,23 +639,23 @@ bool ShaderConfigTest::parse_valid4() { // mBuffers only contains buffers refere
 	mock_conf.mImage.geom_iters = 1;
 	mock_conf.mImage.clear_color = {0.f, 0.f, 0.f};
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-
-	if (!is_ok)
-		return false;
-
-	is_ok = compare(conf, mock_conf);
-	if (!is_ok) {
-		cout << "EXPECTED" << endl;
-		cout << mock_conf << endl << endl;
-		cout << "RETURNED" << endl;
-		cout << conf << endl << endl;
+	try {
+		ShaderConfig conf(json_str);
+		if (!compare(conf, mock_conf)) {
+			cout << "EXPECTED" << endl;
+			cout << mock_conf << endl << endl;
+			cout << "RETURNED" << endl;
+			cout << conf << endl << endl;
+			throw;
+		}
 	}
-
-	if (!is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return is_ok;
+	catch (runtime_error& msg) {
+		cout << msg.what() << endl;
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+	cout << PASS_MSG << endl;
+	return true;
 }
 bool ShaderConfigTest::parse_valid3() {
 	string json_str = R"(
@@ -583,10 +665,11 @@ bool ShaderConfigTest::parse_valid3() {
 			"clear_color":[0,0,0]
 		},
 		"audio_options":{
-			"FFT_SYNC": true,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"audio_enabled":true,
+			"fft_sync": true,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"uniforms" : {
 			"this_is_my_uni": [1.0, 2.0, 3.0, 4.0]
@@ -598,6 +681,7 @@ bool ShaderConfigTest::parse_valid3() {
 	mock_conf.mInitWinSize.width = 400;
 	mock_conf.mInitWinSize.height = 400;
 	mock_conf.mBlend = false;
+	mock_conf.mAudio_ops.audio_enabled = true;
 	mock_conf.mAudio_ops.fft_sync = true;
 	mock_conf.mAudio_ops.diff_sync = false;
 	mock_conf.mAudio_ops.fft_smooth = 1.f;
@@ -610,23 +694,23 @@ bool ShaderConfigTest::parse_valid3() {
 	mock_conf.mImage.clear_color = {0.f, 0.f, 0.f};
 	mock_conf.mImage.is_window_size = true;
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-
-	if (!is_ok)
-		return false;
-
-	is_ok = compare(conf, mock_conf);
-	if (!is_ok) {
-		cout << "EXPECTED" << endl;
-		cout << mock_conf << endl << endl;
-		cout << "RETURNED" << endl;
-		cout << conf << endl << endl;
+	try {
+		ShaderConfig conf(json_str);
+		if (!compare(conf, mock_conf)) {
+			cout << "EXPECTED" << endl;
+			cout << mock_conf << endl << endl;
+			cout << "RETURNED" << endl;
+			cout << conf << endl << endl;
+			throw;
+		}
 	}
-
-	if (!is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return is_ok;
+	catch (runtime_error& msg) {
+		cout << msg.what() << endl;
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+	cout << PASS_MSG << endl;
+	return true;
 }
 bool ShaderConfigTest::parse_valid2() {
 	string json_str = R"(
@@ -644,10 +728,11 @@ bool ShaderConfigTest::parse_valid2() {
 			}
 		},
 		"audio_options":{
-			"FFT_SYNC": true,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 0.0,
-			"WAVE_SMOOTH": 0.1
+			"audio_enabled":true,
+			"fft_sync": true,
+			"diff_sync": false,
+			"fft_smooth": 0.0,
+			"wave_smooth": 0.1
 		},
 		"render_order":["MyBuff"]
 	}
@@ -656,6 +741,7 @@ bool ShaderConfigTest::parse_valid2() {
 	mock_conf.mInitWinSize.width = 200;
 	mock_conf.mInitWinSize.height = 200;
 	mock_conf.mBlend = false;
+	mock_conf.mAudio_ops.audio_enabled = true;
 	mock_conf.mAudio_ops.fft_sync = true;
 	mock_conf.mAudio_ops.diff_sync = false;
 	mock_conf.mAudio_ops.fft_smooth = .0f;
@@ -673,23 +759,23 @@ bool ShaderConfigTest::parse_valid2() {
 	mock_conf.mImage.geom_iters = 1;
 	mock_conf.mImage.clear_color = {0.f, 0.f, 0.f};
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-
-	if (!is_ok)
-		return false;
-
-	is_ok = compare(conf, mock_conf);
-	if (!is_ok) {
-		cout << "EXPECTED" << endl;
-		cout << mock_conf << endl << endl;
-		cout << "RETURNED" << endl;
-		cout << conf << endl << endl;
+	try {
+		ShaderConfig conf(json_str);
+		if (!compare(conf, mock_conf)) {
+			cout << "EXPECTED" << endl;
+			cout << mock_conf << endl << endl;
+			cout << "RETURNED" << endl;
+			cout << conf << endl << endl;
+			throw;
+		}
 	}
-
-	if (!is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return is_ok;
+	catch (runtime_error& msg) {
+		cout << msg.what() << endl;
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+	cout << PASS_MSG << endl;
+	return true;
 }
 
 bool ShaderConfigTest::parse_valid1() {
@@ -712,10 +798,11 @@ bool ShaderConfigTest::parse_valid1() {
 			}
 		},
 		"audio_options":{
-			"FFT_SYNC": true,
-			"DIFF_SYNC": true,
-			"FFT_SMOOTH": 0.6,
-			"WAVE_SMOOTH": 0.5
+			"audio_enabled":true,
+			"fft_sync": true,
+			"diff_sync": true,
+			"fft_smooth": 0.6,
+			"wave_smooth": 0.5
 		},
 		"render_order":["A", "B", "A", "B"]
 	}
@@ -724,6 +811,7 @@ bool ShaderConfigTest::parse_valid1() {
 	mock_conf.mInitWinSize.width = 400;
 	mock_conf.mInitWinSize.height = 400;
 	mock_conf.mBlend = false;
+	mock_conf.mAudio_ops.audio_enabled = true;
 	mock_conf.mAudio_ops.fft_sync = true;
 	mock_conf.mAudio_ops.diff_sync = true;
 	mock_conf.mAudio_ops.fft_smooth = .6f;
@@ -750,23 +838,23 @@ bool ShaderConfigTest::parse_valid1() {
 	mock_conf.mImage.geom_iters = 1;
 	mock_conf.mImage.clear_color = {0.f, 0.f, 0.f};
 
-	bool is_ok;
-	ShaderConfig conf(json_str, is_ok);
-
-	if (!is_ok)
-		return false;
-
-	is_ok = compare(conf, mock_conf);
-	if (!is_ok) {
-		cout << "EXPECTED" << endl;
-		cout << mock_conf << endl << endl;
-		cout << "RETURNED" << endl;
-		cout << conf << endl << endl;
+	try {
+		ShaderConfig conf(json_str);
+		if (!compare(conf, mock_conf)) {
+			cout << "EXPECTED" << endl;
+			cout << mock_conf << endl << endl;
+			cout << "RETURNED" << endl;
+			cout << conf << endl << endl;
+			throw;
+		}
 	}
-
-	if (!is_ok) cout << FAIL_MSG << endl;
-	else cout << PASS_MSG << endl;
-	return is_ok;
+	catch (runtime_error& msg) {
+		cout << msg.what() << endl;
+		cout << FAIL_MSG << endl;
+		return false;
+	}
+	cout << PASS_MSG << endl;
+	return true;
 }
 
 bool ShaderConfigTest::test() {
@@ -828,7 +916,7 @@ bool ShaderConfigTest::test() {
 
 // Convenience operators
 
-std::ostream& operator<<(std::ostream& os, const Buffer& o) {
+static std::ostream& operator<<(std::ostream& os, const Buffer& o) {
 	os << std::boolalpha;
 	os << "name   : " << o.name << std::endl;
 	os << "width  : " << o.width << std::endl;
@@ -837,7 +925,7 @@ std::ostream& operator<<(std::ostream& os, const Buffer& o) {
 	return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const AudioOptions& o) {
+static std::ostream& operator<<(std::ostream& os, const AudioOptions& o) {
 	os << std::boolalpha;
 	os << "diff_sync   : " << o.diff_sync << std::endl;
 	os << "fft_sync    : " << o.fft_sync << std::endl;
@@ -846,7 +934,7 @@ std::ostream& operator<<(std::ostream& os, const AudioOptions& o) {
 	return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const Uniform& o) {
+static std::ostream& operator<<(std::ostream& os, const Uniform& o) {
 	os << "name	 : " << o.name << std::endl;
 	os << "values = {";
 	for (int i = 0; i < o.values.size(); ++i)
@@ -855,7 +943,7 @@ std::ostream& operator<<(std::ostream& os, const Uniform& o) {
 	return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const ShaderConfig& o) {
+static std::ostream& operator<<(std::ostream& os, const ShaderConfig& o) {
 	os << o.mAudio_ops << endl;
 
 	for (int i = 0; i < o.mBuffers.size(); ++i)
@@ -874,14 +962,14 @@ std::ostream& operator<<(std::ostream& os, const ShaderConfig& o) {
 	return os;
 }
 
-bool operator==(const AudioOptions& l, const AudioOptions& o) {
+static bool operator==(const AudioOptions& l, const AudioOptions& o) {
 	return l.fft_sync == o.fft_sync &&
 		l.diff_sync == o.diff_sync &&
 		l.fft_smooth == o.fft_smooth &&
 		l.wave_smooth == o.wave_smooth;
 }
 
-bool operator==(const Buffer& l, const Buffer& o) {
+static bool operator==(const Buffer& l, const Buffer& o) {
 	return l.name == o.name &&
 		l.width == o.width &&
 		l.height == o.height &&
@@ -890,7 +978,7 @@ bool operator==(const Buffer& l, const Buffer& o) {
 		l.clear_color == o.clear_color;
 }
 
-bool operator==(const Uniform& l, const Uniform& o) {
+static bool operator==(const Uniform& l, const Uniform& o) {
 	return l.name == o.name &&
 		l.values == o.values;
 }

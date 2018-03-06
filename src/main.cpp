@@ -1,23 +1,25 @@
 #include <iostream>
+using std::cout; using std::endl;
 #include <thread>
 #include <string>
-using std::cout;
-using std::endl;
 using std::string;
 #include <chrono>
-using clk = std::chrono::steady_clock;
+using steady_clock = std::chrono::steady_clock;
+#include <fstream>
+using std::ifstream;
+#include <stdexcept>
+using std::runtime_error;
 
 #include "filesystem.h"
+#include "FileWatcher.h"
 
 #include "Window.h"
 #include "ShaderConfig.h"
 #include "ShaderPrograms.h"
 #include "Renderer.h"
-#include "FileWatcher.h"
 
-#include "audio_data.h"
-#include "audio_process.h"
-
+#include "AudioProcess.h"
+#include "WindowsAudioStream.h"
 
 #if defined(WINDOWS) && defined(DEBUG)
 int WinMain() {
@@ -26,122 +28,92 @@ int main(int argc, char* argv[]) {
 #endif
 
 	/*
-	If shader_folder does not exist
-		tell user and exit.
-	If shader_folder does not contain the neccessary files
-		tell user and exit.
 	Register FileWatcher on shader_folder
-
 	Create app window and initialize opengl context.
-	Create audio system (optional?)
-
-	shader_config = ShaderConfig(...)
-	if !is_ok
-		tell user and exit
-	shader_programs = ShaderPrograms(...)
-	if !is_ok
-		tell user and exit
+	try
+		shader_config = ShaderConfig(...)
+		shader_programs = ShaderPrograms(...)
+	if either fails to construct, exit
 	renderer = Renderer(...)
+	Create audio system (optional?)
 	Loop until user quits
 		If (FileWatcher has seen a change in shader_folder)
-			If shader_folder contains neccessary files
+			try
 				new_shader_config = ShaderConfig(shader_folder)
-				If is_ok, then
-					new_shader_programs = ShaderPrograms(new_shader_config)
-					If is_ok, then
-						shader_config = new_shader_config
-						shader_programs = new_shader_programs
-						renderer = new_renderer(shader_config, shader_programs)
+				new_shader_programs = ShaderPrograms(new_shader_config)
+			if neither fails to construct, then
+				shader_config = new_shader_config
+				shader_programs = new_shader_programs
+				renderer = new_renderer(shader_config, shader_programs)
 
 		Render
 	*/
 
 	filesys::path shader_folder("shaders");
 	filesys::path json_path = shader_folder / "shader.json";
-	filesys::path img_geom_path = shader_folder / "image.geom";
-	filesys::path img_frag_path = shader_folder / "image.frag";
-	if (!filesys::exists(shader_folder)) {
-		cout << "shaders folder does not exist" << endl;
-		cout << "make the diretory shaders in the folder containing this executable" << endl;
-		exit(0);
-	}
-	if (!filesys::exists(json_path)) {
-		cout << "shaders should contain a shader.json file" << endl;
-		exit(0);
-	}
-	if (!filesys::exists(img_geom_path)) {
-		cout << "shaders should contain an image.geom file" << endl;
-		exit(0);
-	}
-	if (!filesys::exists(img_frag_path)) {
-		cout << "shaders should contain an image.frag file" << endl;
-		exit(0);
-	}
 
+	// Build objects
 	FileWatcher watcher(shader_folder);
 
-	bool is_ok = true;
-	ShaderConfig shader_config(json_path, is_ok);
-	if (!is_ok)
-		return 0;
-
-	is_ok = true;
-	Window window(shader_config.mInitWinSize.width, shader_config.mInitWinSize.height, is_ok);
-	if (!is_ok)
-		return 0;
-
-	struct audio_data my_audio_data;
-	my_audio_data.thread_join = false;
-	audio_processor* ap = new audio_processor(&my_audio_data, &get_pcm, &audio_setup);
-	std::thread audioThread(&audio_processor::run, ap);
-
-	ShaderPrograms shader_programs(shader_config, shader_folder, is_ok);
-	if (!is_ok)
-		return 0;
-	Renderer renderer (shader_config, shader_programs, window);
-
-	while (window.is_alive()) {
-		if (watcher.shaders_changed) {
-			cout << "Updating shaders." << endl;
-			watcher.shaders_changed = false;
-			if (filesys::exists(shader_folder)
-			 && filesys::exists(json_path)
-			 && filesys::exists(img_geom_path)
-			 && filesys::exists(img_frag_path))
-			{
-				is_ok = true;
-				ShaderConfig new_shader_config(json_path, is_ok);
-				if (is_ok) {
-					ShaderPrograms new_shader_programs(new_shader_config, shader_folder, is_ok);
-					if (is_ok) {
-						shader_config = new_shader_config;
-						shader_programs = std::move(new_shader_programs);
-						renderer = std::move(Renderer(shader_config, shader_programs, window));
-					}
-				}
-			}
-		}
-
-		auto now = clk::now();
-
-		renderer.update(&my_audio_data);
-		renderer.render();
-		window.swap_buffers();
-		window.poll_events();
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(16) - (clk::now() - now));
-
-		//static int frames = 0;
-		//static auto last = clk::now();
-		//if (now - last > std::chrono::seconds(1)) {
-		//	last = now;
-		//	//cout << frames << endl;
-		//	frames=0;
-		//}
-		//frames++;
+	ShaderConfig *shader_config;
+	Window *window;
+	ShaderPrograms *shader_programs;
+	AudioStream *as;
+	try {
+		shader_config = new ShaderConfig(json_path);
+		window = new Window(shader_config->mInitWinSize.width, shader_config->mInitWinSize.height);
+		shader_programs = new ShaderPrograms(*shader_config, shader_folder);
+		as = new WindowsAudioStream();
 	}
-	my_audio_data.thread_join = true;
+	catch (runtime_error &msg) {
+		cout << msg.what() << endl;
+		return 0;
+	}
+
+	Renderer renderer(*shader_config, *shader_programs, *window);
+	cout << "Successfully compiled shaders." << endl;
+
+	// TODO make sure AudioProcess lifetime is consistent with mAudio_ops.audio_enabled
+	AudioProcess<steady_clock> *ap = nullptr;
+	std::thread audioThread;
+	if (shader_config->mAudio_ops.audio_enabled) {
+		ap = new AudioProcess<steady_clock>(*as);
+		audioThread = std::thread(&AudioProcess<steady_clock>::start, ap);
+	}
+
+	auto update_shaders = [&]() {
+		cout << "Updating shaders." << endl;
+		try {
+			ShaderConfig new_shader_config(json_path);
+			ShaderPrograms new_shader_programs(new_shader_config, shader_folder);
+			*shader_config = new_shader_config;
+			*shader_programs = std::move(new_shader_programs);
+		}
+		catch (runtime_error &msg) {
+			cout << msg.what() << endl;
+			cout << "Failed to update shaders." << endl << endl;
+			return;
+		}
+		renderer = std::move(Renderer(*shader_config, *shader_programs, *window));
+		ap->set_audio_options(shader_config->mAudio_ops);
+		cout << "Successfully updated shaders." << endl << endl;
+	};
+
+	while (window->is_alive()) {
+		if (watcher.files_changed())
+			update_shaders();
+		auto now = steady_clock::now();
+		//if (shader_config->mAudio_ops.audio_enabled && ap != nullptr)
+			renderer.update(*ap);
+		//else
+		//	renderer.update();
+		renderer.render();
+		window->swap_buffers();
+		window->poll_events();
+		std::this_thread::sleep_for(std::chrono::milliseconds(16) - (steady_clock::now() - now));
+	}
+	if (ap)
+		ap->stop();
 	//audioThread.join(); // I would like to exit the program the right way, but sometimes this blocks due to the windows audio system.
-	exit(0); // TODO need this without the above join?
-	return 0;
+	exit(0);
 }

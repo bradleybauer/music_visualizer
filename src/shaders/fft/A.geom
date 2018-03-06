@@ -50,6 +50,19 @@ void quad(vec2 P0, vec2 P1, float thickness) {
 	EndPrimitive();
 }
 
+float integ(float x) {
+    float f = texture(iFreqL, x).r*2.;
+    f += texture(iFreqL, x+1./2048.).r*.5;
+    f += texture(iFreqL, x-1./2048.).r*.5;
+    f += texture(iFreqL, x+2./2048.).r*.5;
+    f += texture(iFreqL, x-2./2048.).r*.5;
+    f += texture(iFreqL, x+3./2048.).r*.5;
+    f += texture(iFreqL, x-3./2048.).r*.5;
+    f += texture(iFreqL, x+4./2048.).r*.5;
+    f += texture(iFreqL, x-4./2048.).r*.5;
+    return f/6.;
+}
+
 void main() {
 	float t0 = (iGeomIter+0)/iNumGeomIters;
 	float t1 = (iGeomIter+1)/iNumGeomIters;
@@ -58,27 +71,24 @@ void main() {
 	intensity = .1;
 	min_intensity = .01;
 
-	const float stretch = 200.;
-	float fl0 = 3.*texture(iFreqL, pow(stretch, t0-1.)-(1.-t0)/stretch).r;
-	float fl1 = 3.*texture(iFreqL, pow(stretch, t1-1.)-(1.-t1)/stretch).r;
-	// float fr0 = texture(iFreqR, pow(stretch, t0-1.)-(1.-t0)/stretch).r;
-	// float fr1 = texture(iFreqR, pow(stretch, t1-1.)-(1.-t1)/stretch).r;
+	const float stretch = 100.;
+	float ft0 = integ(pow(stretch, t0-1.)-(1.-t0)/stretch);
+	float ft1 = integ(pow(stretch, t1-1.)-(1.-t1)/stretch);
 
 	vec2 P0;
 	vec2 P1;
 
-	// LOG FFT
-	// P0 = vec2(t0*2.-1., log2(10.*fl0+0.002)/18.0-.5);
-	// P1 = vec2(t1*2.-1., log2(10.*fl1+0.002)/18.0-.5);
-	// quad(P0, P1, width);
+	// LOG
+	P0 = vec2(t0*2.-1., log(ft0+0.002)/4.8+.12);
+	P1 = vec2(t1*2.-1., log(ft1+0.002)/4.8+.12);
 
-	// LOG FFT
-	P0 = vec2(t0*2.-1., 2.*sqrt(40.*fl0)/23.0-.9);
-	P1 = vec2(t1*2.-1., 2.*sqrt(40.*fl1)/23.0-.9);
+	// SQRT
+	// P0 = vec2(t0*2.-1., .56*sqrt(ft0)-.9);
+	// P1 = vec2(t1*2.-1., .56*sqrt(ft1)-.9);
+
+	// NORMAL FFT
+	// P0 = vec2(t0*2.-1., .5*ft0-1.);
+	// P1 = vec2(t1*2.-1., .5*ft1-1.);
+
 	quad(P0, P1, width);
-
-	// // NORMAL FFT
-	// P0 = vec2(t0*2.-1., fl0-1.);
-	// P1 = vec2(t1*2.-1., fl1-1.);
-	// quad(P0, P1, width);
 }

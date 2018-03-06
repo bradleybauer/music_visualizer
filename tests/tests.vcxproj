@@ -21,12 +21,15 @@
   <ItemGroup>
     <ClCompile Include="..\src\filesystem.cpp" />
     <ClCompile Include="..\src\ShaderConfig.cpp" />
+    <ClCompile Include="..\src\WavAudioStream.cpp" />
+    <ClCompile Include="fake_clock.cpp" />
     <ClCompile Include="run_tests.cpp" />
     <ClCompile Include="test_audio_process.cpp" />
     <ClCompile Include="test_filesystem.cpp" />
     <ClCompile Include="test_shader_config.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="fake_clock.h" />
     <ClInclude Include="Test.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

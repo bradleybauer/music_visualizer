@@ -1,13 +1,12 @@
 #pragma once
 
 #include <vector>
-#include <chrono>
 
 #include "Window.h"
 #include "ShaderConfig.h"
 #include "ShaderPrograms.h"
 
-#include "audio_data.h"
+#include "AudioProcess.h"
 
 class Renderer {
 public:
@@ -15,7 +14,8 @@ public:
 	Renderer& operator=(Renderer&& o);
 	~Renderer();
 
-	void update(struct audio_data* audio_source);
+	void update(AudioProcess<std::chrono::steady_clock> &process);
+	void update();
 	void render();
 
 private:
