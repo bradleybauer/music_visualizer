@@ -9,7 +9,7 @@ set(SOURCE_FILES
     src/ShaderConfig.cpp
     src/ShaderPrograms.cpp
     src/Renderer.cpp
-    src/audio_capture.cpp
+    src/LinuxAudioProvider.cpp
     src/filesystem.cpp
 )
 

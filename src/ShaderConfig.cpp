@@ -7,6 +7,7 @@ using std::to_string;
 #include <fstream>
 #include <cctype> // isdigit
 #include <algorithm> // find
+#include <functional> // std::ref
 
 #include "ShaderConfig.h"
 #include "JsonFileReader.h"
@@ -28,7 +29,7 @@ ShaderConfig::ShaderConfig(filesys::path &conf_file_path) : ShaderConfig(JsonFil
 	// idk why it works without const path ref though.
 }
 
-ShaderConfig::ShaderConfig(string &json_str) {
+ShaderConfig::ShaderConfig(string &&json_str) {
 	// TODO
 	rj::Document user_conf;
 	rj::ParseResult ok = user_conf.Parse<rj::kParseCommentsFlag | rj::kParseTrailingCommasFlag>(json_str.c_str());
@@ -50,7 +51,7 @@ ShaderConfig::ShaderConfig(string &json_str) {
 
 	if (user_conf.HasMember("audio_options")) {
 
-		//int count = 0; 
+		//int count = 0;
 		//for (auto memb = user_conf.MemberBegin(); memb != user_conf.MemberEnd(); memb++) {
 		//	if (memb->name == string("audio_options"))
 		//		count++;

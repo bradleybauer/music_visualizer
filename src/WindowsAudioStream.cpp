@@ -179,3 +179,7 @@ void WindowsAudioStream::get_next_pcm(float * buff_l, float * buff_r, int buff_s
 int WindowsAudioStream::get_sample_rate() {
 	return sample_rate;
 }
+
+int WindowsAudioStream::get_max_buff_size() {
+	return max_buff_size;
+}
