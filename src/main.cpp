@@ -1,6 +1,5 @@
 #include <iostream>
-using std::cout;
-using std::endl;
+using std::cout; using std::endl;
 #include <thread>
 #include <string>
 using std::string;
@@ -19,7 +18,7 @@ using std::runtime_error;
 #include "ShaderPrograms.h"
 #include "Renderer.h"
 
-#include "audio_process.h"
+#include "AudioProcess.h"
 #include "WindowsAudioStream.h"
 
 #if defined(WINDOWS) && defined(DEBUG)
@@ -74,12 +73,12 @@ int main(int argc, char* argv[]) {
 	Renderer renderer(*shader_config, *shader_programs, *window);
 	cout << "Successfully compiled shaders." << endl;
 
-	// TODO make sure that when audio_enabled is false the audioThread is not active
-	audio_processor<steady_clock> *ap = nullptr;
+	// TODO make sure AudioProcess lifetime is consistent with mAudio_ops.audio_enabled
+	AudioProcess<steady_clock> *ap = nullptr;
 	std::thread audioThread;
 	if (shader_config->mAudio_ops.audio_enabled) {
-		ap = new audio_processor<steady_clock>(*as);
-		audioThread = std::thread(&audio_processor<steady_clock>::loop, ap);
+		ap = new AudioProcess<steady_clock>(*as);
+		audioThread = std::thread(&AudioProcess<steady_clock>::start, ap);
 	}
 
 	auto update_shaders = [&]() {
@@ -96,6 +95,7 @@ int main(int argc, char* argv[]) {
 			return;
 		}
 		renderer = std::move(Renderer(*shader_config, *shader_programs, *window));
+		ap->set_audio_options(shader_config->mAudio_ops);
 		cout << "Successfully updated shaders." << endl << endl;
 	};
 
@@ -103,10 +103,10 @@ int main(int argc, char* argv[]) {
 		if (watcher.files_changed())
 			update_shaders();
 		auto now = steady_clock::now();
-		if (shader_config->mAudio_ops.audio_enabled && ap != nullptr)
+		//if (shader_config->mAudio_ops.audio_enabled && ap != nullptr)
 			renderer.update(*ap);
-		else
-			renderer.update();
+		//else
+		//	renderer.update();
 		renderer.render();
 		window->swap_buffers();
 		window->poll_events();

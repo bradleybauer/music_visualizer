@@ -5,7 +5,7 @@ using std::endl;
 using std::runtime_error;
 
 #include "Window.h"
-#include "audio_process.h" // VISUALIZER_BUFSIZE
+#include "AudioProcess.h" // VISUALIZER_BUFSIZE
 
 Window::Window(int _width, int _height) : width(_width), height(_height), size_changed(true), mouse() {
 	glfwInit();

@@ -30,7 +30,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\AudioStream.h" />
-    <ClInclude Include="src\audio_process.h" />
+    <ClInclude Include="src\AudioProcess.h" />
     <ClInclude Include="src\filesystem.h" />
     <ClInclude Include="src\FileWatcher.h" />
     <ClInclude Include="src\JsonFileReader.h" />

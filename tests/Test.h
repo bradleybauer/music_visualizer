@@ -64,7 +64,6 @@ private:
 class AudioProcessTest {
 public:
 	bool test();
-private:
 };
 
 #include <string>

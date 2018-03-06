@@ -1,17 +1,21 @@
-#include "Test.h"
-#include "fake_clock.h"
-#include "audio_process.h"
+#include <iostream>
+using std::cout; using std::endl;
 #include <fstream>
 using std::ifstream;
 #include <array>
 using std::array;
 #include <stdexcept>
+#include <chrono>
+namespace chrono = std::chrono;
 
+#include "Test.h"
+#include "fake_clock.h"
+#include "AudioProcess.h"
 #include "WavAudioStream.h"
 #include "ProceduralAudioStream.h"
 
 constexpr int canvas_height = 400;
-constexpr int canvas_width = VISUALIZER_BUFSIZE;
+constexpr int canvas_width = 1024;
 static array<array<float, canvas_width>, canvas_height> canvas;
 void paint(const struct audio_data &my_audio_data) {
 	// accumulate blur into canvas
@@ -37,7 +41,7 @@ void score() {
 
 // Outputs a measure of performance of the waveform stabilization optimizations in audioprocess.cpp
 bool AudioProcessTest::test() {
-	// TODO make audio_processor take flags by argument so that I can turn off renormalization and other stuff
+	// TODO make AudioProcess take flags by argument so that I can turn off renormalization and other stuff
 	// for testing specific optimizations.
 
 	AudioStream *as;
@@ -62,7 +66,7 @@ bool AudioProcessTest::test() {
 		return false;
 	}
 	// */
-	audio_processor<fake_clock> ap(*as);
+	AudioProcess<fake_clock> ap(*as);
 
 	auto start = fake_clock::now();
 	int i = 100;

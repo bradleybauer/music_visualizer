@@ -1,6 +1,5 @@
 #include <iostream>
-using std::cout;
-using std::endl;
+using std::cout; using std::endl;
 #include <fstream>
 using std::ifstream;
 using std::ios;

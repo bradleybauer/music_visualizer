@@ -84,10 +84,10 @@ bool ShaderConfigTest::parse_invalid14() { // more than one render_order object
 		},
 		"audio_options":{
 			"audio_enabled":true,
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order":["mybuff"],
 		"render_order":["mybuff"],
@@ -124,10 +124,10 @@ bool ShaderConfigTest::parse_invalid13() { // more than one uniforms object
 		},
 		"audio_options":{
 			"audio_enabled":true,
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order":["mybuff"],
 		"uniforms" : {
@@ -166,10 +166,10 @@ bool ShaderConfigTest::parse_invalid15() { // uniforms with the same name
 		},
 		"audio_options":{
 			"audio_enabled":true,
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order":["mybuff"],
 		"uniforms" : {
@@ -211,10 +211,10 @@ bool ShaderConfigTest::parse_invalid12() { // buffers with the same name
 		},
 		"audio_options":{
 			"audio_enabled":true,
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order":["mybuff"],
 		"uniforms" : {
@@ -250,10 +250,10 @@ bool ShaderConfigTest::parse_invalid11() { // incorrect uniform value
 		},
 		"audio_options":{
 			"audio_enabled":true,
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order":["mybuff"],
 		"uniforms" : {
@@ -289,10 +289,10 @@ bool ShaderConfigTest::parse_invalid10() { // incorrect uniform value
 		},
 		"audio_options":{
 			"audio_enabled":true,
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order":["mybuff"],
 		"uniforms" : {
@@ -312,7 +312,7 @@ bool ShaderConfigTest::parse_invalid10() { // incorrect uniform value
 	cout << FAIL_MSG << endl;
 	return false;
 }
-bool ShaderConfigTest::parse_invalid9() { // FFT_SMOOTH out of range
+bool ShaderConfigTest::parse_invalid9() { // fft_smooth out of range
 	string json_str = R"(
 	{
 		"image" : {
@@ -328,10 +328,10 @@ bool ShaderConfigTest::parse_invalid9() { // FFT_SMOOTH out of range
 		},
 		"audio_options":{
 			"audio_enabled":true,
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1.2,
-			"WAVE_SMOOTH": 0
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1.2,
+			"wave_smooth": 0
 		},
 		"render_order":["mybuff"],
 		"uniforms" : {
@@ -367,10 +367,10 @@ bool ShaderConfigTest::parse_invalid8() { // too many clear color values
 		},
 		"audio_options":{
 			"audio_enabled":true,
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order":["mybuff"],
 		"uniforms" : {
@@ -406,10 +406,10 @@ bool ShaderConfigTest::parse_invalid7() { // empty buffer name
 		},
 		"audio_options":{
 			"audio_enabled":true,
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order":["MyBuff"],
 		"uniforms" : {
@@ -445,10 +445,10 @@ bool ShaderConfigTest::parse_invalid6() { // incorrect buffer.size
 		},
 		"audio_options":{
 			"audio_enabled":true,
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order":["MyBuff"],
 		"uniforms" : {
@@ -484,10 +484,10 @@ bool ShaderConfigTest::parse_invalid5() { // incorrect buffer.size
 		},
 		"audio_options":{
 			"audio_enabled": true,
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order":["MyBuff"],
 		"uniforms" : {
@@ -522,10 +522,10 @@ bool ShaderConfigTest::parse_invalid4() { // missing buffer.size
 		},
 		"audio_options":{
 			"audio_enabled":true,
-			"FFT_SYNC": false,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order":["MyBuff"],
 		"uniforms" : {
@@ -545,7 +545,7 @@ bool ShaderConfigTest::parse_invalid4() { // missing buffer.size
 	cout << FAIL_MSG << endl;
 	return false;
 }
-bool ShaderConfigTest::parse_invalid2() { // missing FFT_SYNC option
+bool ShaderConfigTest::parse_invalid2() { // missing fft_sync option
 	string json_str = R"(
 	{
 		"image" : {
@@ -554,9 +554,9 @@ bool ShaderConfigTest::parse_invalid2() { // missing FFT_SYNC option
 		},
 		"audio_options":{
 			"audio_enabled":true,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"uniforms" : {
 			"this_is_my_uni": [1.0, 2.0, 3.0, 4.0]
@@ -601,10 +601,10 @@ bool ShaderConfigTest::parse_valid4() { // mBuffers only contains buffers refere
 		},
 		"audio_options":{
 			"audio_enabled":true,
-			"FFT_SYNC": true,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"fft_sync": true,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"render_order": ["x", "y", "x"]
 	}
@@ -666,10 +666,10 @@ bool ShaderConfigTest::parse_valid3() {
 		},
 		"audio_options":{
 			"audio_enabled":true,
-			"FFT_SYNC": true,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 1,
-			"WAVE_SMOOTH": 0
+			"fft_sync": true,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
 		},
 		"uniforms" : {
 			"this_is_my_uni": [1.0, 2.0, 3.0, 4.0]
@@ -729,10 +729,10 @@ bool ShaderConfigTest::parse_valid2() {
 		},
 		"audio_options":{
 			"audio_enabled":true,
-			"FFT_SYNC": true,
-			"DIFF_SYNC": false,
-			"FFT_SMOOTH": 0.0,
-			"WAVE_SMOOTH": 0.1
+			"fft_sync": true,
+			"diff_sync": false,
+			"fft_smooth": 0.0,
+			"wave_smooth": 0.1
 		},
 		"render_order":["MyBuff"]
 	}
@@ -799,10 +799,10 @@ bool ShaderConfigTest::parse_valid1() {
 		},
 		"audio_options":{
 			"audio_enabled":true,
-			"FFT_SYNC": true,
-			"DIFF_SYNC": true,
-			"FFT_SMOOTH": 0.6,
-			"WAVE_SMOOTH": 0.5
+			"fft_sync": true,
+			"diff_sync": true,
+			"fft_smooth": 0.6,
+			"wave_smooth": 0.5
 		},
 		"render_order":["A", "B", "A", "B"]
 	}

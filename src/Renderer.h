@@ -6,7 +6,7 @@
 #include "ShaderConfig.h"
 #include "ShaderPrograms.h"
 
-#include "audio_process.h"
+#include "AudioProcess.h"
 
 class Renderer {
 public:
@@ -14,7 +14,7 @@ public:
 	Renderer& operator=(Renderer&& o);
 	~Renderer();
 
-	void update(audio_processor<chrono::steady_clock> &processor);
+	void update(AudioProcess<std::chrono::steady_clock> &process);
 	void update();
 	void render();
 

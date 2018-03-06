@@ -65,41 +65,41 @@ ShaderConfig::ShaderConfig(string &json_str) {
 		rj::Value& audio_options = user_conf["audio_options"];
 		if (! audio_options.IsObject())
 			throw runtime_error("Audio options must be a json object");
-		if (! audio_options.HasMember("FFT_SMOOTH"))
-			throw runtime_error("Audio options must contain the FFT_smooth option");
-		if (! audio_options.HasMember("WAVE_SMOOTH"))
-			throw runtime_error("Audio options must contain the WAVE_smooth option");
-		if (! audio_options.HasMember("FFT_SYNC"))
-			throw runtime_error("Audio options must contain the FFT_smooth option");
-		if (! audio_options.HasMember("DIFF_SYNC"))
-			throw runtime_error("Audio options must contain the DIFF_sync option");
+		if (! audio_options.HasMember("fft_smooth"))
+			throw runtime_error("Audio options must contain the fft_smooth option");
+		if (! audio_options.HasMember("wave_smooth"))
+			throw runtime_error("Audio options must contain the wave_smooth option");
+		if (! audio_options.HasMember("fft_sync"))
+			throw runtime_error("Audio options must contain the fft_smooth option");
+		if (! audio_options.HasMember("diff_sync"))
+			throw runtime_error("Audio options must contain the diff_sync option");
 		if (! audio_options.HasMember("audio_enabled"))
 			throw runtime_error("Audio options must contain the audio_enabled option");
 
-		rj::Value& fft_smooth = audio_options["FFT_SMOOTH"];
-		rj::Value& wave_smooth = audio_options["WAVE_SMOOTH"];
-		rj::Value& fft_sync = audio_options["FFT_SYNC"];
-		rj::Value& diff_sync = audio_options["DIFF_SYNC"];
+		rj::Value& fft_smooth = audio_options["fft_smooth"];
+		rj::Value& wave_smooth = audio_options["wave_smooth"];
+		rj::Value& fft_sync = audio_options["fft_sync"];
+		rj::Value& diff_sync = audio_options["diff_sync"];
 		rj::Value& audio_enabled = audio_options["audio_enabled"];
 
 		if (! fft_smooth.IsNumber())
-			throw runtime_error("FFT_SMOOTH must be a number between in the interval [0, 1]");
+			throw runtime_error("fft_smooth must be a number between in the interval [0, 1]");
 		if (! wave_smooth.IsNumber())
-			throw runtime_error("WAVE_SMOOTH must be a number between in the interval [0, 1]");
+			throw runtime_error("wave_smooth must be a number between in the interval [0, 1]");
 		if (! fft_sync.IsBool())
-			throw runtime_error("FFT_SYNC must be a bool");
+			throw runtime_error("fft_sync must be a bool");
 		if (! diff_sync.IsBool())
-			throw runtime_error("DIFF_SYNC must be a bool");
+			throw runtime_error("diff_sync must be a bool");
 		if (! audio_enabled.IsBool())
 			throw runtime_error("audio_enabled must be a bool");
 
 		ao.fft_smooth = fft_smooth.GetFloat();
 		if (ao.fft_smooth < 0 || ao.fft_smooth > 1)
-			throw runtime_error("FFT_SMOOTH must be in the interval [0, 1]");
+			throw runtime_error("fft_smooth must be in the interval [0, 1]");
 
 		ao.wave_smooth = wave_smooth.GetFloat();
 		if (ao.wave_smooth < 0 || ao.wave_smooth > 1)
-			throw runtime_error("WAVE_SMOOTH must be in the interval [0, 1]");
+			throw runtime_error("wave_smooth must be in the interval [0, 1]");
 
 		ao.fft_sync = fft_sync.GetBool();
 		ao.diff_sync = diff_sync.GetBool();

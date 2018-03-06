@@ -1,6 +1,8 @@
 #include <iostream>
 using std::cout;
 using std::endl;
+#include <chrono>
+namespace chrono = std::chrono;
 
 #include "Renderer.h"
 
@@ -95,7 +97,7 @@ Renderer::~Renderer() {
 	// Textures in texs are unboud from their targets
 }
 
-void Renderer::update(audio_processor<std::chrono::steady_clock> &processor) {
+void Renderer::update(AudioProcess<std::chrono::steady_clock> &process) {
 	// Update audio textures
 	// glActivateTexture activates a certain texture unit.
 	// each texture unit holds one texture of each dimension of texture
@@ -108,7 +110,7 @@ void Renderer::update(audio_processor<std::chrono::steady_clock> &processor) {
 	// bound to the same target (in the active unit? I think), or until the bound texture is deleted
 	// with glDeleteTextures. So I do not need to rebind
 	// glBindTexture(GL_TEXTURE_1D, tex[X]);
-	audio_data &data = processor.get_audio_data();
+	audio_data &data = process.get_audio_data();
 	data.mtx.lock();
 	glActiveTexture(GL_TEXTURE0 + 0);
 	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, VISUALIZER_BUFSIZE, GL_RED, GL_FLOAT, data.audio_r);

@@ -8,7 +8,7 @@
 
 class JsonFileReader {
 public:
-	static std::string read(filesys::path json_path) {
+	static std::string read(const filesys::path &json_path) {
 		if (! filesys::exists(json_path))
 			throw std:: runtime_error(json_path.string() + " does not exist");
 		std::ifstream json_file(json_path.string());

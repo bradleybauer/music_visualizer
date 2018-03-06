@@ -1,11 +1,11 @@
 #include <iostream>
-using std::cout;
-using std::endl;
+using std::cout; using std::endl;
+#include <string>
 using std::string;
 
 #include "Test.h"
 #include "ShaderConfig.h"
-#include "audio_process.h"
+#include "AudioProcess.h"
 
 template<typename T>
 void test(string name) {
@@ -14,7 +14,7 @@ void test(string name) {
 }
 
 int main() {
-    test<AudioProcessTest>("audio_process");
+    test<AudioProcessTest>("AudioProcess");
     test<ShaderConfigTest>("ShaderConfig");
 	test<FilesystemTest>("Filesystem");
     return 0;
