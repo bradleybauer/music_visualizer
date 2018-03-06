@@ -19,11 +19,12 @@ using std::runtime_error;
 static const string WINDOW_SZ_KEY("window_size");
 static const string AUDIO_NUM_FRAMES_KEY("audio_num_frames");
 
-ShaderConfig::ShaderConfig(filesys::path conf_file_path) : ShaderConfig(JsonFileReader::read(conf_file_path))
+ShaderConfig::ShaderConfig(filesys::path &conf_file_path) : ShaderConfig(JsonFileReader::read(conf_file_path))
 {
 }
 
-ShaderConfig::ShaderConfig(string json_str) {
+ShaderConfig::ShaderConfig(string &json_str) {
+	// TODO
 	rj::Document user_conf;
 	rj::ParseResult ok = user_conf.Parse<rj::kParseCommentsFlag | rj::kParseTrailingCommasFlag>(json_str.c_str());
 	if (! ok)

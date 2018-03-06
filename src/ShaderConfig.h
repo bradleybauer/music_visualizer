@@ -21,6 +21,7 @@ struct Uniform {
 };
 
 struct AudioOptions {
+	bool enabled;
 	bool fft_sync;
 	bool diff_sync;
 	float fft_smooth;
@@ -29,8 +30,8 @@ struct AudioOptions {
 
 class ShaderConfig {
 public:
-	ShaderConfig(filesys::path conf_file);
-	ShaderConfig(std::string json_str); // used in testing
+	ShaderConfig(filesys::path &conf_file);
+	ShaderConfig(std::string &json_str); // used in testing
 
 	struct {
 		int width;
