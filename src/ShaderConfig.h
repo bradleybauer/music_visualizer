@@ -21,7 +21,7 @@ struct Uniform {
 };
 
 struct AudioOptions {
-	bool enabled;
+	bool audio_enabled;
 	bool fft_sync;
 	bool diff_sync;
 	float fft_smooth;

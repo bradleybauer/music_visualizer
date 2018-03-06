@@ -21,6 +21,11 @@ static const string AUDIO_NUM_FRAMES_KEY("audio_num_frames");
 
 ShaderConfig::ShaderConfig(filesys::path &conf_file_path) : ShaderConfig(JsonFileReader::read(conf_file_path))
 {
+	// cannot take const path & because then an implicit conversion causes an infinite recursion. :D
+	// filesys::path has string->path implicit conversion constructors for convenience
+	// so ShaderConfig(JsonFileReader::...) resolves to ShaderConfig(string) which is implicitly converted to ShaderConfig(const path&)
+	// which then recurses
+	// idk why it works without const path ref though.
 }
 
 ShaderConfig::ShaderConfig(string &json_str) {
@@ -68,11 +73,14 @@ ShaderConfig::ShaderConfig(string &json_str) {
 			throw runtime_error("Audio options must contain the FFT_smooth option");
 		if (! audio_options.HasMember("DIFF_SYNC"))
 			throw runtime_error("Audio options must contain the DIFF_sync option");
+		if (! audio_options.HasMember("audio_enabled"))
+			throw runtime_error("Audio options must contain the audio_enabled option");
 
 		rj::Value& fft_smooth = audio_options["FFT_SMOOTH"];
 		rj::Value& wave_smooth = audio_options["WAVE_SMOOTH"];
 		rj::Value& fft_sync = audio_options["FFT_SYNC"];
 		rj::Value& diff_sync = audio_options["DIFF_SYNC"];
+		rj::Value& audio_enabled = audio_options["audio_enabled"];
 
 		if (! fft_smooth.IsNumber())
 			throw runtime_error("FFT_SMOOTH must be a number between in the interval [0, 1]");
@@ -82,6 +90,8 @@ ShaderConfig::ShaderConfig(string &json_str) {
 			throw runtime_error("FFT_SYNC must be a bool");
 		if (! diff_sync.IsBool())
 			throw runtime_error("DIFF_SYNC must be a bool");
+		if (! audio_enabled.IsBool())
+			throw runtime_error("audio_enabled must be a bool");
 
 		ao.fft_smooth = fft_smooth.GetFloat();
 		if (ao.fft_smooth < 0 || ao.fft_smooth > 1)
@@ -93,10 +103,12 @@ ShaderConfig::ShaderConfig(string &json_str) {
 
 		ao.fft_sync = fft_sync.GetBool();
 		ao.diff_sync = diff_sync.GetBool();
+		ao.audio_enabled = audio_enabled.GetBool();
 
 		mAudio_ops = ao;
 	}
 	else {
+		mAudio_ops.audio_enabled = true;
 		mAudio_ops.diff_sync = true;
 		mAudio_ops.fft_sync = true;
 		mAudio_ops.fft_smooth = .75;

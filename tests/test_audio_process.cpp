@@ -40,8 +40,6 @@ bool AudioProcessTest::test() {
 	// TODO make audio_processor take flags by argument so that I can turn off renormalization and other stuff
 	// for testing specific optimizations.
 
-	struct audio_data my_audio_data;
-	my_audio_data.thread_join = false;
 	AudioStream *as;
 	//*
 	as = new ProceduralAudioStream([](float* l, float* r, int s) {
@@ -64,13 +62,13 @@ bool AudioProcessTest::test() {
 		return false;
 	}
 	// */
-	audio_processor<fake_clock> ap(&my_audio_data, *as);
+	audio_processor<fake_clock> ap(*as);
 
 	auto start = fake_clock::now();
 	int i = 100;
 	while (i > 0) {
 		ap.step();
-		paint(my_audio_data);
+		paint(ap.get_audio_data());
 		fake_clock::advance(chrono::microseconds(8650));
 		i--;
 	}
