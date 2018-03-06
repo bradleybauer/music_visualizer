@@ -1,15 +1,13 @@
 #include <iostream>
-using std::cout;
-using std::endl;
+using std::cout; using std::endl;
 
-#include "LinuxAudioProvider.h"
+#include "LinuxAudioStream.h"
 
 LinuxAudioStream::LinuxAudioStream() {
 	std::string sink_name;
 	getPulseDefaultSink((void*)&sink_name);
 	sink_name += ".monitor";
 
-	// TODO is this released?
 	buf_interlaced = new float[sample_rate * channels];
 
 	pa_sample_spec pulseSampleSpec;
@@ -30,6 +28,7 @@ LinuxAudioStream::LinuxAudioStream() {
 
 LinuxAudioStream::~LinuxAudioStream() {
 	pa_simple_free(pulseState);
+	delete[] buf_interlaced;
 }
 
 void LinuxAudioStream::get_next_pcm(float * buff_l, float * buff_r, int size) {

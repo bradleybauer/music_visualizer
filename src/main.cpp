@@ -22,7 +22,7 @@ using std::runtime_error;
 #ifdef WINDOWS
 #include "WindowsAudioStream.h"
 #else
-#include "LinuxAudioProvider.h"
+#include "LinuxAudioStream.h"
 #endif
 
 #if defined(WINDOWS) && defined(DEBUG)

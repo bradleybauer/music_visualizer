@@ -5,6 +5,7 @@ using std::ifstream;
 using std::ios;
 #include <cstdio>
 #include <stdexcept>
+#include <cstring> // memory stuff
 
 #include "WavAudioStream.h"
 

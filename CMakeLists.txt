@@ -9,7 +9,8 @@ set(SOURCE_FILES
     src/ShaderConfig.cpp
     src/ShaderPrograms.cpp
     src/Renderer.cpp
-    src/LinuxAudioProvider.cpp
+    src/LinuxAudioStream.cpp
+    src/WavAudioStream.cpp
     src/filesystem.cpp
 )
 
