@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
 		shader_programs = ShaderPrograms(...)
 	if either fails to construct, exit
 	renderer = Renderer(...)
-	Create audio system (optional?)
+	Create audio system (optional)
 	Loop until user quits
 		If (FileWatcher has seen a change in shader_folder)
 			try

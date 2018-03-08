@@ -40,8 +40,9 @@ The app uses code from the following repositories<br>
 Here is a youtube video of the app displaying a waveform.<br>
 <a href="https://youtu.be/yxGM7H1RFRA">https://youtu.be/yxGM7H1RFRA</a>
 
+![](example0.PNG)
+![](example3.png)
 ![](example1.png)
 ![](example2.png)
-![](example3.png)
 ![](example4.png)
 ![](example5.png)
