@@ -20,16 +20,16 @@ using std::runtime_error;
 static const string WINDOW_SZ_KEY("window_size");
 static const string AUDIO_NUM_FRAMES_KEY("audio_num_frames");
 
-ShaderConfig::ShaderConfig(filesys::path &conf_file_path) : ShaderConfig(JsonFileReader::read(conf_file_path))
+ShaderConfig::ShaderConfig(const filesys::path &conf_file_path) : ShaderConfig(JsonFileReader::read(conf_file_path))
 {
 	// cannot take const path & because then an implicit conversion causes an infinite recursion. :D
 	// filesys::path has string->path implicit conversion constructors for convenience
-	// so ShaderConfig(JsonFileReader::...) resolves to ShaderConfig(string) which is implicitly converted to ShaderConfig(const path&)
-	// which then recurses
-	// idk why it works without const path ref though.
+
+	// One fix is to declare the constructors explicit and to make the string constructor take a
+	// const ref so that the JsonFileReader rvalue reference can bind to it.
 }
 
-ShaderConfig::ShaderConfig(string &&json_str) {
+ShaderConfig::ShaderConfig(const string &json_str) {
 	// TODO
 	rj::Document user_conf;
 	rj::ParseResult ok = user_conf.Parse<rj::kParseCommentsFlag | rj::kParseTrailingCommasFlag>(json_str.c_str());
