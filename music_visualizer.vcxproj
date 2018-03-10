@@ -19,28 +19,28 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\AudioStreams\WavAudioStream.cpp" />
+    <ClCompile Include="src\AudioStreams\WindowsAudioStream.cpp" />
     <ClCompile Include="src\filesystem.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Renderer.cpp" />
     <ClCompile Include="src\ShaderConfig.cpp" />
     <ClCompile Include="src\ShaderPrograms.cpp" />
-    <ClCompile Include="src\WavAudioStream.cpp" />
     <ClCompile Include="src\Window.cpp" />
-    <ClCompile Include="src\WindowsAudioStream.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\AudioStream.h" />
     <ClInclude Include="src\AudioProcess.h" />
+    <ClInclude Include="src\AudioStreams\AudioStream.h" />
+    <ClInclude Include="src\AudioStreams\ProceduralAudioStream.h" />
+    <ClInclude Include="src\AudioStreams\WavAudioStream.h" />
+    <ClInclude Include="src\AudioStreams\WindowsAudioStream.h" />
     <ClInclude Include="src\filesystem.h" />
     <ClInclude Include="src\FileWatcher.h" />
     <ClInclude Include="src\JsonFileReader.h" />
-    <ClInclude Include="src\ProceduralAudioStream.h" />
     <ClInclude Include="src\Renderer.h" />
     <ClInclude Include="src\ShaderConfig.h" />
     <ClInclude Include="src\ShaderPrograms.h" />
-    <ClInclude Include="src\WavAudioStream.h" />
     <ClInclude Include="src\Window.h" />
-    <ClInclude Include="src\WindowsAudioStream.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D6550F63-9286-4450-A866-89587427FCCB}</ProjectGuid>

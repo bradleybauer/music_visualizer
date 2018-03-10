@@ -20,9 +20,9 @@ using std::runtime_error;
 
 #include "AudioProcess.h"
 #ifdef WINDOWS
-#include "WindowsAudioStream.h"
+#include "AudioStreams/WindowsAudioStream.h"
 #else
-#include "LinuxAudioStream.h"
+#include "AudioStreams/LinuxAudioStream.h"
 #endif
 
 #if defined(WINDOWS) && defined(DEBUG)

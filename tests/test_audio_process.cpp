@@ -11,8 +11,8 @@ namespace chrono = std::chrono;
 #include "Test.h"
 #include "fake_clock.h"
 #include "AudioProcess.h"
-#include "WavAudioStream.h"
-#include "ProceduralAudioStream.h"
+#include "AudioStreams/WavAudioStream.h"
+#include "AudioStreams/ProceduralAudioStream.h"
 
 constexpr int canvas_height = 400;
 constexpr int canvas_width = 1024;

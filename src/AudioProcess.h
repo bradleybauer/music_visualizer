@@ -16,7 +16,7 @@ using std::complex;
 // TODO make the thread functionality builtin?
 
 #include "ShaderConfig.h" // AudioOptions
-#include "AudioStream.h"
+#include "AudioStreams/AudioStream.h"
 
 #include "ffts.h"
 // -/
