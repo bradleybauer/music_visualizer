@@ -21,7 +21,6 @@ struct Uniform {
 };
 
 struct AudioOptions {
-	bool audio_enabled;
 	bool fft_sync;
 	bool diff_sync;
 	float fft_smooth;
@@ -38,6 +37,7 @@ public:
 		int height;
 	} mInitWinSize;
 	bool mBlend;
+	bool mAudio_enabled;
 	Buffer mImage;
 	std::vector<Buffer> mBuffers;
 	std::vector<int> mRender_order; // render_order[n] is an index into buffers

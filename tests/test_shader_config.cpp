@@ -614,7 +614,7 @@ bool ShaderConfigTest::parse_valid4() { // mBuffers only contains buffers refere
 	mock_conf.mInitWinSize.width = 400;
 	mock_conf.mInitWinSize.height = 400;
 	mock_conf.mBlend = false;
-	mock_conf.mAudio_ops.audio_enabled = true;
+	mock_conf.mAudio_enabled = true;
 	mock_conf.mAudio_ops.fft_sync = true;
 	mock_conf.mAudio_ops.diff_sync = false;
 	mock_conf.mAudio_ops.fft_smooth = 1.f;
@@ -681,7 +681,7 @@ bool ShaderConfigTest::parse_valid3() {
 	mock_conf.mInitWinSize.width = 400;
 	mock_conf.mInitWinSize.height = 400;
 	mock_conf.mBlend = false;
-	mock_conf.mAudio_ops.audio_enabled = true;
+	mock_conf.mAudio_enabled = true;
 	mock_conf.mAudio_ops.fft_sync = true;
 	mock_conf.mAudio_ops.diff_sync = false;
 	mock_conf.mAudio_ops.fft_smooth = 1.f;
@@ -741,7 +741,7 @@ bool ShaderConfigTest::parse_valid2() {
 	mock_conf.mInitWinSize.width = 200;
 	mock_conf.mInitWinSize.height = 200;
 	mock_conf.mBlend = false;
-	mock_conf.mAudio_ops.audio_enabled = true;
+	mock_conf.mAudio_enabled = true;
 	mock_conf.mAudio_ops.fft_sync = true;
 	mock_conf.mAudio_ops.diff_sync = false;
 	mock_conf.mAudio_ops.fft_smooth = .0f;
@@ -811,7 +811,7 @@ bool ShaderConfigTest::parse_valid1() {
 	mock_conf.mInitWinSize.width = 400;
 	mock_conf.mInitWinSize.height = 400;
 	mock_conf.mBlend = false;
-	mock_conf.mAudio_ops.audio_enabled = true;
+	mock_conf.mAudio_enabled = true;
 	mock_conf.mAudio_ops.fft_sync = true;
 	mock_conf.mAudio_ops.diff_sync = true;
 	mock_conf.mAudio_ops.fft_smooth = .6f;

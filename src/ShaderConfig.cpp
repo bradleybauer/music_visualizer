@@ -30,7 +30,6 @@ ShaderConfig::ShaderConfig(const filesys::path &conf_file_path) : ShaderConfig(J
 }
 
 ShaderConfig::ShaderConfig(const string &json_str) {
-	// TODO
 	rj::Document user_conf;
 	rj::ParseResult ok = user_conf.Parse<rj::kParseCommentsFlag | rj::kParseTrailingCommasFlag>(json_str.c_str());
 	if (! ok)
@@ -47,6 +46,16 @@ ShaderConfig::ShaderConfig(const string &json_str) {
 			throw runtime_error("window_size must be an array of 2 numbers");
 		mInitWinSize.width = window_size[0].GetInt();
 		mInitWinSize.height = window_size[1].GetInt();
+	}
+
+	if (user_conf.HasMember("audio_enabled")) {
+		rj::Value& audio_enabled = user_conf["audio_enabled"];
+		if (! audio_enabled.IsBool())
+			throw runtime_error("audio_enabled must be a bool");
+		mAudio_enabled = audio_enabled.GetBool();
+	}
+	else {
+		mAudio_enabled = true;
 	}
 
 	if (user_conf.HasMember("audio_options")) {
@@ -74,14 +83,11 @@ ShaderConfig::ShaderConfig(const string &json_str) {
 			throw runtime_error("Audio options must contain the fft_smooth option");
 		if (! audio_options.HasMember("diff_sync"))
 			throw runtime_error("Audio options must contain the diff_sync option");
-		if (! audio_options.HasMember("audio_enabled"))
-			throw runtime_error("Audio options must contain the audio_enabled option");
 
 		rj::Value& fft_smooth = audio_options["fft_smooth"];
 		rj::Value& wave_smooth = audio_options["wave_smooth"];
 		rj::Value& fft_sync = audio_options["fft_sync"];
 		rj::Value& diff_sync = audio_options["diff_sync"];
-		rj::Value& audio_enabled = audio_options["audio_enabled"];
 
 		if (! fft_smooth.IsNumber())
 			throw runtime_error("fft_smooth must be a number between in the interval [0, 1]");
@@ -91,8 +97,6 @@ ShaderConfig::ShaderConfig(const string &json_str) {
 			throw runtime_error("fft_sync must be a bool");
 		if (! diff_sync.IsBool())
 			throw runtime_error("diff_sync must be a bool");
-		if (! audio_enabled.IsBool())
-			throw runtime_error("audio_enabled must be a bool");
 
 		ao.fft_smooth = fft_smooth.GetFloat();
 		if (ao.fft_smooth < 0 || ao.fft_smooth > 1)
@@ -104,12 +108,10 @@ ShaderConfig::ShaderConfig(const string &json_str) {
 
 		ao.fft_sync = fft_sync.GetBool();
 		ao.diff_sync = diff_sync.GetBool();
-		ao.audio_enabled = audio_enabled.GetBool();
 
 		mAudio_ops = ao;
 	}
 	else {
-		mAudio_ops.audio_enabled = true;
 		mAudio_ops.diff_sync = true;
 		mAudio_ops.fft_sync = true;
 		mAudio_ops.fft_smooth = .75;

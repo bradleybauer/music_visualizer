@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
 	// TODO make sure AudioProcess lifetime is consistent with mAudio_ops.audio_enabled
 	AudioProcess<steady_clock> *ap = nullptr;
 	std::thread audioThread;
-	if (shader_config->mAudio_ops.audio_enabled) {
+	if (shader_config->mAudio_enabled) {
 		ap = new AudioProcess<steady_clock>(*as);
 		audioThread = std::thread(&AudioProcess<steady_clock>::start, ap);
 	}
