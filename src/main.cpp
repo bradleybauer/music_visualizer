@@ -21,6 +21,7 @@ using std::runtime_error;
 #include "AudioProcess.h"
 #ifdef WINDOWS
 #include "AudioStreams/WindowsAudioStream.h"
+#include "AudioStreams/ProceduralAudioStream.h"
 #else
 #include "AudioStreams/LinuxAudioStream.h"
 #endif

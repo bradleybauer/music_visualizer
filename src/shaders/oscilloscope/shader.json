@@ -40,8 +40,8 @@
 	"blend":true,
 
 	// Defaults are true, true, .75, .75
+	"audio_enabled":true,
 	"audio_options": {
-		"audio_enabled":true,
 		"fft_sync":true,
 		"diff_sync":true,
 		"fft_smooth":0.5, // not implemented yet

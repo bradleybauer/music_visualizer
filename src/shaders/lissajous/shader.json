@@ -31,8 +31,8 @@
     // Every buffer has access to the most recent output of all buffers except image
     "render_order":["A", "B"],
 
+    "audio_enabled":true,
     "audio_options": {
-        "audio_enabled":true,
         "fft_sync":true,
         "diff_sync":true,
         "fft_smooth":0.5, // not implemented yet

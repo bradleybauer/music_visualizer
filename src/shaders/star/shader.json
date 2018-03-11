@@ -3,8 +3,8 @@
 		"geom_iters":1,
 		"clear_color":[0,0,0]
 	},
+	"audio_enabled":true,
 	"audio_options":{
-		"audio_enabled":true,
 		"fft_smooth":0.0, // not implemented yet
 		"wave_smooth":0.0,
 		"fft_sync":false,

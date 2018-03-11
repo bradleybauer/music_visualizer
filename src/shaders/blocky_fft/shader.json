@@ -24,8 +24,8 @@
         }
     },
 
+    "audio_enabled":true,
     "audio_options": {
-        "audio_enabled":true,
         "fft_sync":false,
         "diff_sync":false,
         "wave_smooth":0.0,
