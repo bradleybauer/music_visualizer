@@ -14,7 +14,7 @@ public:
 	Renderer& operator=(Renderer&& o);
 	~Renderer();
 
-	void update(AudioProcess<std::chrono::steady_clock> &process);
+	void update(audio_data &data);
 	void update();
 	void render();
 

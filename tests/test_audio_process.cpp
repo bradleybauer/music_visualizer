@@ -13,6 +13,7 @@ namespace chrono = std::chrono;
 #include "AudioProcess.h"
 #include "AudioStreams/WavAudioStream.h"
 #include "AudioStreams/ProceduralAudioStream.h"
+using AudioStreamT = ProceduralAudioStream;
 
 constexpr int canvas_height = 400;
 constexpr int canvas_width = 1024;
@@ -44,9 +45,7 @@ bool AudioProcessTest::test() {
 	// TODO make AudioProcess take flags by argument so that I can turn off renormalization and other stuff
 	// for testing specific optimizations.
 
-	AudioStream *as;
-	//*
-	as = new ProceduralAudioStream([](float* l, float* r, int s) {
+	AudioStreamT as([](float* l, float* r, int s) {
 		static int j = 0;
 		static int t = 0;
 		const double step1 = 3.141592 * 2. / float(s/2);
@@ -57,16 +56,7 @@ bool AudioProcessTest::test() {
 		t %= s / 8;
 		std::this_thread::sleep_for(std::chrono::microseconds(8560));
 	});
-	/*/
-	try {
-		as = new WavAudioStream("../src/mywav.wav");
-	}
-	catch (std::runtime_error msg) {
-		cout << msg.what() << endl;
-		return false;
-	}
-	// */
-	AudioProcess<fake_clock> ap(*as);
+	AudioProcess<fake_clock, AudioStreamT> ap(as);
 
 	auto start = fake_clock::now();
 	int i = 100;
@@ -77,8 +67,6 @@ bool AudioProcessTest::test() {
 		i--;
 	}
 	score();
-
-	delete as;
 
     return true;
 }
