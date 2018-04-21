@@ -171,7 +171,7 @@ void Renderer::render() {
 	}
 
 	// Render image
-	shaders.use_program(num_user_buffers); // image program is after all the user buffers in the programs list
+	shaders.use_program(num_user_buffers);
 	const Buffer& buff = config.mImage;
 	upload_uniforms(config.mImage, num_user_buffers);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);

@@ -72,7 +72,7 @@ Here is a more complete example displaying all the options available in shader.j
 	},
 
 	// Every buffer has access to the most recent output of all buffers
-	// The contents of a buffer are available as a sampler named i{BuffName}
+	// The contents of a buffer are available in a sampler named i{BuffName}
 	// So, to fetch the contents of A you could do texture(iA, uv);
 
 	// Default is the order the buffers are declared above

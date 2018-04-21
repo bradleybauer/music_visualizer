@@ -18,3 +18,5 @@ misc
 *.exe
 
 *.wav
+
+src/shaders/shadertoy

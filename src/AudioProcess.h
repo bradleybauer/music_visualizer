@@ -209,34 +209,43 @@ private:
 
 	// Returns the bin holding the max frequency of the fft. We only consider the first 100 bins.
 	static int max_bin(complex<float>* f);
+	static float max_frequency(complex<float>* f);
+
+    // returns a fraction of freq such that freq / c <= thres for c = some power of two
+	static float get_harmonic_less_than(float freq, float thres);
+
 	// Move p around the circular buffer by the amound and direction delta
 	// tbl: total buffer length of the circular buffer
 	static int move_index(int p, int delta, int tbl);
 	static int dist_forward(int from, int to, int tbl);
 	static int dist_backward(int from, int to, int tbl);
 	static int sign(int x);
+
 	// Attempts to separate two points, in a circular buffer, r (reader) and w (writer)
 	// by distance tbl/2.f by moving r in steps of size step_size.
 	// Returns the delta that r should be moved by
 	static int adjust_reader(int r, int w, int step_size, int tbl);
-	static float max_frequency(complex<float>* f);
-	static float get_harmonic_less_than(float freq, float thres);
+
 	static inline float mix(float x, float y, float m);
+
 	// setting low mixer can lead to some interesting lissajous
-	// TODO this is ridiculous
 	static void renorm(float* buff, float& prev_max_amp, float mixer, float scale, int buff_size);
+	static void renorm(float* buff, float scale, int buff_size);
+
 	// Adds the wavelength computed by sample_rate / frequency to r.
 	// If w is within VL units in front of r, then adjust r so that this is no longer true.
 	// w: index of the writer in the circular buffer
 	// r: index of the reader in the circular buffer
 	// freq: frequency to compute the wavelength with
 	static int advance_index(int w, int r, float freq, int tbl);
+
 	// Compute the manhattan distance between two vectors.
 	// a_circular: a circular buffer containing the first vector
 	// b_buff: a buffer containing the second vector
 	// a_sz: circumference of a_circular
 	// b_sz: length of b_buff
 	static float manhattan_dist(float* a_circular, float* b_buff, int a_offset, int a_sz, int b_sz);
+
 	// w: writer
 	// r: reader
 	// dist: half the amount to search by
@@ -248,12 +257,14 @@ private:
 	// Writing the tests/asserts in anticipation that the inputs would vary is too much work, when I know that the inputs actually will not vary.
 	//
 	static int difference_sync(int w, int r, int dist, float* prev_buff[HISTORY_NUM_FRAMES], int frame_id, float* buff);
+
+    // converts number of seconds x to a time duration for the Clock type
 	static typename Clock::duration dura(float x);
 };
 
 template<typename Clock, typename AudioStreamT>
 AudioProcess<Clock, AudioStreamT>::AudioProcess(AudioStreamT & _audio_stream) : audio_stream(_audio_stream), audio_sink() {
-	if (audio_stream.get_sample_rate() != int(48e3)) {
+	if (audio_stream.get_sample_rate() != 48000) {
 		cout << "The AudioProcess is meant to consume 48000hz audio but the given AudioStream produces "
 			 << audio_stream.get_sample_rate() << "hz audio." << endl;
 		exit(1);
@@ -351,7 +362,6 @@ inline AudioProcess<Clock, AudioStreamT>::~AudioProcess() {
 template<typename Clock, typename AudioStreamT>
 inline void AudioProcess<Clock, AudioStreamT>::service_channel(int w, int & r, int & frame_id, float * prev_buff[HISTORY_NUM_FRAMES], float * audio_buff, float * staging_buff, complex<float>* fft_out, float & freq, float & channel_max, typename Clock::time_point now, typename Clock::time_point & next_t) {
 	if (now > next_t) {
-
 		r = advance_index(w, r, freq, TBL);
 
 		if (diff_sync)
@@ -360,38 +370,39 @@ inline void AudioProcess<Clock, AudioStreamT>::service_channel(int w, int & r, i
 		for (int i = 0; i < VL; ++i) {
 			staging_buff[i] = audio_buff[(i + r) % TBL];
 
-			#ifdef CONST_RENORM
-			staging_buff[i] *= CONST_RENORM;
-			#endif
-
 			#ifdef RENORM_3
 			if (std::abs(staging_buff[i]) > max_amplitude_so_far)
 				max_amplitude_so_far = std::abs(staging_buff[i]);
 			#endif
 		}
 
+        // Rescale the audio amplitude
+		#ifdef RENORM_1
+		renorm(staging_buff, channel_max, 1.f, 1.f, VL);
+		#endif
+		#ifdef RENORM_2
+		renorm(staging_buff, channel_max, .3f, .66f, VL);
+		#endif
+		#ifdef RENORM_3
+		renorm(staging_buff, max_amplitude_so_far, 0.f, .83f, VL);
+		#endif
+        #ifdef CONST_RENORM
+        renorm(staging_buff, CONST_RENORM, VL)
+        #endif
+
+        // copy the staging buff to the buffer in prev_buff[...]
 		if (diff_sync)
 			memcpy(prev_buff[frame_id%HISTORY_NUM_FRAMES], staging_buff, HISTORY_BUFF_SZ * sizeof(float));
 		frame_id++;
 
-		#ifdef RENORM_1
-		renorm(staging_buff, channel_max, 1.f, 1.f, VL);
-		#endif
-
-		#ifdef RENORM_2
-		renorm(staging_buff, channel_max, .3f, .66f, VL);
-		#endif
-
-		#ifdef RENORM_3
-		renorm(staging_buff, max_amplitude_so_far, 0.f, .83f, VL);
-		#endif
-
-		if (fft_sync) {
-			freq = get_harmonic_less_than(max_frequency(fft_out), 121.f);
-			next_t += dura(1.f / freq);
-		}
-		else
-			next_t += dura(1.f/60.f);
+        // schedule the next call of service channel
+        if (fft_sync) {
+            freq = get_harmonic_less_than(max_frequency(fft_out), 121.f);
+            next_t += dura(1.f / freq);
+        }
+        else {
+            next_t += dura(1.f / 60.f);
+        }
 	}
 	// const float new_rl = advance_index(writer, reader_l, freql, TBL);
 	// const float SAMPLES = dist_forward(reader_l, new_rl, TBL);
@@ -422,8 +433,8 @@ inline void AudioProcess<Clock, AudioStreamT>::step() {
 	//- Manage indices and fill smoothing buffers
 	writer = move_index(writer, ABL, TBL); // writer marks the index of the discontinuity in the circular buffer
 
-	service_channel(writer,         // writer
-					reader_l,       // reader
+	service_channel(writer,
+					reader_l,
 					frame_id_l,
 					prev_buff_l,    // previously visualized audio
 					audio_buff_l,   // audio collected from system audio stream
@@ -620,6 +631,12 @@ inline void AudioProcess<Clock, AudioStreamT>::renorm(float * buff, float & prev
 	prev_max_amp = mix(prev_max_amp, new_max_amp, mixer);
 	for (int i = 0; i < buff_size; ++i)
 		buff[i] /= (prev_max_amp+0.001f) / scale;
+}
+
+template<typename Clock, typename AudioStreamT>
+inline void AudioProcess<Clock, AudioStreamT>::renorm(float * buff, float scale, int buff_size) {
+	for (int i = 0; i < buff_size; ++i)
+		buff[i] *= scale;
 }
 
 template<typename Clock, typename AudioStreamT>
