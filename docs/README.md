@@ -125,11 +125,14 @@ If you modify the shader's code or shader.json while the app is running, then th
 
 Default values need attention:
 
-What if the user doesn't provide image.geom? Should I assume they want a fullscreen quad to shade in image.frag?
+What if the user doesn't provide image.geom? Should I assume they want a fullscreen quad to shade in image.frag? ( I think so, and if they do provide img.geom then just use that instead of the builtin fullscreen quad shader )
 
 What if the user does not provide shader.json? What should I assume then?
 
-I am not sure there is a good solution without making assumptions about how people use my app.
+I think I'll assume the user wants shadertoy like functionality if no shader.json is present.
+Maybe I'll give a prompt in the terminal that no shader.json file is loaded and that the program will operate in single-buffer-shadertoy-like mode.
+
+Would it be worthwhile to print current settings to the terminal window?
 
 # Thanks To
 
