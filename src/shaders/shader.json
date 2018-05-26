@@ -6,7 +6,8 @@
 	// Every shader has an image buffer, just like shadertoy
 	// Size is always the same as the window size
 	"image": {
-		"geom_iters":1
+		"geom_iters":1,
+		"clear_color":[0,0,0]
 	},
 
 	// In addition to drawing an image buffer you can define other buffers to draw here
@@ -38,9 +39,8 @@
 	// Default is false
 	"blend":true,
 
-	// Enable the audio system? Default is true
-	"audio_enabled":true,
 	// Defaults are true, true, .75, .75
+	"audio_enabled":true,
 	"audio_options": {
 		"fft_sync":true,
 		"diff_sync":true,
