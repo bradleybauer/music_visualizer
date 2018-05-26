@@ -3,14 +3,16 @@
 
 //- Includes
 #include <iostream>
-using std::cout; using std::endl;
+using std::cout;
+using std::endl;
 #include <chrono>
 namespace chrono = std::chrono;
 #include <limits> // numeric_limits<T>::infinity()
 #include <mutex>
 #include <cmath> // std::abs
+#include <cstdlib> // malloc and free
+
 #include <complex>
-#include <string.h>
 using std::complex;
 
 // TODO make the thread functionality builtin?
@@ -32,6 +34,7 @@ struct audio_data {
 };
 
 // FFT computation library needs aligned memory
+// std::aligned_alloc is in c++17 apparently
 #ifdef WINDOWS
 #define Aligned_Alloc(align, sz) _aligned_malloc(sz, align)
 #define Aligned_Free(ptr) _aligned_free(ptr)
@@ -115,7 +118,7 @@ public:
 	                     float* prev_buff[HISTORY_NUM_FRAMES],
 	                     float* audio_buff,
 	                     float* staging_buff,
-	                     complex<float>* fft_out,
+	                     const complex<float>* fft_out,
 	                     float& freq,
 	                     float& channel_max,
 	                     typename Clock::time_point now,
@@ -208,8 +211,8 @@ private:
 	AudioStreamT & audio_stream;
 
 	// Returns the bin holding the max frequency of the fft. We only consider the first 100 bins.
-	static int max_bin(complex<float>* f);
-	static float max_frequency(complex<float>* f);
+	static int max_bin(const complex<float>* f);
+	static float max_frequency(const complex<float>* f);
 
     // returns a fraction of freq such that freq / c <= thres for c = some power of two
 	static float get_harmonic_less_than(float freq, float thres);
@@ -244,7 +247,7 @@ private:
 	// b_buff: a buffer containing the second vector
 	// a_sz: circumference of a_circular
 	// b_sz: length of b_buff
-	static float manhattan_dist(float* a_circular, float* b_buff, int a_offset, int a_sz, int b_sz);
+	static float manhattan_dist(const float* a_circular, const float* b_buff, int a_offset, int a_sz, int b_sz);
 
 	// w: writer
 	// r: reader
@@ -256,7 +259,7 @@ private:
 	// No, the inputs depend on each other too much.
 	// Writing the tests/asserts in anticipation that the inputs would vary is too much work, when I know that the inputs actually will not vary.
 	//
-	static int difference_sync(int w, int r, int dist, float* prev_buff[HISTORY_NUM_FRAMES], int frame_id, float* buff);
+	static int difference_sync(int w, int r, int dist, float* prev_buff[HISTORY_NUM_FRAMES], int frame_id, const float* buff);
 
     // converts number of seconds x to a time duration for the Clock type
 	static typename Clock::duration dura(float x);
@@ -360,7 +363,7 @@ inline AudioProcess<Clock, AudioStreamT>::~AudioProcess() {
 }
 
 template<typename Clock, typename AudioStreamT>
-inline void AudioProcess<Clock, AudioStreamT>::service_channel(int w, int & r, int & frame_id, float * prev_buff[HISTORY_NUM_FRAMES], float * audio_buff, float * staging_buff, complex<float>* fft_out, float & freq, float & channel_max, typename Clock::time_point now, typename Clock::time_point & next_t) {
+inline void AudioProcess<Clock, AudioStreamT>::service_channel(int w, int & r, int & frame_id, float * prev_buff[HISTORY_NUM_FRAMES], float * audio_buff, float * staging_buff, const complex<float>* fft_out, float & freq, float & channel_max, typename Clock::time_point now, typename Clock::time_point & next_t) {
 	if (now > next_t) {
 		r = advance_index(w, r, freq, TBL);
 
@@ -391,13 +394,13 @@ inline void AudioProcess<Clock, AudioStreamT>::service_channel(int w, int & r, i
         #endif
 
         // copy the staging buff to the buffer in prev_buff[...]
-		if (diff_sync)
-			memcpy(prev_buff[frame_id%HISTORY_NUM_FRAMES], staging_buff, HISTORY_BUFF_SZ * sizeof(float));
+        if (diff_sync)
+            std::copy(staging_buff, staging_buff + HISTORY_BUFF_SZ, prev_buff[frame_id%HISTORY_NUM_FRAMES]);
 		frame_id++;
 
         // schedule the next call of service channel
         if (fft_sync) {
-            freq = get_harmonic_less_than(max_frequency(fft_out), 121.f);
+            freq = get_harmonic_less_than(max_frequency(fft_out), 80.f);
             next_t += dura(1.f / freq);
         }
         else {
@@ -470,6 +473,8 @@ inline void AudioProcess<Clock, AudioStreamT>::step() {
 		}
 		ffts_execute(fft_plan, fft_inl, fft_outl);
 		ffts_execute(fft_plan, fft_inr, fft_outr);
+        fft_outl[0] = 0;
+        fft_outr[0] = 0;
 		audio_sink.mtx.lock();
 		// TODO fft magnitudes are different between windows and linux
 		for (int i = 0; i < VL; i++) {
@@ -515,10 +520,10 @@ inline void AudioProcess<Clock, AudioStreamT>::step() {
 }
 
 template<typename Clock, typename AudioStreamT>
-inline int AudioProcess<Clock, AudioStreamT>::max_bin(complex<float>* f) {
+inline int AudioProcess<Clock, AudioStreamT>::max_bin(const complex<float>* f) {
 	float max = 0.f;
 	int max_i = 0;
-	// catch frequencies from 5.86 to 586 (that is i * SRF / FFTLEN for i from 0 to 100)
+	// catch frequencies from 5.86 to 586 (that is i * SRF / FFTLEN for i from 1 to 100)
 	for (int i = 1; i < 100; ++i) {
 		const float mmag = std::abs(f[i]);
 		if (mmag > max) {
@@ -526,8 +531,6 @@ inline int AudioProcess<Clock, AudioStreamT>::max_bin(complex<float>* f) {
 			max_i = i;
 		}
 	}
-	if (max_i == 0)
-		max_i++;
 	return max_i;
 }
 
@@ -536,7 +539,8 @@ inline int AudioProcess<Clock, AudioStreamT>::move_index(int p, int delta, int t
 	p += delta;
 	if (p >= tbl) {
 		p -= tbl;
-	} else if (p < 0) {
+	}
+    else if (p < 0) {
 		p += tbl;
 	}
 	return p;
@@ -587,31 +591,32 @@ inline int AudioProcess<Clock, AudioStreamT>::adjust_reader(int r, int w, int st
 	const int dfoodr = sign(b) * dbdr;
 	// move r by a magnitude of foo in the -foo'(r) direction, but only take
 	// steps of size step_size
-	int grid = step_size;
-	grid = int(std::ceil(foo / float(grid))) * grid;
+	const int grid = int(std::ceil(foo / float(step_size))) * step_size;
 	return -dfoodr * grid;
 }
 
 template<typename Clock, typename AudioStreamT>
-inline float AudioProcess<Clock, AudioStreamT>::max_frequency(complex<float>* f) {
+inline float AudioProcess<Clock, AudioStreamT>::max_frequency(const complex<float>* f) {
 	// more info -> http://dspguru.com/dsp/howtos/how-to-interpolate-fft-peak
-	const int k = max_bin(f);
+	int k = max_bin(f);
+    if (k == 0) {
+        k = 1;
+    }
 	const float y1 = std::abs(f[k - 1]); // std:abs(complex) gives magnitudes
 	const float y2 = std::abs(f[k]);
 	const float y3 = std::abs(f[k + 1]);
 	const float d = (y3 - y1) / (2 * (2 * y2 - y1 - y3)+1/32.f); // +1/32 to avoid divide by zero
 	const float kp = k + d;
-	return kp * float(SRF) / float(FFTLEN);
+	return std::max(kp * float(SRF) / float(FFTLEN), 10.f); // dont let anything negative or close to zero through
 }
 
 template<typename Clock, typename AudioStreamT>
 inline float AudioProcess<Clock, AudioStreamT>::get_harmonic_less_than(float freq, float thres) {
-	//while (freq > 121.f)
-	//	freq /= 2.f;
-	float a = std::log2f(freq);
-	float b = std::log2f(thres);
-	if (a > b)
-		freq *= std::pow(2.f, std::floor(b-a));
+	// while (freq > 121.f)
+	//     freq /= 2.f;
+	const float a = std::log2f(freq);
+	const float b = std::log2f(thres);
+    freq *= std::pow(2.f, std::floor(b-a));
 	if (!std::isnormal(freq))
 		freq = 60.f;
 	return freq;
@@ -652,7 +657,7 @@ inline int AudioProcess<Clock, AudioStreamT>::advance_index(int w, int r, float 
 }
 
 template<typename Clock, typename AudioStreamT>
-inline float AudioProcess<Clock, AudioStreamT>::manhattan_dist(float * a_circular, float * b_buff, int a_offset, int a_sz, int b_sz) {
+inline float AudioProcess<Clock, AudioStreamT>::manhattan_dist(const float * a_circular, const float * b_buff, int a_offset, int a_sz, int b_sz) {
 	float md = 0.f;
 	for (int i = 0; i < b_sz; ++i) {
 		const float xi_1 = a_circular[(i + a_offset) % a_sz];
@@ -664,7 +669,7 @@ inline float AudioProcess<Clock, AudioStreamT>::manhattan_dist(float * a_circula
 }
 
 template<typename Clock, typename AudioStreamT>
-inline int AudioProcess<Clock, AudioStreamT>::difference_sync(int w, int r, int dist, float * prev_buff[HISTORY_NUM_FRAMES], int frame_id, float * buff) {
+inline int AudioProcess<Clock, AudioStreamT>::difference_sync(int w, int r, int dist, float * prev_buff[HISTORY_NUM_FRAMES], int frame_id, const float * buff) {
 	if (dist_backward(r, w, TBL) > dist && dist_forward(r, w, TBL) > dist) {
 		int orig_r = r;
 		r = move_index(r, -dist, TBL);
@@ -727,3 +732,4 @@ inline typename Clock::duration AudioProcess<Clock, AudioStreamT>::dura(float x)
 	return chrono::duration_cast<typename Clock::duration>(
 			chrono::duration<float, std::ratio<1>>(x));
 }
+
