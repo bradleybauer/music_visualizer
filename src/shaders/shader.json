@@ -1,4 +1,9 @@
 {
+
+	// TODO implement these options
+	// interpolation -> default of gl_nearest
+	// edge_behaviour -> default of gl_repeat
+
 	"initial_window_size":[500,250],
 	// Please use only valid glsl names for buffers and uniforms
 	// Please do not specify options more than once
@@ -19,7 +24,7 @@
 			// How many times the geometry shader will execute
 			"geom_iters":1024,
 			// RGB values from the interval [0, 1]
-			/// Default is [0,0,0]
+			// Default is [0,0,0]
 			"clear_color":[0, 0, 0]
 		},
 		"B": {
@@ -30,8 +35,9 @@
 	},
 
 	// Render A then B
-	// Every buffer has access to the most recent output of all buffers except image
-	/// Default is the order the buffers are declared in buffers
+	// Every buffer has access to the most recent output of all other buffers
+	// No buffer has access to the output of the image buffer
+	// Default is the order the buffers are declared in buffers
 	"render_order":["A", "B"],
 
 	// Do you want glEnable(GL_BLEND) ?

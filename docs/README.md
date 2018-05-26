@@ -6,6 +6,96 @@ visualizers might look like when visualizing the same sound.
 
 ![](anim.gif)
 
+# Usage
+
+Warning - this section describes unimplemented features (shadertoy like default behavior).
+
+To visualize sound that plays to the system default audio output
+
+	Turn on music -> Run the app
+
+If you want to dig into the app's shader code or write your own shaders then read on.
+
+I intend to provide a shadertoy like experience by default. What this means is that the user writes a .frag file that renders to a fullscreen quad (actually a window sized quad). If the user wants multipass buffers, then multiple .frag files should be written. The name of a buffer is the file name of the frag file without the .frag extension. The contents of a buffer are available in all buffer shaders as i[buffer name here]. So if the buffers A.frag and a B.frag exist, then B can access the contents of A by doing texture(iA, pos);.
+
+Every shader must contain an image.frag file, just like shadertoy.
+
+Code for a shader should be located in a folder named shaders that is in the same directory as the executable. Subdirectories of shaders/ can also contain code but that code will not be considered a part of the currently rendered shader.
+
+If the user modifies the current shader's files while the app is running, then the app will load the changes, recompile the shaders, and render the new shaders if everything compiled correctly.
+
+More advanced usage is supported by giving the user access to geometry shaders. The user could render a glittery sphere, for example, using only geometry shaders and a very simple frag shader. To do this the user would write a geometry shader, say buffname.geom, which would be executed a number of times and on each execution would output a triangle or quad to be shaded by a buffname.frag. The geometry shader knows which execution it is currently on and so can decide where to place the output geometry (and how to apply a perspective transform) so that a sphere is generated.
+
+The size of each framebuffer can also be configured so that unnecessary compute can be avoided. For example, shader games could be implemented where there is a state and/or physics buffer and a separate rendering buffer. The state framebuffer could be of size 2x100, if for instance the user is simulating 100 2D balls moving around. If the user draws a full buffer quad into this framebuffer then a fragment shader should execute twice for each 2D vector, once for each dimension. In this case the geometry shader would execute only once and would output the full buffer quad. Another approach would have the geometry shader output 2*100 one-pixel sized quads (or triangles?) into the framebuffer. The geometry shader could do all the work of updating each ball's state and pass the new state to an 'assignment' fragment shader to be written into the framebuffer. In this case the geometry shader would execute 100 times, and output two one-pixel sized quads on each iteration.
+
+A shadertoy like shader expects the following folder layout
+
+	executable
+	shaders/
+		image.frag
+		buffA.frag
+		buffB.frag
+
+A shader using geometry shaders would expect this folder layout
+
+	executable
+	shaders/
+		image.frag
+		buffA.frag
+		buffA.geom
+		shader.json
+
+# Configuration
+
+If you provide .geom shaders or want to change certain options, then you'll want to have a shader.json file in shaders/.
+
+Here is a list of available options that can be set in shader.json:
+
+	initial window size
+
+	image buffer geometry iterations
+	image buffer clear color
+
+	buffer name
+	buffer size
+	buffer geometry iterations
+	buffer clear color
+
+	render order of buffers
+
+	whether to blend geometry drawn into a framebuffer
+
+	whether the audio system is enabled
+	whether the audio fft sync is enabled
+	whether the audio diff sync is enabled
+	whether the fft output is smoothed
+	whether the waveform is smoothed
+
+	a list of values available in all shaders as uniforms
+
+if no shader.json is provided, then the default values are assumed.
+
+See [here](../src/shaders/oscilloscope/shader.json) for more detail.
+
+# Default behavior
+Warning - this section describes unimplemented features.
+
+Provide a shadertoy like functionality by default. Essentially, you can just write .frag files that push pretty pixels.
+
+	if there is no shader.json then ignore all geometry files (provide warning if there are geometry files)
+
+	if there is no buffname.geom for a buffname.frag file, then buffname.frag draws a fullscreen (window sized) quad
+
+	if there is a shader.json with buffer options (size or geom_iters) set for buffname but there is no buffname.geom then take default options for size and geom_iters (provide warning)
+
+	if there is a shader.json then
+	  if no buffname.geom_iters -> buffname.geom_iters = 1
+	  if no buffname.buffer_size -> buffname.buffer_size = "window_size", buffname.geom_iters = 1 (overrides user's geom_iters)
+
+	...
+
+See [here](../src/shaders/oscilloscope/shader.json) for more detail related to default values of specific options in shader.json.
+
 # Building
 
 First get the sources
@@ -24,113 +114,9 @@ and on Windows 10 with Visual Studio 2017:
 build the x64 Release configuration
 ```
 
-# Viewing Shaders
-
-Code for shaders should be located in a folder named shaders that is in the same directory as the executable.
-
-A shader.json file gives you some control over the rendering process. Here is a minimal shader.json.
-```
-{
-	"image":{
-		"geom_iters":1
-	},
-}
-```
-This will create a shader that expects the following file layout
-```
-executable
-shaders/
-    image.frag
-    image.geom
-    shader.json
-```
-The app sends a number of points to a geometry shader which the user can write. This allows the user to draw any kind of procedural geometry, not just fullscreen quads. The procedural geometry generated in image.geom is then shaded by the user provided fragment shader in image.frag.
-
-Here is a more complete example displaying all the options available in shader.json
-```
-{
-	"initial_window_size":[500, 230],
-
-	"image":{
-		// "size": image is always the same size as the window
-		"geom_iters":1, // knumber of points that are sent to the geometry shader.
-	},
-	"buffers":{
-		"A":{ // compute a blur
-			"size": "window_size", // pixel size of A's framebuffer
-			"geom_iters":1,
-
-			// Color values are floating point values in the range [0, 1]
-			// Default is [0, 0, 0]
-			"clear_color":[0, 0, 0]
-		},
-		"B":{ // render geometry into B's framebuffer
-			"size": [200, 200],
-			"geom_iters":50, // maybe 50 rectangles in 3D
-			"clear_color":[1.0, 0, 0] // on a red background
-		}
-	},
-
-	// Every buffer has access to the most recent output of all buffers
-	// The contents of a buffer are available in a sampler named i{BuffName}
-	// So, to fetch the contents of A you could do texture(iA, uv);
-
-	// Default is the order the buffers are declared above
-	"render_order":["A", "B"],
-
-	// blend output of fragment shader with framebuffer based on alpha?
-	// uses glBlend(src alpha, one minus src alpha)
-	// which is mix(old_color.rgb, new_color.rgb, new_color_alpha)
-	// Default is false
-	"blend":true,
-
-	// Enable the audio thread? This could cause higher system load.
-	// Default is true
-	"audio_enabled":true,
-
-	// Defaults are true, true, .75, .75
-	"audio_options": {
-		"fft_sync":true,
-		"diff_sync":true,
-		"fft_smooth":0.5, // not implemented yet
-		"wave_smooth":0.8
-	},
-
-	// Available as {UniformName} in all buffers.
-	// Useful for setting colors from external scripts.
-	"uniforms": {
-		"my_uni":[10, 123, 42], // a vec3 available in each buffer
-		"your_uni":[25, 20, 1],
-		"his_uni":[1.0, 2.0, 3.0, 4]
-	}
-
-}
-```
-This shader would expect the following file layout
-```
-executable
-shaders/
-    A.frag
-    A.geom
-    B.frag
-    B.geom
-    image.frag
-    image.geom
-    shader.json
-```
-
-If you modify the shader's code or shader.json while the app is running, then the app will load your changes, recompile the shaders, and render the new shaders if everything compiled correctly.
-
 # TODO
 
-Default values need attention:
-
-What if the user doesn't provide image.geom? Should I assume they want a fullscreen quad to shade in image.frag? ( I think so, and if they do provide img.geom then just use that instead of the builtin fullscreen quad shader )
-
-What if the user does not provide shader.json? What should I assume then?
-
-I think I'll assume the user wants shadertoy like functionality if no shader.json is present.
-Maybe I'll give a prompt in the terminal that no shader.json file is loaded and that the program will operate in single-buffer-shadertoy-like mode.
+buffers should have GL_LINEAR/GL_NEAREST and GL_CLAMP/GL_REPEAT options
 
 Would it be worthwhile to print current settings to the terminal window?
 
