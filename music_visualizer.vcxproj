@@ -99,10 +99,12 @@
     <LibraryPath>C:\Users\gazin\Programming\libs\glfw-3.2.1\lib-vc2015;C:\Users\gazin\Programming\libs\glew-2.1.0\lib\Release\x64;C:\Users\gazin\Programming\internal\git\music_visualizer\SimpleFileWatcher\lib\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LibraryPath>C:\Users\gazin\Programming\internal\git\music_visualizer\SimpleFileWatcher\lib\Debug;C:\Users\gazin\Programming\libs\glfw-3.2.1\lib-vc2015;C:\Users\gazin\Programming\libs\glew-2.1.0\lib\Release\x64;C:\Users\gazin\Programming\internal\git\music_visualizer\ffts\build\Debug;C:\Users\gazin\Programming\libs\minimp3;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)libs\ffts\build\Debug;$(SolutionDir)libs\SimpleFileWatcher\lib\Debug;$(SolutionDir)libs_win\glfw-3.2.1\;$(SolutionDir)libs_win\glew-2.1.0\;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LibraryPath>$(ProjectDir)libs_win\glfw-3.2.1\;$(ProjectDir)libs_win\glew-2.1.0\;$(ProjectDir)libs\ffts\build\Release;$(ProjectDir)libs\SimpleFileWatcher\lib\Release;$(ProjectDir)libs\minimp3\;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)libs\ffts\build\Release;$(SolutionDir)libs\SimpleFileWatcher\lib\Release;$(SolutionDir)libs_win\glfw-3.2.1\;$(SolutionDir)libs_win\glew-2.1.0\;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -138,7 +140,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>C:\Users\gazin\Programming\libs\glew-2.1.0\include;C:\Users\gazin\Programming\internal\git\music_visualizer\SimpleFileWatcher\include;C:\Users\gazin\Programming\internal\git\music_visualizer\rapidjson\include;C:\Users\gazin\Programming\libs\glfw-3.2.1\include;C:\Users\gazin\Programming\internal\git\music_visualizer\ffts\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)libs\ffts\include;$(SolutionDir)libs\rapidjson\include;$(SolutionDir)libs\SimpleFileWatcher\include;$(SolutionDir)libs_win\glew-2.1.0\include;$(SolutionDir)libs_win\glfw-3.2.1\include</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <PreprocessorDefinitions>GLEW_STATIC;WIN32;_DEBUG;_CONSOLE;WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <Optimization>Disabled</Optimization>
@@ -155,7 +157,7 @@
     <ClCompile>
       <Optimization>Full</Optimization>
       <PreprocessorDefinitions>GLEW_STATIC;WIN32;NDEBUG;_CONSOLE;WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)\src;$(ProjectDir)\libs\ffts\include;$(ProjectDir)\libs\rapidjson\include;$(ProjectDir)\libs\SimpleFileWatcher\include;$(ProjectDir)\libs_win\glew-2.1.0\include;$(ProjectDir)\libs_win\glfw-3.2.1\include;$(ProjectDir)\libs\minimp3</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)libs\ffts\include;$(SolutionDir)libs\rapidjson\include;$(SolutionDir)libs\SimpleFileWatcher\include;$(SolutionDir)libs_win\glew-2.1.0\include;$(SolutionDir)libs_win\glfw-3.2.1\include</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
