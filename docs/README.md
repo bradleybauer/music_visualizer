@@ -22,13 +22,7 @@ Every shader must contain an image.frag file, just like shadertoy.
 
 Code for a shader should be located in a folder named shaders that is in the same directory as the executable. Subdirectories of shaders/ can also contain code but that code will not be considered a part of the currently rendered shader.
 
-If the user modifies the current shader's files while the app is running, then the app will load the changes, recompile the shaders, and render the new shaders if everything compiled correctly.
-
-More advanced usage is supported by giving the user access to geometry shaders. The user could render a glittery sphere, for example, using only geometry shaders and a very simple frag shader. To do this the user would write a geometry shader, say buffname.geom, which would be executed a number of times and on each execution would output a triangle or quad to be shaded by a buffname.frag. The geometry shader knows which execution it is currently on and so can decide where to place the output geometry (and how to apply a perspective transform) so that a sphere is generated.
-
-The size of each framebuffer can also be configured so that unnecessary compute can be avoided. For example, shader games could be implemented where there is a state and/or physics buffer and a separate rendering buffer. The state framebuffer could be of size 2x100, if for instance the user is simulating 100 2D balls moving around. If the user draws a full buffer quad into this framebuffer then a fragment shader should execute twice for each 2D vector, once for each dimension. In this case the geometry shader would execute only once and would output the full buffer quad. Another approach would have the geometry shader output 2*100 one-pixel sized quads (or triangles?) into the framebuffer. The geometry shader could do all the work of updating each ball's state and pass the new state to an 'assignment' fragment shader to be written into the framebuffer. In this case the geometry shader would execute 100 times, and output two one-pixel sized quads on each iteration.
-
-A shadertoy like shader expects the following folder layout
+A shadertoy like shader might expect the following folder layout
 
 	executable
 	shaders/
@@ -36,7 +30,13 @@ A shadertoy like shader expects the following folder layout
 		buffA.frag
 		buffB.frag
 
-A shader using geometry shaders would expect this folder layout
+If the user modifies the current shader's files while the app is running, then the app will load the changes, recompile the shaders, and render the new shaders if everything compiled correctly.
+
+More advanced usage is supported by giving the user access to geometry shaders. The user could render a glittery sphere, for example, using only geometry shaders and a very simple frag shader. To do this the user would write a geometry shader, say buffname.geom, which would be executed a number of times and on each execution would output a triangle or quad to be shaded by a buffname.frag. The geometry shader knows which execution it is currently on and so can decide where to place the output geometry (and how to apply a perspective transform) so that a sphere is generated.
+
+The size of each framebuffer can also be configured so that unnecessary compute can be avoided. For example, shader games could be implemented where there is a state buffer and a separate rendering buffer. The state framebuffer could be of size 2x100, if for instance the user is simulating a hundred 2D balls moving around. The geometry shader would execute once and draw a full buffer quad. The fragment shader would then shade each pixel in this quad where a pixel is one of the two coordinates for one of the one hundred 2D balls.. Another approach would have the geometry shader output two one-pixel sized quads (or triangles?). The geometry shader could do all the work of updating each ball's state and pass the new state to an 'assignment' fragment shader to be written into the framebuffer. In this case the geometry shader would execute 100 times.
+
+A shader using geometry shaders might expect this folder layout
 
 	executable
 	shaders/
@@ -47,7 +47,7 @@ A shader using geometry shaders would expect this folder layout
 
 # Configuration
 
-If you provide .geom shaders or want to change certain options, then you'll want to have a shader.json file in shaders/.
+If you provide .geom shaders or want to change certain options, then you should have a shader.json file in shaders/.
 
 Here is a list of available options that can be set in shader.json:
 
@@ -78,9 +78,8 @@ if no shader.json is provided, then the default values are assumed.
 See [here](../src/shaders/oscilloscope/shader.json) for more detail.
 
 # Default behavior
-Warning - this section describes unimplemented features.
 
-Provide a shadertoy like functionality by default. Essentially, you can just write .frag files that push pretty pixels.
+Not implemented yet
 
 	if there is no shader.json then ignore all geometry files (provide warning if there are geometry files)
 
@@ -94,7 +93,7 @@ Provide a shadertoy like functionality by default. Essentially, you can just wri
 
 	...
 
-See [here](../src/shaders/oscilloscope/shader.json) for more detail related to default values of specific options in shader.json.
+See [here](../src/shaders/oscilloscope/shader.json) for more detail.
 
 # Building
 
