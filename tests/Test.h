@@ -59,6 +59,7 @@ private:
 	bool parse_invalid13();
 	bool parse_invalid14();
 	bool parse_invalid15();
+	bool parse_invalid16();
 };
 
 class AudioProcessTest {

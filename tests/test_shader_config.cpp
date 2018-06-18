@@ -20,7 +20,7 @@ bool operator==(const AudioOptions& l, const AudioOptions& o);
 bool operator==(const Buffer& l, const Buffer& o);
 bool operator==(const Uniform& l, const Uniform& o);
 
-static bool compare(ShaderConfig& l, ShaderConfig& r) {
+static bool compare_eq(ShaderConfig& l, ShaderConfig& r) {
 	bool confs_eq, eq;
 
 	eq = l.mAudio_ops == r.mAudio_ops;
@@ -37,7 +37,7 @@ static bool compare(ShaderConfig& l, ShaderConfig& r) {
 
 	if (eq)
 		for (int i = 0; i < l.mBuffers.size(); ++i) {
-			eq = l.mBuffers[i] == r.mBuffers[i]; 
+			eq = l.mBuffers[i] == r.mBuffers[i];
 			confs_eq &= eq;
 			if (!eq) cout << "Buffer " + std::to_string(i) + " difference" << endl;
 		}
@@ -68,6 +68,85 @@ static bool compare(ShaderConfig& l, ShaderConfig& r) {
 	return confs_eq;
 }
 
+bool ShaderConfigTest::parse_invalid16() { // non existant buffer in render_order
+	string json_str = R"(
+	{
+		"image" : {
+			"geom_iters":1,
+			"clear_color":[0,0,0]
+		},
+		"buffers": {
+			"mybuff": {
+				"size":[1,2],
+				"geom_iters": 12,
+				"clear_color":[1, 1, 1]
+			}
+		},
+		"audio_options":{
+			"audio_enabled":true,
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
+		},
+		"render_order":["mybuff", "i_dont_exist"],
+		"uniforms" : {
+			"my_uni": [1.0]
+		}
+	}
+	)";
+
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error& msg) {
+		cout << msg.what() << endl;
+		cout << PASS_MSG << endl;
+		return true;
+	}
+	cout << FAIL_MSG << endl;
+	return false;
+}
+bool ShaderConfigTest::parse_invalid15() { // uniforms with the same name
+	string json_str = R"(
+	{
+		"image" : {
+			"geom_iters":1,
+			"clear_color":[0,0,0]
+		},
+		"buffers": {
+			"mybuff": {
+				"size":[1,2],
+				"geom_iters": 12,
+				"clear_color":[1, 1, 1]
+			}
+		},
+		"audio_options":{
+			"audio_enabled":true,
+			"fft_sync": false,
+			"diff_sync": false,
+			"fft_smooth": 1,
+			"wave_smooth": 0
+		},
+		"render_order":["mybuff"],
+		"uniforms" : {
+			"my_uni": [1.0],
+			"my_uni": [1.0]
+		}
+	}
+	)";
+
+	try {
+		ShaderConfig conf(json_str);
+	}
+	catch (runtime_error& msg) {
+		cout << msg.what() << endl;
+		cout << PASS_MSG << endl;
+		return true;
+	}
+	cout << FAIL_MSG << endl;
+	return false;
+}
 bool ShaderConfigTest::parse_invalid14() { // more than one render_order object
 	string json_str = R"(
 	{
@@ -134,46 +213,6 @@ bool ShaderConfigTest::parse_invalid13() { // more than one uniforms object
 			"my_uni": [1.0]
 		},
 		"uniforms" : {
-			"my_uni": [1.0]
-		}
-	}
-	)";
-
-	try {
-		ShaderConfig conf(json_str);
-	}
-	catch (runtime_error& msg) {
-		cout << msg.what() << endl;
-		cout << PASS_MSG << endl;
-		return true;
-	}
-	cout << FAIL_MSG << endl;
-	return false;
-}
-bool ShaderConfigTest::parse_invalid15() { // uniforms with the same name
-	string json_str = R"(
-	{
-		"image" : {
-			"geom_iters":1,
-			"clear_color":[0,0,0]
-		},
-		"buffers": {
-			"mybuff": {
-				"size":[1,2],
-				"geom_iters": 12,
-				"clear_color":[1, 1, 1]
-			}
-		},
-		"audio_options":{
-			"audio_enabled":true,
-			"fft_sync": false,
-			"diff_sync": false,
-			"fft_smooth": 1,
-			"wave_smooth": 0
-		},
-		"render_order":["mybuff"],
-		"uniforms" : {
-			"my_uni": [1.0],
 			"my_uni": [1.0]
 		}
 	}
@@ -641,7 +680,7 @@ bool ShaderConfigTest::parse_valid4() { // mBuffers only contains buffers refere
 
 	try {
 		ShaderConfig conf(json_str);
-		if (!compare(conf, mock_conf)) {
+		if (!compare_eq(conf, mock_conf)) {
 			cout << "EXPECTED" << endl;
 			cout << mock_conf << endl << endl;
 			cout << "RETURNED" << endl;
@@ -696,7 +735,7 @@ bool ShaderConfigTest::parse_valid3() {
 
 	try {
 		ShaderConfig conf(json_str);
-		if (!compare(conf, mock_conf)) {
+		if (!compare_eq(conf, mock_conf)) {
 			cout << "EXPECTED" << endl;
 			cout << mock_conf << endl << endl;
 			cout << "RETURNED" << endl;
@@ -761,7 +800,7 @@ bool ShaderConfigTest::parse_valid2() {
 
 	try {
 		ShaderConfig conf(json_str);
-		if (!compare(conf, mock_conf)) {
+		if (!compare_eq(conf, mock_conf)) {
 			cout << "EXPECTED" << endl;
 			cout << mock_conf << endl << endl;
 			cout << "RETURNED" << endl;
@@ -777,7 +816,6 @@ bool ShaderConfigTest::parse_valid2() {
 	cout << PASS_MSG << endl;
 	return true;
 }
-
 bool ShaderConfigTest::parse_valid1() {
 	string json_str = R"(
 	{
@@ -840,7 +878,7 @@ bool ShaderConfigTest::parse_valid1() {
 
 	try {
 		ShaderConfig conf(json_str);
-		if (!compare(conf, mock_conf)) {
+		if (!compare_eq(conf, mock_conf)) {
 			cout << "EXPECTED" << endl;
 			cout << mock_conf << endl << endl;
 			cout << "RETURNED" << endl;
@@ -856,12 +894,11 @@ bool ShaderConfigTest::parse_valid1() {
 	cout << PASS_MSG << endl;
 	return true;
 }
-
 bool ShaderConfigTest::test() {
-	bool ok;
+	bool ok = true;
 
 	cout << "json parse test valid 1: " << endl;
-	ok = parse_valid1();
+	ok &= parse_valid1();
 
 	cout << "json parse test valid 2: " << endl;
 	ok &= parse_valid2();
@@ -910,6 +947,9 @@ bool ShaderConfigTest::test() {
 
 	cout << "json parse test invalid 15: " << endl;
 	ok &= parse_invalid15();
+
+	cout << "json parse test invalid 16: " << endl;
+	ok &= parse_invalid16();
 
 	return ok;
 }
