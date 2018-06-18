@@ -259,7 +259,7 @@ ShaderConfig::ShaderConfig(const string &json_str) {
 						}
 					}
 					if (index == -1)
-						throw ("render_order member \"" + b_name + "\" must be the name of a buffer in \"buffers\"");
+						throw runtime_error("render_order member \"" + b_name + "\" must be the name of a buffer in \"buffers\"");
 					
 					// mRender_order contains indices into mBuffers
 					mRender_order.push_back(index);
