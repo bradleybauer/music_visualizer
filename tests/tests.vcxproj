@@ -23,7 +23,6 @@
     <ClCompile Include="..\src\filesystem.cpp" />
     <ClCompile Include="..\src\ShaderConfig.cpp" />
     <ClCompile Include="fake_clock.cpp" />
-    <ClCompile Include="run_tests.cpp" />
     <ClCompile Include="test_audio_process.cpp" />
     <ClCompile Include="test_filesystem.cpp" />
     <ClCompile Include="test_shader_config.cpp" />
@@ -32,7 +31,6 @@
     <ClInclude Include="..\src\AudioStreams\ProceduralAudioStream.h" />
     <ClInclude Include="..\src\AudioStreams\WavAudioStream.h" />
     <ClInclude Include="fake_clock.h" />
-    <ClInclude Include="Test.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
@@ -93,10 +91,15 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <LibraryPath>$(SolutionDir)libs\ffts\build\Debug;$(SolutionDir)libs\SimpleFileWatcher\lib\Debug;$(SolutionDir)libs_win\glfw-3.2.1;$(SolutionDir)libs_win\glew-2.1.0;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <LibraryPath>C:\Users\gazin\Programming\internal\git\music_visualizer\ffts\build\Release;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)libs\SimpleFileWatcher\lib\Release;$(SolutionDir)libs_win\glfw-3.2.1;$(SolutionDir)libs_win\glew-2.1.0;$(SolutionDir)libs\ffts\build\Release;$(LibraryPath)</LibraryPath>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -109,7 +112,9 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>GLEW_STATIC;WIN32;_DEBUG;_CONSOLE;WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)libs\ffts\include;$(SolutionDir)libs\rapidjson\include;$(SolutionDir)libs\SimpleFileWatcher\include;$(SolutionDir)libs_win\glew-2.1.0\include;$(SolutionDir)libs_win\glfw-3.2.1\include;$(ProjectDir)test</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)libs\catch2\include;$(SolutionDir)libs\ffts\include;$(SolutionDir)libs\rapidjson\include;$(SolutionDir)libs\SimpleFileWatcher\include</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <EnableModules>false</EnableModules>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -126,27 +131,35 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <EnableModules>false</EnableModules>
+      <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)libs\catch2\include;$(SolutionDir)libs\ffts\include;$(SolutionDir)libs\rapidjson\include;$(SolutionDir)libs\SimpleFileWatcher\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>ffts_staticd.lib;opengl32.lib;glew32s.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <EnableModules>false</EnableModules>
+      <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)libs\catch2\include;$(SolutionDir)libs\ffts\include;$(SolutionDir)libs\rapidjson\include;$(SolutionDir)libs\SimpleFileWatcher\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>ffts_static.lib;opengl32.lib;glew32s.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -158,8 +171,10 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>GLEW_STATIC;WIN32;NDEBUG;_CONSOLE;WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)libs\ffts\include;$(SolutionDir)libs\rapidjson\include;$(SolutionDir)libs\SimpleFileWatcher\include;$(SolutionDir)libs_win\glew-2.1.0\include;$(SolutionDir)libs_win\glfw-3.2.1\include;$(ProjectDir)test</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)libs\catch2\include;$(SolutionDir)libs\ffts\include;$(SolutionDir)libs\rapidjson\include;$(SolutionDir)libs\SimpleFileWatcher\include</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <EnableModules>false</EnableModules>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

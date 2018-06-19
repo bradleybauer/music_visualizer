@@ -20,3 +20,5 @@ misc
 *.wav
 
 src/shaders/shadertoy
+
+Release/

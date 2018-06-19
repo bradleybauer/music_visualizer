@@ -6,10 +6,10 @@ using std::string;
 #include <stdexcept>
 using std::runtime_error;
 
-// TODO should probably use a testing frame work
-// or think of a better way to add tests to execute. Its a pain to add new tests.
+#define CATCH_CONFIG_MAIN
+#include "catch2/catch.hpp"
 
-#include "Test.h"
+#define TEST
 #include "ShaderConfig.h"
 
 std::ostream& operator<<(std::ostream& os, const Buffer& o);
@@ -68,7 +68,7 @@ static bool compare_eq(ShaderConfig& l, ShaderConfig& r) {
 	return confs_eq;
 }
 
-bool ShaderConfigTest::parse_invalid16() { // non existant buffer in render_order
+TEST_CASE("non existant buffer in render_order") {
 	string json_str = R"(
 	{
 		"image" : {
@@ -100,14 +100,12 @@ bool ShaderConfigTest::parse_invalid16() { // non existant buffer in render_orde
 		ShaderConfig conf(json_str);
 	}
 	catch (runtime_error& msg) {
-		cout << msg.what() << endl;
-		cout << PASS_MSG << endl;
-		return true;
+		CHECK(true);
+		return;
 	}
-	cout << FAIL_MSG << endl;
-	return false;
+	CHECK(false);
 }
-bool ShaderConfigTest::parse_invalid15() { // uniforms with the same name
+TEST_CASE("uniforms with the same name") {
 	string json_str = R"(
 	{
 		"image" : {
@@ -140,14 +138,12 @@ bool ShaderConfigTest::parse_invalid15() { // uniforms with the same name
 		ShaderConfig conf(json_str);
 	}
 	catch (runtime_error& msg) {
-		cout << msg.what() << endl;
-		cout << PASS_MSG << endl;
-		return true;
+		CHECK(true);
+		return;
 	}
-	cout << FAIL_MSG << endl;
-	return false;
+	CHECK(false);
 }
-bool ShaderConfigTest::parse_invalid14() { // more than one render_order object
+TEST_CASE("more than one render_order object") {
 	string json_str = R"(
 	{
 		"image" : {
@@ -180,14 +176,12 @@ bool ShaderConfigTest::parse_invalid14() { // more than one render_order object
 		ShaderConfig conf(json_str);
 	}
 	catch (runtime_error& msg) {
-		cout << msg.what() << endl;
-		cout << PASS_MSG << endl;
-		return true;
+		CHECK(true);
+		return;
 	}
-	cout << FAIL_MSG << endl;
-	return false;
+	CHECK(false);
 }
-bool ShaderConfigTest::parse_invalid13() { // more than one uniforms object
+TEST_CASE("more than one uniforms object") {
 	string json_str = R"(
 	{
 		"image" : {
@@ -222,14 +216,12 @@ bool ShaderConfigTest::parse_invalid13() { // more than one uniforms object
 		ShaderConfig conf(json_str);
 	}
 	catch (runtime_error& msg) {
-		cout << msg.what() << endl;
-		cout << PASS_MSG << endl;
-		return true;
+		CHECK(true);
+		return;
 	}
-	cout << FAIL_MSG << endl;
-	return false;
+	CHECK(false);
 }
-bool ShaderConfigTest::parse_invalid12() { // buffers with the same name
+TEST_CASE("buffers with the same name") {
 	string json_str = R"(
 	{
 		"image" : {
@@ -266,14 +258,12 @@ bool ShaderConfigTest::parse_invalid12() { // buffers with the same name
 		ShaderConfig conf(json_str);
 	}
 	catch (runtime_error& msg) {
-		cout << msg.what() << endl;
-		cout << PASS_MSG << endl;
-		return true;
+		CHECK(true);
+		return;
 	}
-	cout << FAIL_MSG << endl;
-	return false;
+	CHECK(false);
 }
-bool ShaderConfigTest::parse_invalid11() { // incorrect uniform value
+TEST_CASE("incorrect uniform value 1") {
 	string json_str = R"(
 	{
 		"image" : {
@@ -305,14 +295,12 @@ bool ShaderConfigTest::parse_invalid11() { // incorrect uniform value
 		ShaderConfig conf(json_str);
 	}
 	catch (runtime_error& msg) {
-		cout << msg.what() << endl;
-		cout << PASS_MSG << endl;
-		return true;
+		CHECK(true);
+		return;
 	}
-	cout << FAIL_MSG << endl;
-	return false;
+	CHECK(false);
 }
-bool ShaderConfigTest::parse_invalid10() { // incorrect uniform value
+TEST_CASE("incorrect uniform value 2") {
 	string json_str = R"(
 	{
 		"image" : {
@@ -344,14 +332,12 @@ bool ShaderConfigTest::parse_invalid10() { // incorrect uniform value
 		ShaderConfig conf(json_str);
 	}
 	catch (runtime_error& msg) {
-		cout << msg.what() << endl;
-		cout << PASS_MSG << endl;
-		return true;
+		CHECK(true);
+		return;
 	}
-	cout << FAIL_MSG << endl;
-	return false;
+	CHECK(false);
 }
-bool ShaderConfigTest::parse_invalid9() { // fft_smooth out of range
+TEST_CASE("fft_smooth out of range") {
 	string json_str = R"(
 	{
 		"image" : {
@@ -383,14 +369,12 @@ bool ShaderConfigTest::parse_invalid9() { // fft_smooth out of range
 		ShaderConfig conf(json_str);
 	}
 	catch (runtime_error& msg) {
-		cout << msg.what() << endl;
-		cout << PASS_MSG << endl;
-		return true;
+		CHECK(true);
+		return;
 	}
-	cout << FAIL_MSG << endl;
-	return false;
+	CHECK(false);
 }
-bool ShaderConfigTest::parse_invalid8() { // too many clear color values
+TEST_CASE("too many clear color values") {
 	string json_str = R"(
 	{
 		"image" : {
@@ -422,14 +406,12 @@ bool ShaderConfigTest::parse_invalid8() { // too many clear color values
 		ShaderConfig conf(json_str);
 	}
 	catch (runtime_error& msg) {
-		cout << msg.what() << endl;
-		cout << PASS_MSG << endl;
-		return true;
+		CHECK(true);
+		return;
 	}
-	cout << FAIL_MSG << endl;
-	return false;
+	CHECK(false);
 }
-bool ShaderConfigTest::parse_invalid7() { // empty buffer name
+TEST_CASE("empty buffer name") {
 	string json_str = R"(
 	{
 		"image" : {
@@ -461,14 +443,12 @@ bool ShaderConfigTest::parse_invalid7() { // empty buffer name
 		ShaderConfig conf(json_str);
 	}
 	catch (runtime_error& msg) {
-		cout << msg.what() << endl;
-		cout << PASS_MSG << endl;
-		return true;
+		CHECK(true);
+		return;
 	}
-	cout << FAIL_MSG << endl;
-	return false;
+	CHECK(false);
 }
-bool ShaderConfigTest::parse_invalid6() { // incorrect buffer.size
+TEST_CASE("incorrect buffer.size 1") {
 	string json_str = R"(
 	{
 		"image" : {
@@ -500,14 +480,12 @@ bool ShaderConfigTest::parse_invalid6() { // incorrect buffer.size
 		ShaderConfig conf(json_str);
 	}
 	catch (runtime_error& msg) {
-		cout << msg.what() << endl;
-		cout << PASS_MSG << endl;
-		return true;
+		CHECK(true);
+		return;
 	}
-	cout << FAIL_MSG << endl;
-	return false;
+	CHECK(false);
 }
-bool ShaderConfigTest::parse_invalid5() { // incorrect buffer.size
+TEST_CASE("incorrect buffer.size 2") {
 	string json_str = R"(
 	{
 		"image" : {
@@ -539,14 +517,12 @@ bool ShaderConfigTest::parse_invalid5() { // incorrect buffer.size
 		ShaderConfig conf(json_str);
 	}
 	catch (runtime_error& msg) {
-		cout << msg.what() << endl;
-		cout << PASS_MSG << endl;
-		return true;
+		CHECK(true);
+		return;
 	}
-	cout << FAIL_MSG << endl;
-	return false;
+	CHECK(false);
 }
-bool ShaderConfigTest::parse_invalid4() { // missing buffer.size
+TEST_CASE("missing buffer.size") {
 	string json_str = R"(
 	{
 		"image" : {
@@ -577,14 +553,12 @@ bool ShaderConfigTest::parse_invalid4() { // missing buffer.size
 		ShaderConfig conf(json_str);
 	}
 	catch (runtime_error& msg) {
-		cout << msg.what() << endl;
-		cout << PASS_MSG << endl;
-		return true;
+		CHECK(true);
+		return;
 	}
-	cout << FAIL_MSG << endl;
-	return false;
+	CHECK(false);
 }
-bool ShaderConfigTest::parse_invalid2() { // missing fft_sync option
+TEST_CASE("missing fft_sync option") {
 	string json_str = R"(
 	{
 		"image" : {
@@ -607,14 +581,12 @@ bool ShaderConfigTest::parse_invalid2() { // missing fft_sync option
 		ShaderConfig conf(json_str);
 	}
 	catch (runtime_error& msg) {
-		cout << msg.what() << endl;
-		cout << PASS_MSG << endl;
-		return true;
+		CHECK(true);
+		return;
 	}
-	cout << FAIL_MSG << endl;
-	return false;
+	CHECK(false);
 }
-bool ShaderConfigTest::parse_valid4() { // mBuffers only contains buffers referenced in render_order
+TEST_CASE("test valid config 0") {
 	string json_str = R"(
 	{
 		"image" : {
@@ -685,18 +657,16 @@ bool ShaderConfigTest::parse_valid4() { // mBuffers only contains buffers refere
 			cout << mock_conf << endl << endl;
 			cout << "RETURNED" << endl;
 			cout << conf << endl << endl;
-			throw;
+			throw runtime_error("mock neq parsed");
 		}
 	}
 	catch (runtime_error& msg) {
-		cout << msg.what() << endl;
-		cout << FAIL_MSG << endl;
-		return false;
+		CHECK(false);
+		return;
 	}
-	cout << PASS_MSG << endl;
-	return true;
+	CHECK(true);
 }
-bool ShaderConfigTest::parse_valid3() {
+TEST_CASE("test valid config 1") {
 	string json_str = R"(
 	{
 		"image" : {
@@ -740,18 +710,16 @@ bool ShaderConfigTest::parse_valid3() {
 			cout << mock_conf << endl << endl;
 			cout << "RETURNED" << endl;
 			cout << conf << endl << endl;
-			throw;
+			throw runtime_error("mock neq parsed");
 		}
 	}
 	catch (runtime_error& msg) {
-		cout << msg.what() << endl;
-		cout << FAIL_MSG << endl;
-		return false;
+		CHECK(false);
+		return;
 	}
-	cout << PASS_MSG << endl;
-	return true;
+	CHECK(true);
 }
-bool ShaderConfigTest::parse_valid2() {
+TEST_CASE("test valid config 2") {
 	string json_str = R"(
 	{
 		"initial_window_size": [200,200],
@@ -805,18 +773,16 @@ bool ShaderConfigTest::parse_valid2() {
 			cout << mock_conf << endl << endl;
 			cout << "RETURNED" << endl;
 			cout << conf << endl << endl;
-			throw;
+			throw runtime_error("mock neq parsed");
 		}
 	}
 	catch (runtime_error& msg) {
-		cout << msg.what() << endl;
-		cout << FAIL_MSG << endl;
-		return false;
+		CHECK(false);
+		return;
 	}
-	cout << PASS_MSG << endl;
-	return true;
+	CHECK(true);
 }
-bool ShaderConfigTest::parse_valid1() {
+TEST_CASE("test valid config 3") {
 	string json_str = R"(
 	{
 		"image" : {
@@ -883,75 +849,14 @@ bool ShaderConfigTest::parse_valid1() {
 			cout << mock_conf << endl << endl;
 			cout << "RETURNED" << endl;
 			cout << conf << endl << endl;
-			throw;
+			throw runtime_error("mock neq parsed");
 		}
 	}
 	catch (runtime_error& msg) {
-		cout << msg.what() << endl;
-		cout << FAIL_MSG << endl;
-		return false;
+		CHECK(false);
+		return;
 	}
-	cout << PASS_MSG << endl;
-	return true;
-}
-bool ShaderConfigTest::test() {
-	bool ok = true;
-
-	cout << "json parse test valid 1: " << endl;
-	ok &= parse_valid1();
-
-	cout << "json parse test valid 2: " << endl;
-	ok &= parse_valid2();
-
-	cout << "json parse test valid 3: " << endl;
-	ok &= parse_valid3();
-
-	cout << "json parse test valid 4: " << endl;
-	ok &= parse_valid4();
-
-	cout << "json parse test invalid 2: " << endl;
-	ok &= parse_invalid2();
-
-	cout << "json parse test invalid 4: " << endl;
-	ok &= parse_invalid4();
-
-	cout << "json parse test invalid 5: " << endl;
-	ok &= parse_invalid5();
-
-	cout << "json parse test invalid 6: " << endl;
-	ok &= parse_invalid6();
-
-	cout << "json parse test invalid 7: " << endl;
-	ok &= parse_invalid7();
-
-	cout << "json parse test invalid 8: " << endl;
-	ok &= parse_invalid8();
-
-	cout << "json parse test invalid 9: " << endl;
-	ok &= parse_invalid9();
-
-	cout << "json parse test invalid 10: " << endl;
-	ok &= parse_invalid10();
-
-	cout << "json parse test invalid 11: " << endl;
-	ok &= parse_invalid11();
-
-	cout << "json parse test invalid 12: " << endl;
-	ok &= parse_invalid12();
-
-	// test ability to fail when json has multiple members with the same name
-	//cout << "json parse test invalid 13: " << endl;
-	//ok &= parse_invalid13();
-	//cout << "json parse test invalid 14: " << endl;
-	//ok &= parse_invalid14();
-
-	cout << "json parse test invalid 15: " << endl;
-	ok &= parse_invalid15();
-
-	cout << "json parse test invalid 16: " << endl;
-	ok &= parse_invalid16();
-
-	return ok;
+	CHECK(true);
 }
 
 // Convenience operators

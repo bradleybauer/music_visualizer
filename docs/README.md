@@ -118,6 +118,8 @@ build the x64 Release configuration
 buffers should have GL_LINEAR/GL_NEAREST and GL_CLAMP/GL_REPEAT options
 
 Would it be worthwhile to print current settings to the terminal window?
+Log time to console?
+clearly separate new console log from previous console logs?
 
 # Thanks To
 
@@ -131,6 +133,8 @@ Would it be worthwhile to print current settings to the terminal window?
 	Asyncronous recursive file watcher<br>
 <a href="https://github.com/rapidjson/rapidjson">RapidJson</a>
 	Fast json file reader<br>
+<a href="https://github.com/catchorg/Catch2">Catch2</a>
+	Convenient testing framework<br>
 
 # Examples
 

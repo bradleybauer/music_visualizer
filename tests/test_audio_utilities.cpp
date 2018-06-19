@@ -1,5 +1,7 @@
 #include "Test.h"
-#include "audio_process.h"
+#include "AudioProcess.h"
+
+#include "catch2/catch.hpp"
 
 // TODO finish writing these tests.
 
@@ -17,7 +19,7 @@ bool AudioUtilityTest::adjust_reader() {
 	// in a circular buffer by distance tbl/2.f by moving r in steps of size step_size
 	// adjust_reader will fail if |w - r| is more than step_size units away from tbl / 2
 
-	typedef audio_processor ap;
+	typedef AudioProcessor ap;
 	bool ok = true;
 
 	auto test = [](int r, int w, int step_size, int tbl) -> bool {
