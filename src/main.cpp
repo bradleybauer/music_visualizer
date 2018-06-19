@@ -1,5 +1,6 @@
 #include <iostream>
-using std::cout; using std::endl;
+using std::cout;
+using std::endl;
 #include <thread>
 #include <string>
 using std::string;
@@ -23,11 +24,15 @@ using std::runtime_error;
 #include "AudioStreams/WindowsAudioStream.h"
 #include "AudioStreams/ProceduralAudioStream.h"
 using AudioStreamT = WindowsAudioStream;
+//using AudioStreamT = ProceduralAudioStream;
 #else
 #include "AudioStreams/LinuxAudioStream.h"
 using AudioStreamT = LinuxAudioStream;
 #endif
 using AudioProcessT = AudioProcess<steady_clock, AudioStreamT>;
+
+// TODO?
+// rename to shader player (like vmware player)
 
 #if defined(WINDOWS) && defined(DEBUG)
 int WinMain() {
@@ -35,49 +40,39 @@ int WinMain() {
 int main(int argc, char* argv[]) {
 #endif
 
-	/*
-	Register FileWatcher on shader_folder
-	Create app window and initialize opengl context.
-	try
-		shader_config = ShaderConfig(...)
-		shader_programs = ShaderPrograms(...)
-	if either fails to construct, exit
-	renderer = Renderer(...)
-	Create audio system (optional)
-	Loop until user quits
-		If (FileWatcher has seen a change in shader_folder)
-			try
-				new_shader_config = ShaderConfig(shader_folder)
-				new_shader_programs = ShaderPrograms(new_shader_config)
-			if neither fails to construct, then
-				shader_config = new_shader_config
-				shader_programs = new_shader_programs
-				renderer = new_renderer(shader_config, shader_programs)
-
-		Render
-	*/
-
 	filesys::path shader_folder("shaders");
-	filesys::path json_path = shader_folder / "shader.json";
+	filesys::path shader_config_path = shader_folder / "shader.json";
 
-	// Build objects
 	FileWatcher watcher(shader_folder);
 
-	ShaderConfig *shader_config;
-	Window *window;
-	ShaderPrograms *shader_programs;
-	try {
-		shader_config = new ShaderConfig(json_path);
-		window = new Window(shader_config->mInitWinSize.width, shader_config->mInitWinSize.height);
-		shader_programs = new ShaderPrograms(*shader_config, shader_folder);
-	}
-	catch (runtime_error &msg) {
-		cout << msg.what() << endl;
-		return 0;
-	}
+	ShaderConfig *shader_config = nullptr;
+	ShaderPrograms *shader_programs = nullptr;
+	Window *window = nullptr;
+    while (!(shader_config && shader_programs && window)) {
+        try {
+            shader_config = new ShaderConfig(shader_config_path);
+            window = new Window(shader_config->mInitWinSize.width, shader_config->mInitWinSize.height);
+            shader_programs = new ShaderPrograms(*shader_config, shader_folder);
+        }
+        catch (runtime_error &msg) {
+            cout << msg.what() << endl;
+
+			// something failed so reset state
+			delete shader_config;
+			delete shader_programs;
+			delete window;
+			shader_config = nullptr;
+			shader_programs = nullptr;
+			window = nullptr;
+
+            while (!watcher.files_changed()) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            }
+        }
+    }
+	cout << "Successfully compiled shaders." << endl;
 
 	Renderer renderer(*shader_config, *shader_programs, *window);
-	cout << "Successfully compiled shaders." << endl;
 
 	// TODO make sure AudioProcess lifetime is consistent with mAudio_ops.audio_enabled
 	//AudioStreamT audio_stream(); // Most Vexing Parse
@@ -89,10 +84,10 @@ int main(int argc, char* argv[]) {
 		audioThread = std::thread(&AudioProcessT::start, audio_process);
 	}
 
-	auto update_shaders = [&]() {
+	auto update_shader = [&]() {
 		cout << "Updating shaders." << endl;
 		try {
-			ShaderConfig new_shader_config(json_path);
+			ShaderConfig new_shader_config(shader_config_path);
 			ShaderPrograms new_shader_programs(new_shader_config, shader_folder);
 			*shader_config = new_shader_config;
 			*shader_programs = std::move(new_shader_programs);
@@ -109,7 +104,7 @@ int main(int argc, char* argv[]) {
 
 	while (window->is_alive()) {
 		if (watcher.files_changed())
-			update_shaders();
+			update_shader();
 		auto now = steady_clock::now();
 		if (shader_config->mAudio_enabled)
 			renderer.update(audio_process->get_audio_data());
