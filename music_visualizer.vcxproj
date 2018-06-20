@@ -90,13 +90,13 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\gazin\Programming\libs\glew-2.1.0\include;C:\Users\gazin\Programming\libs\glfw-3.2.1\include;C:\Users\gazin\Programming\internal\git\music_visualizer\SimpleFileWatcher\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\gazin\Programming\libs\glfw-3.2.1\lib-vc2015;C:\Users\gazin\Programming\libs\glew-2.1.0\lib\Release\x64;C:\Users\gazin\Programming\internal\git\music_visualizer\SimpleFileWatcher\lib\Debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)libs\ffts\build\Debug;$(SolutionDir)libs\SimpleFileWatcher\lib\Debug;$(SolutionDir)libs_win\glfw-3.2.1\;$(SolutionDir)libs_win\glew-2.1.0\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\gazin\Programming\libs\glew-2.1.0\include;C:\Users\gazin\Programming\libs\glfw-3.2.1\include;C:\Users\gazin\Programming\internal\git\music_visualizer\SimpleFileWatcher\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\gazin\Programming\libs\glfw-3.2.1\lib-vc2015;C:\Users\gazin\Programming\libs\glew-2.1.0\lib\Release\x64;C:\Users\gazin\Programming\internal\git\music_visualizer\SimpleFileWatcher\lib\Debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)libs\ffts\build\Release;$(SolutionDir)libs\SimpleFileWatcher\lib\Release;$(SolutionDir)libs_win\glfw-3.2.1\;$(SolutionDir)libs_win\glew-2.1.0\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LibraryPath>$(SolutionDir)libs\ffts\build\Debug;$(SolutionDir)libs\SimpleFileWatcher\lib\Debug;$(SolutionDir)libs_win\glfw-3.2.1\;$(SolutionDir)libs_win\glew-2.1.0\;$(LibraryPath)</LibraryPath>
@@ -108,27 +108,31 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>GLEW_STATIC;WIN32;_DEBUG;_CONSOLE;WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)libs\ffts\include;$(SolutionDir)libs\rapidjson\include;$(SolutionDir)libs\SimpleFileWatcher\include;$(SolutionDir)libs_win\glew-2.1.0\include;$(SolutionDir)libs_win\glfw-3.2.1\include</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <EnableModules>false</EnableModules>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ffts_staticd.lib;opengl32.lib;glew32s.lib;glfw3.lib;SimpleFileWatcher.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>GLEW_STATIC;WIN32;NDEBUG;_CONSOLE;WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <EnableModules>false</EnableModules>
+      <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)libs\ffts\include;$(SolutionDir)libs\rapidjson\include;$(SolutionDir)libs\SimpleFileWatcher\include;$(SolutionDir)libs_win\glew-2.1.0\include;$(SolutionDir)libs_win\glfw-3.2.1\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
@@ -136,6 +140,7 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>ffts_static.lib;opengl32.lib;glew32s.lib;glfw3.lib;SimpleFileWatcher.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -145,6 +150,9 @@
       <PreprocessorDefinitions>GLEW_STATIC;WIN32;_DEBUG;_CONSOLE;WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <Optimization>Disabled</Optimization>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <EnableModules>false</EnableModules>
+      <WarningLevel>Level3</WarningLevel>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ffts_staticd.lib;opengl32.lib;glew32s.lib;glfw3.lib;SimpleFileWatcher.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -159,6 +167,9 @@
       <PreprocessorDefinitions>GLEW_STATIC;WIN32;NDEBUG;_CONSOLE;WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)libs\ffts\include;$(SolutionDir)libs\rapidjson\include;$(SolutionDir)libs\SimpleFileWatcher\include;$(SolutionDir)libs_win\glew-2.1.0\include;$(SolutionDir)libs_win\glfw-3.2.1\include</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <EnableModules>false</EnableModules>
+      <WarningLevel>Level3</WarningLevel>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ffts_static.lib;opengl32.lib;glew32s.lib;glfw3.lib;SimpleFileWatcher.lib;%(AdditionalDependencies)</AdditionalDependencies>
