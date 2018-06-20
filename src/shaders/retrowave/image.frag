@@ -9,9 +9,9 @@ float hash(float p) {
 
 void main () {
     /* look at buffer A contents
-    c = texture(iChannel0, p);
+    c = texture(ia, p);
     return;
-	//*/
+    //*/
 
     // use manhatten dist in voronoi to get the blocky effect.
     // todo look into plane tilings
@@ -19,16 +19,18 @@ void main () {
     // todo parallelogram is neat but a diagonal high tech (possibly mini voronoi)
     // pattern might be cooler
 
-    const float freq = 33.;
-    const float bezel = .7;
-    const float skew = .5;
-
     vec2 uv = p;
     uv.x *= iRes.x / iRes.y;
 
-    vec2 pp = fract(uv*sqrt(iRes.y*14.));
-    float mesh_bezel = .4 - .08 * smoothstep(500., 900., iRes.y);
-	vec4 bgmesh = 1.3*vec4(.05, .086, .04, 1.) * step(mesh_bezel, pp.x) * step(mesh_bezel, pp.y);
+    // background
+    vec2 rep_p = fract(uv*sqrt(iRes.y*14.));
+    float bgmesh_bezel = .4 - .08 * smoothstep(500., 900., iRes.y);
+    vec4 bgmesh = 1.5*vec4(.1, .092, .07, 1.) * step(bgmesh_bezel, rep_p.x) * step(bgmesh_bezel, rep_p.y);
+
+    // main grid division
+    const float freq = 33.;
+    const float bezel = .7;
+    const float skew = .5;
 
     // give pixel a skewed lattice point
     uv = vec2(uv.x-skew*uv.y, uv.y);
@@ -36,12 +38,11 @@ void main () {
     // unskew latice point
     lattice.x += floor(skew * uv.y * freq)/freq;
 
-    // compute skewed grid
+    // grid lines
     uv = fract(uv * freq);
-    float grid = step(bezel, 1. - abs(uv.x - .5));
-    grid *= step(bezel, 1. - abs(uv.y - .5));
+    float grid = step(bezel, 1. - abs(uv.x - .5)) * step(bezel, 1. - abs(uv.y - .5));
 
-    const float pinkness = .7;
+    const float pinkness = .9;
     const float blueness = .8;
     const float brightness = 1.85;
 
@@ -49,11 +50,17 @@ void main () {
     vec4 blue = vec4(0., 204./256., 1., 1);
     vec4 bg = vec4(0);
 
-    lattice.x *= iRes.y / iRes.x;
+    lattice.x *= iRes.y / iRes.x; // put lattice.x in range [0, 1]
     float x = texture(ia, lattice).r;
     c = mix(mix(bg, blue, smoothstep(.0, .3, blueness*x)), pink, pinkness*x);
     c *= grid * brightness;
     c = mix(bgmesh, c, smoothstep(.05, 1., length(c)));
-    c *= .1 + smoothstep(-1., 1., 1.-length(p-.5)*2.);
-    c *= 1. - .5*sqrt(hash(p.x+p.y));
+
+    // vignette
+    c.rgb *= pow(16.*p.x*p.y*(1.-p.x)*(1.-p.y), .35);
+
+    // a bit of grain
+    c *= 1. - .5*sqrt(hash(p.x*p.y+2.));
+
+    c.a = 1.;
 }
