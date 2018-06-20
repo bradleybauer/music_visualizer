@@ -17,10 +17,7 @@ void quad(vec2 P0, vec2 P1, float thickness) {
 	vec2 dir = P1-P0;
 	float dl = length(dir);
 	// If the segment is too short, just draw a square
-	if (dl < EPS)
-		dir = vec2(1.0, 0.0);
-	else
-		dir = normalize(dir);
+	dir = normalize(dir);
 	vec2 norm = vec2(-dir.y, dir.x);
 
 	uvl = vec3(dl+thickness, -thickness, dl);
