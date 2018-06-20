@@ -22,3 +22,5 @@ misc
 src/shaders/shadertoy
 
 Release/
+
+src/shaders/scratch/

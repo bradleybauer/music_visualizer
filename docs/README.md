@@ -6,6 +6,19 @@ visualizers might look like when visualizing the same sound.
 
 ![](anim.gif)
 
+# Examples
+
+Here is a youtube video of the app displaying a waveform.<br>
+<a href="https://youtu.be/yxGM7H1RFRA">https://youtu.be/yxGM7H1RFRA</a>
+
+![](example6.PNG)
+![](example0.PNG)
+![](example3.png)
+![](example1.png)
+![](example2.png)
+![](example4.png)
+![](example5.png)
+
 # Usage
 
 Warning - this section describes unimplemented features (shadertoy like default behavior).
@@ -135,15 +148,3 @@ clearly separate new console log from previous console logs?
 	Fast json file reader<br>
 <a href="https://github.com/catchorg/Catch2">Catch2</a>
 	Convenient testing framework<br>
-
-# Examples
-
-Here is a youtube video of the app displaying a waveform.<br>
-<a href="https://youtu.be/yxGM7H1RFRA">https://youtu.be/yxGM7H1RFRA</a>
-
-![](example0.PNG)
-![](example3.png)
-![](example1.png)
-![](example2.png)
-![](example4.png)
-![](example5.png)
