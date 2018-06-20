@@ -12,61 +12,15 @@ using std::runtime_error;
 #define TEST
 #include "ShaderConfig.h"
 
-std::ostream& operator<<(std::ostream& os, const Buffer& o);
-std::ostream& operator<<(std::ostream& os, const AudioOptions& o);
-std::ostream& operator<<(std::ostream& os, const Uniform& o);
-std::ostream& operator<<(std::ostream& os, const ShaderConfig& o);
-bool operator==(const AudioOptions& l, const AudioOptions& o);
-bool operator==(const Buffer& l, const Buffer& o);
-bool operator==(const Uniform& l, const Uniform& o);
-
-static bool compare_eq(ShaderConfig& l, ShaderConfig& r) {
-	bool confs_eq, eq;
-
-	eq = l.mAudio_ops == r.mAudio_ops;
-	confs_eq = eq;
-	if (!eq) cout << "AudioOptions difference" << endl;
-
-	eq = l.mRender_order == r.mRender_order;
-	confs_eq &= eq;
-	if (!eq) cout << "render_order difference" << endl;
-
-	eq = l.mBuffers.size() == r.mBuffers.size();
-	confs_eq &= eq;
-	if (!eq) cout << "configs specify different number of buffers" << endl;
-
-	if (eq)
-		for (int i = 0; i < l.mBuffers.size(); ++i) {
-			eq = l.mBuffers[i] == r.mBuffers[i];
-			confs_eq &= eq;
-			if (!eq) cout << "Buffer " + std::to_string(i) + " difference" << endl;
-		}
-
-	eq = l.mImage == r.mImage;
-	confs_eq &= eq;
-	if (!eq) cout << "image settings differ" << endl;
-
-	eq = l.mUniforms.size() == r.mUniforms.size();
-	confs_eq &= eq;
-	if (!eq) cout << "configs specify different number of uniforms" << endl;
-
-	if (eq)
-		for (int i = 0; i < l.mUniforms.size(); ++i) {
-			eq = l.mUniforms[i] == r.mUniforms[i];
-			confs_eq &= eq;
-			if (!eq) cout << "Uniform " + std::to_string(i) + " difference" << endl;
-		}
-
-	eq = l.mBlend == r.mBlend;
-	confs_eq &= eq;
-	if (!eq) cout << "blend is different" << endl;
-
-	eq = (l.mInitWinSize.width == r.mInitWinSize.width) && (l.mInitWinSize.height == r.mInitWinSize.height);
-	confs_eq &= eq;
-	if (!eq) cout << "mInitWinSize differs" << endl;
-
-	return confs_eq;
-}
+// convenience functions to print state and compare parsed state to mock state
+static std::ostream& operator<<(std::ostream& os, const Buffer& o);
+static std::ostream& operator<<(std::ostream& os, const AudioOptions& o);
+static std::ostream& operator<<(std::ostream& os, const Uniform& o);
+static std::ostream& operator<<(std::ostream& os, const ShaderConfig& o);
+static bool operator==(const AudioOptions& l, const AudioOptions& o);
+static bool operator==(const Buffer& l, const Buffer& o);
+static bool operator==(const Uniform& l, const Uniform& o);
+static bool compare_eq(ShaderConfig& l, ShaderConfig& r);
 
 TEST_CASE("non existant buffer in render_order") {
 	string json_str = R"(
@@ -863,24 +817,24 @@ TEST_CASE("test valid config 3") {
 
 static std::ostream& operator<<(std::ostream& os, const Buffer& o) {
 	os << std::boolalpha;
-	os << "name   : " << o.name << std::endl;
-	os << "width  : " << o.width << std::endl;
-	os << "height : " << o.height << std::endl;
-	os << "is_window_size: " << o.is_window_size;
+	os << "name   : " << o.name << "\n";
+	os << "width  : " << o.width << "\n";
+	os << "height : " << o.height << "\n";
+	os << "is_window_size: " << o.is_window_size << "\n";
 	return os;
 }
 
 static std::ostream& operator<<(std::ostream& os, const AudioOptions& o) {
 	os << std::boolalpha;
-	os << "diff_sync   : " << o.diff_sync << std::endl;
-	os << "fft_sync    : " << o.fft_sync << std::endl;
-	os << "wave_smooth : " << o.wave_smooth << std::endl;
-	os << "fft_smooth  : " << o.fft_smooth;
+	os << "diff_sync   : " << o.diff_sync << "\n";
+	os << "fft_sync    : " << o.fft_sync << "\n";
+	os << "wave_smooth : " << o.wave_smooth << "\n";
+	os << "fft_smooth  : " << o.fft_smooth << "\n";
 	return os;
 }
 
 static std::ostream& operator<<(std::ostream& os, const Uniform& o) {
-	os << "name	 : " << o.name << std::endl;
+	os << "name	 : " << o.name << "\n";
 	os << "values = {";
 	for (int i = 0; i < o.values.size(); ++i)
 		os << o.values[i] << ", ";
@@ -889,20 +843,29 @@ static std::ostream& operator<<(std::ostream& os, const Uniform& o) {
 }
 
 static std::ostream& operator<<(std::ostream& os, const ShaderConfig& o) {
-	os << o.mAudio_ops << endl;
+	os << "image buffer {\n";
+	os << o.mImage << "\n";
+	os << "}\n";
 
+	os << "audio options {\n";
+	os << o.mAudio_ops << "\n";
+	os << "}\n";
+
+	os << "user buffers {\n";
 	for (int i = 0; i < o.mBuffers.size(); ++i)
-		os << o.mBuffers[i] << endl;
+		os << o.mBuffers[i];
+	os << "}\n";
 
 	for (int i = 0; i < o.mRender_order.size(); ++i)
 		os << o.mRender_order[i] << ", ";
-	os << std::endl;
+	os << "\n";
 
+	os << "uniforms {\n";
 	for (int i = 0; i < o.mUniforms.size(); ++i)
 		os << o.mUniforms[i];
-	os << std::endl;
+	os << "\n";
 
-	os << std::boolalpha << "Blend: " << o.mBlend << std::endl;
+	os << std::boolalpha << "Blend: " << o.mBlend << "\n";
 
 	return os;
 }
@@ -926,4 +889,52 @@ static bool operator==(const Buffer& l, const Buffer& o) {
 static bool operator==(const Uniform& l, const Uniform& o) {
 	return l.name == o.name &&
 		l.values == o.values;
+}
+
+static bool compare_eq(ShaderConfig& l, ShaderConfig& r) {
+	bool confs_eq, eq;
+
+	eq = l.mAudio_ops == r.mAudio_ops;
+	confs_eq = eq;
+	if (!eq) cout << "AudioOptions difference" << endl;
+
+	eq = l.mRender_order == r.mRender_order;
+	confs_eq &= eq;
+	if (!eq) cout << "render_order difference" << endl;
+
+	eq = l.mBuffers.size() == r.mBuffers.size();
+	confs_eq &= eq;
+	if (!eq) cout << "configs specify different number of buffers" << endl;
+
+	if (eq)
+		for (int i = 0; i < l.mBuffers.size(); ++i) {
+			eq = l.mBuffers[i] == r.mBuffers[i];
+			confs_eq &= eq;
+			if (!eq) cout << "Buffer " + std::to_string(i) + " difference" << endl;
+		}
+
+	eq = l.mImage == r.mImage;
+	confs_eq &= eq;
+	if (!eq) cout << "image settings differ" << endl;
+
+	eq = l.mUniforms.size() == r.mUniforms.size();
+	confs_eq &= eq;
+	if (!eq) cout << "configs specify different number of uniforms" << endl;
+
+	if (eq)
+		for (int i = 0; i < l.mUniforms.size(); ++i) {
+			eq = l.mUniforms[i] == r.mUniforms[i];
+			confs_eq &= eq;
+			if (!eq) cout << "Uniform " + std::to_string(i) + " difference" << endl;
+		}
+
+	eq = l.mBlend == r.mBlend;
+	confs_eq &= eq;
+	if (!eq) cout << "blend is different" << endl;
+
+	eq = (l.mInitWinSize.width == r.mInitWinSize.width) && (l.mInitWinSize.height == r.mInitWinSize.height);
+	confs_eq &= eq;
+	if (!eq) cout << "mInitWinSize differs" << endl;
+
+	return confs_eq;
 }
