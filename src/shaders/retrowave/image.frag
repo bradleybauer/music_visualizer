@@ -8,11 +8,6 @@ float hash(float p) {
 }
 
 void main () {
-    /* look at buffer A contents
-    c = texture(ia, p);
-    return;
-    //*/
-
     // use manhatten dist in voronoi to get the blocky effect.
     // todo look into plane tilings
 
@@ -42,9 +37,9 @@ void main () {
     uv = fract(uv * freq);
     float grid = step(bezel, 1. - abs(uv.x - .5)) * step(bezel, 1. - abs(uv.y - .5));
 
-    const float pinkness = .9;
+    const float pinkness = .7;
     const float blueness = .8;
-    const float brightness = 1.85;
+    const float brightness = 2.;
 
     vec4 pink = 1.4 * vec4(255./256., 20./256., 144./256., 1);
     vec4 blue = vec4(0., 204./256., 1., 1);
@@ -57,7 +52,7 @@ void main () {
     c = mix(bgmesh, c, smoothstep(.05, 1., length(c)));
 
     // vignette
-    c.rgb *= pow(16.*p.x*p.y*(1.-p.x)*(1.-p.y), .35);
+    c.rgb *= pow(16.*p.x*p.y*(1.-p.x)*(1.-p.y), .3);
 
     // a bit of grain
     c *= 1. - .5*sqrt(hash(p.x*p.y+2.));
