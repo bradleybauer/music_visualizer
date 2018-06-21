@@ -53,6 +53,9 @@ ShaderPrograms::ShaderPrograms(const ShaderConfig& config, filesys::path shader_
 	num_uniforms += config.mUniforms.size();
 	uniform_header << "\n";
 
+    // error message line numbers correspond to line numbers in my text editor
+    uniform_header << "#line 0\n";
+
 	for (auto buff : config.mBuffers)
 		compile_buffer_shaders(shader_folder, buff.name, uniform_header.str());
 	compile_buffer_shaders(shader_folder, "image", uniform_header.str());
@@ -82,7 +85,7 @@ ShaderPrograms & ShaderPrograms::operator=(ShaderPrograms && o) {
 	// Delete my shaders
 	for (auto p : mPrograms)
 		glDeleteProgram(p);
-	
+
 	// Move other's shaders
 	mPrograms = std::move(o.mPrograms);
 	mUniformLocs = std::move(o.mUniformLocs);
