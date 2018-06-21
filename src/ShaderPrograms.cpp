@@ -32,13 +32,10 @@ ShaderPrograms::ShaderPrograms(const ShaderConfig& config, filesys::path shader_
 		#define iResolution iRes
 	)";
 
-	int num_uniforms = ShaderPrograms::num_builtin_uniforms;
-
 	// Put samplers for user buffers in header
 	for (auto buff : config.mBuffers) {
 		uniform_header << "uniform sampler2D i" << buff.name << ";\n";
 	}
-	num_uniforms += config.mBuffers.size();
 
 	// Put user's uniforms in header
 	for (auto uniform : config.mUniforms) {
@@ -50,10 +47,9 @@ ShaderPrograms::ShaderPrograms(const ShaderConfig& config, filesys::path shader_
 
 		uniform_header << "uniform " << type << " " << uniform.name << ";\n";
 	}
-	num_uniforms += config.mUniforms.size();
 	uniform_header << "\n";
 
-    // error message line numbers correspond to line numbers in my text editor
+    // make error message line numbers correspond to line numbers in my text editor
     uniform_header << "#line 0\n";
 
 	for (auto buff : config.mBuffers)
