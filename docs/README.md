@@ -11,13 +11,38 @@ visualizers might look like when visualizing the same sound.
 Here is a youtube video of the app displaying a waveform.<br>
 <a href="https://youtu.be/yxGM7H1RFRA">https://youtu.be/yxGM7H1RFRA</a>
 
-![](example6.PNG)
-![](example0.PNG)
-![](example3.png)
-![](example1.png)
-![](example2.png)
-![](example4.png)
-![](example5.png)
+<p align="center">
+  <img src="example6.PNG" />
+</p>
+
+<p align="center">
+  <img src="example7.PNG" />
+</p>
+
+<p align="center">
+  <img src="example0.PNG" />
+</p>
+
+<p align="center">
+  <img src="example3.png" />
+</p>
+
+<p align="center">
+  <img src="example1.png" />
+</p>
+
+<p align="center">
+  <img src="example2.png" />
+</p>
+
+<p align="center">
+  <img src="example4.png" />
+</p>
+
+<p align="center">
+  <img src="example5.png" />
+</p>
+
 
 # Usage
 
