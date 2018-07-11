@@ -438,11 +438,11 @@ inline void AudioProcess<ClockT, AudioStreamT>::service_channel(int w,
         // schedule the next call of service channel
         if (fft_sync) {
             freq = get_harmonic_less_than(max_frequency(fft_out), 80.f);
-            next_t += dura(1.f / freq);
         }
         else {
-            next_t += dura(1.f / 60.f);
+            freq = 60.f;
         }
+        next_t += dura(1.f / freq);
     }
 }
 
