@@ -67,22 +67,8 @@ static const int SRF = SR / 2;
 // also compared resampling with ffmpeg to my current naive impl. Hard to notice a difference.
 // -/
 
-//- Options
-// WAVE RENORMALIZATION
-// RENORM_1: divide by max absolute value in buffer.
-// RENORM_2: a bouncy renorm, the springy bounce effect is what occurs when we normalize by using
-//           max = mix(max_prev, max_current, parameter); max_prev = max. So if there is a pulse of
-//           amplitude in the sound, then a louder sound is normalized by a smaller maximum and
-//           therefore the amplitude is greater than 1. The amplitude will be inflated for a short
-//           period of time until the dynamics of the max mixing catch up and max_prev is
-//           approximately equal to max_current.
-// RENORM_3: divide by the max observed amplitude during lifetime of AudioProcess.
-//
-// #define RENORM_1
-#define RENORM_2
-// #define RENORM_3
-
-// DIFF_SYNC OPTIONS
+//- Difference sync options
+// DIFF_SYNC
 static const int HISTORY_NUM_FRAMES = 9;
 static const int HISTORY_SEARCH_GRANULARITY = 2;
 static const int HISTORY_SEARCH_RANGE = 16 * HISTORY_SEARCH_GRANULARITY;
@@ -101,6 +87,14 @@ static const int HISTORY_BUFF_SZ = VL;
 //                 HISTORY_SEARCH_GRANULARITY
 //
 // -/
+
+// WAVE RENORMALIZATION
+// a bouncy renorm, the springy bounce effect is what occurs when we normalize by using
+// max = mix(max_prev, max_current, parameter); max_prev = max. So if there is a pulse of
+// amplitude in the sound, then a louder sound is normalized by a smaller maximum and
+// therefore the amplitude is greater than 1. The amplitude will be inflated for a short
+// period of time until the dynamics of the max mixing catch up and max_prev is
+// approximately equal to max_current.
 
 //- Class Definition
 template <typename ClockT, typename AudioStreamT>
@@ -394,25 +388,9 @@ inline void AudioProcess<ClockT, AudioStreamT>::service_channel(int w,
 
         for (int i = 0; i < VL; ++i) {
             staging_buff[i] = audio_buff[(i + r) % TBL];
-
-#ifdef RENORM_3
-            if (std::abs(staging_buff[i]) > max_amplitude_so_far)
-                max_amplitude_so_far = std::abs(staging_buff[i]);
-#endif
         }
 
-        // clang-format off
-        // Rescale the audio amplitude
-        #ifdef RENORM_1
-            renorm(staging_buff, channel_max, 1.f, 1.f, VL);
-        #endif
-        #ifdef RENORM_2
-            renorm(staging_buff, channel_max, .3f, .66f, VL);
-        #endif
-        #ifdef RENORM_3
-            renorm(staging_buff, max_amplitude_so_far, 0.f, .83f, VL);
-        #endif
-        // clang-format on
+        renorm(staging_buff, channel_max, .3f, .66f, VL);
 
         // copy the staging buff to the buffer in prev_buff[...]
         if (diff_sync) {
