@@ -133,6 +133,8 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <EnableModules>false</EnableModules>
       <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)libs\ffts\include;$(SolutionDir)libs\rapidjson\include;$(SolutionDir)libs\SimpleFileWatcher\include;$(SolutionDir)libs_win\glew-2.1.0\include;$(SolutionDir)libs_win\glfw-3.2.1\include</AdditionalIncludeDirectories>
+      <Optimization>Full</Optimization>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>

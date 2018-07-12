@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="..\src\AudioStreams\WavAudioStream.cpp" />
     <ClCompile Include="..\src\filesystem.cpp" />
+    <ClCompile Include="..\src\noise.cpp" />
     <ClCompile Include="..\src\ShaderConfig.cpp" />
     <ClCompile Include="fake_clock.cpp" />
     <ClCompile Include="test_audio_process.cpp" />
@@ -30,6 +31,7 @@
   <ItemGroup>
     <ClInclude Include="..\src\AudioStreams\ProceduralAudioStream.h" />
     <ClInclude Include="..\src\AudioStreams\WavAudioStream.h" />
+    <ClInclude Include="..\src\noise.h" />
     <ClInclude Include="fake_clock.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
