@@ -14,7 +14,7 @@ public:
 	Renderer& operator=(Renderer&& o);
 	~Renderer();
 
-	void update(audio_data &data);
+	void update(AudioData &data);
 	void update();
 	void render();
 

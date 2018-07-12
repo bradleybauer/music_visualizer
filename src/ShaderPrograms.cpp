@@ -113,6 +113,7 @@ GLint ShaderPrograms::get_uniform_loc(int program_i, int uniform_i) const {
 	return mUniformLocs[program_i][uniform_i];
 }
 
+// TODO always report warnings
 bool ShaderPrograms::compile_shader(const GLchar* s, GLuint& sn, GLenum stype) {
 	sn = glCreateShader(stype);
 	glShaderSource(sn, 1, &s, NULL);

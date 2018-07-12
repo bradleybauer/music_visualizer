@@ -17,7 +17,7 @@ void GLAPIENTRY MessageCallback(GLenum source,
             (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, message);
 }
 
-// TODO Test the output of the shaders. Use dummy data in audio_data. Compute similarity between
+// TODO Test the output of the shaders. Use dummy data in AudioData. Compute similarity between
 // expected images and produced images.
 
 // TODO add a previously rendered uniform so that a single buffer can be repetitvely applied
@@ -116,7 +116,7 @@ Renderer::~Renderer() {
     // Textures in texs are unboud from their targets
 }
 
-void Renderer::update(audio_data& data) {
+void Renderer::update(AudioData& data) {
     // Update audio textures
     // glActivateTexture activates a certain texture unit.
     // each texture unit holds one texture of each dimension of texture

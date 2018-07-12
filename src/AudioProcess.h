@@ -15,8 +15,6 @@ namespace chrono = std::chrono;
 #include <complex>
 using std::complex;
 
-// TODO make the thread functionality builtin?
-
 #include "AudioStreams/AudioStream.h"
 #include "ShaderConfig.h" // AudioOptions
 
@@ -24,7 +22,7 @@ using std::complex;
 // -/
 
 static const int VISUALIZER_BUFSIZE = 1024;
-struct audio_data {
+struct AudioData {
     float* audio_l;
     float* audio_r;
     float* freq_l;
@@ -52,8 +50,7 @@ static const int ABN = 16;
 // total audio buffer length. length of all ABN buffers combined (in frames)
 static const int TBL = ABL * ABN;
 static const int FFTLEN = TBL / 2;
-// length of visualizer 1D texture buffers. Length of audio data that this module 'outputs' (in
-// frames)
+// length of visualizer 1D texture buffers. Number of frames of audio this module outputs.
 static const int VL = VISUALIZER_BUFSIZE;
 // channel count of audio
 static const int C = 2;
@@ -79,18 +76,16 @@ static const int SRF = SR / 2;
 //           therefore the amplitude is greater than 1. The amplitude will be inflated for a short
 //           period of time until the dynamics of the max mixing catch up and max_prev is
 //           approximately equal to max_current.
-// RENORM_3: divide by the max observed amplitude.
-// CONST_RENORM: scale the raw audio samples by a constant factor.
+// RENORM_3: divide by the max observed amplitude during lifetime of AudioProcess.
 //
 // #define RENORM_1
 #define RENORM_2
 // #define RENORM_3
-// #define CONST_RENORM 10
 
 // DIFF_SYNC OPTIONS
-#define HISTORY_NUM_FRAMES 9
-#define HISTORY_SEARCH_GRANULARITY 2
-#define HISTORY_SEARCH_RANGE 16 * HISTORY_SEARCH_GRANULARITY
+static const int HISTORY_NUM_FRAMES = 9;
+static const int HISTORY_SEARCH_GRANULARITY = 2;
+static const int HISTORY_SEARCH_RANGE = 16 * HISTORY_SEARCH_GRANULARITY;
 static const int HISTORY_BUFF_SZ = VL;
 // Observations:
 // If I set these params (frames: 3, gran: 4, range:16*gran), then Slow Motion (by TEB) visualizes
@@ -135,7 +130,7 @@ public:
     void stop() {
         audio_sink.thread_join = true;
     }
-    audio_data& get_audio_data() {
+    AudioData& get_audio_data() {
         return audio_sink;
     }
     void set_audio_options(AudioOptions& ao) {
@@ -167,9 +162,6 @@ private:
     // velocity = sample rate
     // wavelength = number of samples of one period of the wave
     // frequency = dominant frequency of the waveform
-    // TODO why in the code do I use the frequency to both check WHEN to update next and WHERE to
-    // put the index next. Shouldn't I only need to do one in order to find the next ideal frame of
-    // audio?
     bool fft_sync = true;
 
     // Reduces drift in the wave that the fft_sync can't stop.
@@ -177,7 +169,7 @@ private:
 
     // Data members
     typename ClockT::time_point now;
-    std::chrono::nanoseconds _60fpsDura = dura(1.f / 60.f);
+    const std::chrono::nanoseconds _60fpsDura = dura(1.f / 60.f);
     typename ClockT::time_point next_l = now + _60fpsDura;
     typename ClockT::time_point next_r = now + _60fpsDura;
     // Compute the fft only once every 1/60 of a second
@@ -211,7 +203,7 @@ private:
 
     float max_amplitude_so_far = 0.;
 
-    struct audio_data audio_sink;
+    struct AudioData audio_sink;
     AudioStreamT& audio_stream;
 
     // Returns the bin holding the max frequency of the fft. We only consider the first 100 bins.
@@ -259,7 +251,6 @@ private:
     // dist: half the amount to search by
     // buff: buffer of audio to compare prev_buffer with
     //
-    // TODO not completely testable.
     // buffer sizes: Sure, I could make it all variable, but does that mean the function can work
     // with arbitrary inputs? No, the inputs depend on each other too much. Writing the
     // tests/asserts in anticipation that the inputs would vary is too much work, when I know that
@@ -410,9 +401,8 @@ inline void AudioProcess<ClockT, AudioStreamT>::service_channel(int w,
 #endif
         }
 
-        // braces are clangformat bug workaround
-        { // clang-format off
-            // Rescale the audio amplitude
+        // clang-format off
+        // Rescale the audio amplitude
         #ifdef RENORM_1
             renorm(staging_buff, channel_max, 1.f, 1.f, VL);
         #endif
@@ -422,10 +412,7 @@ inline void AudioProcess<ClockT, AudioStreamT>::service_channel(int w,
         #ifdef RENORM_3
             renorm(staging_buff, max_amplitude_so_far, 0.f, .83f, VL);
         #endif
-        #ifdef CONST_RENORM
-            renorm(staging_buff, CONST_RENORM, VL)
-        #endif
-        } // clang-format on
+        // clang-format on
 
         // copy the staging buff to the buffer in prev_buff[...]
         if (diff_sync) {
