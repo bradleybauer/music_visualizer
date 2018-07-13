@@ -40,3 +40,5 @@ src/shaders/crop_circles/
 src/shaders/conformal_map/
 
 src/shaders/my_path_trace/
+
+src/shaders/pathbackup/

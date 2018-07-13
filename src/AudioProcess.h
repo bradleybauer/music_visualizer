@@ -1,12 +1,13 @@
 #pragma once
 // vim: foldmarker=\/\-,\-\/:foldmethod=marker
 
+// TODO make audio thread persistant but go to sleep when not used so object lifetime mgmt is easier
+
 //- Includes
 #include <iostream>
-using std::cout;
-using std::endl;
 #include <chrono>
 namespace chrono = std::chrono;
+
 #include <cmath>   // std::abs
 #include <cstdlib> // malloc and free
 #include <limits>  // numeric_limits<T>::infinity()
@@ -42,7 +43,6 @@ struct AudioData {
 #endif
 
 //- Constants
-//
 // length of the system audio capture buffer (in frames)
 static const int ABL = 512;
 // number of system audio capture buffers to keep
@@ -52,8 +52,6 @@ static const int TBL = ABL * ABN;
 static const int FFTLEN = TBL / 2;
 // length of visualizer 1D texture buffers. Number of frames of audio this module outputs.
 static const int VL = VISUALIZER_BUFSIZE;
-// channel count of audio
-static const int C = 2;
 // sample rate of the audio stream
 static const int SR = 48000;
 // sample rate of audio given to FFT
@@ -67,34 +65,23 @@ static const int SRF = SR / 2;
 // also compared resampling with ffmpeg to my current naive impl. Hard to notice a difference.
 // -/
 
-//- Difference sync options
-// DIFF_SYNC
+//- Cross correlation sync options
+// store the 9 most recent buffers sent to the visualizer (stores contents of staging_buff).
 static const int HISTORY_NUM_FRAMES = 9;
-static const int HISTORY_SEARCH_GRANULARITY = 2;
-static const int HISTORY_SEARCH_RANGE = 16 * HISTORY_SEARCH_GRANULARITY;
-static const int HISTORY_BUFF_SZ = VL;
-// Observations:
-// If I set these params (frames: 3, gran: 4, range:16*gran), then Slow Motion (by TEB) visualizes
-// ok, but there is very noticable drift in the wave during the intro (sound=clean constant tone).
-// But if I set frames to 9 then drift is reduced (almost eliminated) throughout the whole song.
-// This observation shows that the history frames help establish a correlation in frame placement
-// (horizontal shift) between new frames and older frames.
-//
-// The performance cost for the history_search/difference_sync is
-//
-// 2 * HISTORY_SEARCH_RANGE * HISTORY_NUM_FRAMES * HISTORY_BUFF_SZ
-// ---------------------------------------------------------------
-//                 HISTORY_SEARCH_GRANULARITY
-//
-// -/
 
-// WAVE RENORMALIZATION
-// a bouncy renorm, the springy bounce effect is what occurs when we normalize by using
-// max = mix(max_prev, max_current, parameter); max_prev = max. So if there is a pulse of
-// amplitude in the sound, then a louder sound is normalized by a smaller maximum and
-// therefore the amplitude is greater than 1. The amplitude will be inflated for a short
-// period of time until the dynamics of the max mixing catch up and max_prev is
-// approximately equal to max_current.
+// search an interval of 500 samples centered around the current read index (r) for the maximum cross correlation.
+static const int HISTORY_SEARCH_RANGE = 500;
+
+// only compute the cross correlation for every third offset in the range 
+// (so HISTORY_SEARCH_RANGE / HISTORY_SEARCH_GRANULARITY) number of cross correlations are computed for each frame.
+static const int HISTORY_SEARCH_GRANULARITY = 3;
+
+// take into consideration the whole staging_buff.
+static const int HISTORY_BUFF_SZ = VL;
+
+// The performance cost for the cross correlations is
+// HISTORY_SEARCH_RANGE * HISTORY_NUM_FRAMES * HISTORY_BUFF_SZ / HISTORY_SEARCH_GRANULARITY
+// -/
 
 //- Class Definition
 template <typename ClockT, typename AudioStreamT>
@@ -127,21 +114,20 @@ public:
     AudioData& get_audio_data() {
         return audio_sink;
     }
+
     void set_audio_options(AudioOptions& ao) {
-        diff_sync = ao.diff_sync;
+        // TODO
+        xcorr_sync = ao.xcorr_sync;
         fft_sync = ao.fft_sync;
         wave_smoother = ao.wave_smooth;
-
         // TODO
-        ao.fft_smooth;
+        // ao.fft_smooth;
     }
 
 private:
     // EXPONENTIAL SMOOTHER
-    // A smaller wave_smoother makes the wave more like molasses.
-    // A larger wave_smoother makes the wave more snappy.
     // Mixes the old buffer of audio with the new buffer of audio.
-    float wave_smoother = .97f;
+    float wave_smoother;
 
     // The audio pointer in the circular buffer should be moved such that it travels only distances
     // that are whole multiples, not fractional multiples, of the audio wave's wavelength.
@@ -156,12 +142,11 @@ private:
     // velocity = sample rate
     // wavelength = number of samples of one period of the wave
     // frequency = dominant frequency of the waveform
-    bool fft_sync = true;
+    bool fft_sync;
 
     // Reduces drift in the wave that the fft_sync can't stop.
-    bool diff_sync = true;
+    bool xcorr_sync;
 
-    // Data members
     typename ClockT::time_point now;
     const std::chrono::nanoseconds _60fpsDura = dura(1.f / 60.f);
     typename ClockT::time_point next_l = now + _60fpsDura;
@@ -194,8 +179,6 @@ private:
 
     float channel_max_l;
     float channel_max_r;
-
-    float max_amplitude_so_far = 0.;
 
     struct AudioData audio_sink;
     AudioStreamT& audio_stream;
@@ -238,7 +221,7 @@ private:
     // a_sz: circumference of a_circular
     // b_sz: length of b_buff
     static float
-    manhattan_dist(const float* a_circular, const float* b_buff, int a_offset, int a_sz, int b_sz);
+    reverse_dot_prod(const float* a_circular, const float* b_buff, int a_offset, int a_sz, int b_sz, float a_scale);
 
     // w: writer
     // r: reader
@@ -249,12 +232,13 @@ private:
     // with arbitrary inputs? No, the inputs depend on each other too much. Writing the
     // tests/asserts in anticipation that the inputs would vary is too much work, when I know that
     // the inputs actually will not vary.
-    static int difference_sync(int w,
-                               int r,
-                               int dist,
-                               float* prev_buff[HISTORY_NUM_FRAMES],
-                               int frame_id,
-                               const float* buff);
+    static int cross_correlation_sync(int w,
+                                      int r,
+                                      int dist,
+                                      float* prev_buff[HISTORY_NUM_FRAMES],
+                                      int frame_id,
+                                      const float* buff,
+                                      float channel_max);
 
     // converts number of seconds x to a time duration for the ClockT type
     static typename ClockT::duration dura(float x);
@@ -369,38 +353,40 @@ inline AudioProcess<ClockT, AudioStreamT>::~AudioProcess() {
 
 template <typename ClockT, typename AudioStreamT>
 inline void AudioProcess<ClockT, AudioStreamT>::service_channel(int w,
-                                                               int& r,
-                                                               int& frame_id,
-                                                               float* prev_buff[HISTORY_NUM_FRAMES],
-                                                               float* audio_buff,
-                                                               float* staging_buff,
-                                                               const complex<float>* fft_out,
-                                                               float& freq,
-                                                               float& channel_max,
-                                                               typename ClockT::time_point now,
-                                                               typename ClockT::time_point& next_t) {
+                                                                int& r,
+                                                                int& frame_id,
+                                                                float* prev_buff[HISTORY_NUM_FRAMES],
+                                                                float* audio_buff,
+                                                                float* staging_buff,
+                                                                const complex<float>* fft_out,
+                                                                float& freq,
+                                                                float& channel_max,
+                                                                typename ClockT::time_point now,
+                                                                typename ClockT::time_point& next_t) {
     if (now > next_t) {
+        // Get next read location in audio buffer
         r = advance_index(w, r, freq, TBL);
-
-        if (diff_sync) {
-            r = difference_sync(w, r, HISTORY_SEARCH_RANGE, prev_buff, frame_id, audio_buff);
+        if (xcorr_sync) {
+            r = cross_correlation_sync(w, r, HISTORY_SEARCH_RANGE, prev_buff, frame_id, audio_buff, channel_max);
         }
 
+        // Read and process data from audio_buff into staging_buff
+        float max_amplitude = -std::numeric_limits<float>::infinity();
         for (int i = 0; i < VL; ++i) {
-            staging_buff[i] = audio_buff[(i + r) % TBL];
-        }
-
-        renorm(staging_buff, channel_max, .3f, .66f, VL);
-
-        // copy the staging buff to the buffer in prev_buff[...]
-        if (diff_sync) {
-            for (int i = 0; i < HISTORY_BUFF_SZ; ++i) {
+            const float sample = audio_buff[(i + r) % TBL];
+            if (std::abs(sample) > max_amplitude)
+                max_amplitude = std::abs(sample);
+            staging_buff[i] = .66f * sample / channel_max;
+            if (xcorr_sync) {
                 prev_buff[frame_id % HISTORY_NUM_FRAMES][i] = staging_buff[i];
             }
         }
         frame_id++;
 
-        // schedule the next call of service channel
+        // Rescale with a delay so the rescaling is less obvious and unnatural looking
+        channel_max = mix(channel_max, max_amplitude, .3f);
+
+        // Schedule the next call of service channel
         if (fft_sync) {
             freq = get_harmonic_less_than(max_frequency(fft_out), 80.f);
         }
@@ -440,7 +426,7 @@ inline void AudioProcess<ClockT, AudioStreamT>::step() {
                     staging_buff_l, // audio for visualizer goes here
                     fft_outl,       // fft complex outputs
                     freql,          // most recent dominant frequency < 600hz
-                    channel_max_l,  // channel renormalization term
+                    channel_max_l,  // amplitude renormalization term
                     now,            // current time point
                     next_l);        // update staging at this timepoint again
 
@@ -474,35 +460,10 @@ inline void AudioProcess<ClockT, AudioStreamT>::step() {
 
     //- Fill output buffers
     audio_sink.mtx.lock();
-
-    // Smooth and upsample the wave
     for (int i = 0; i < VL; ++i) {
-        float oldl, oldr, newl, newr, mixl, mixr;
-
-        newl = staging_buff_l[i];
-        newr = staging_buff_r[i];
-
-        oldl = audio_sink.audio_l[i];
-        oldr = audio_sink.audio_r[i];
-
-        mixl = mix(oldl, newl, wave_smoother);
-        mixr = mix(oldr, newr, wave_smoother);
-
-        //*
-        audio_sink.audio_l[i] = mixl;
-        audio_sink.audio_r[i] = mixr;
-        /*/
-        // View the input audio
-        //audio_sink.audio_l[i] = audio_buff_l[(i + reader_l)%TBL]/channel_max_l;
-        //audio_sink.audio_r[i] = audio_buff_r[(i + reader_r)%TBL]/channel_max_r;
-        // View the history frames used in difference_sync
-        //audio_sink.audio_l[i] = prev_buff_l[(frame_id_l + HISTORY_NUM_FRAMES -
-        1)%HISTORY_NUM_FRAMES][i/2];
-        //audio_sink.audio_r[i] = prev_buff_r[(frame_id_r + HISTORY_NUM_FRAMES -
-        1)%HISTORY_NUM_FRAMES][i/2];
-        // */
+        audio_sink.audio_l[i] = mix(audio_sink.audio_l[i], staging_buff_l[i], wave_smoother);
+        audio_sink.audio_r[i] = mix(audio_sink.audio_r[i], staging_buff_r[i], wave_smoother);
     }
-
     audio_sink.mtx.unlock();
     // -/
 }
@@ -650,75 +611,39 @@ inline int AudioProcess<ClockT, AudioStreamT>::advance_index(int w, int r, float
 }
 
 template <typename ClockT, typename AudioStreamT>
-inline float AudioProcess<ClockT, AudioStreamT>::manhattan_dist(
-    const float* a_circular, const float* b_buff, int a_offset, int a_sz, int b_sz) {
+inline float AudioProcess<ClockT, AudioStreamT>::reverse_dot_prod(
+    const float* a_circular, const float* b_buff, int a_offset, int a_sz, int b_sz, float a_scale) {
     float md = 0.f;
     for (int i = 0; i < b_sz; ++i) {
         const float xi_1 = a_circular[(i + a_offset) % a_sz];
-        const float xi_2 = b_buff[i];
-        md += std::abs(xi_1 - xi_2);
-        // md += std::pow(xi_1-xi_2, 2);
+        const float xi_2 = b_buff[b_sz - i - 1];
+        md += xi_1 / a_scale * xi_2;
     }
     return md;
 }
 
+// TODO try fft based cross correlation for perf reasons.
 template <typename ClockT, typename AudioStreamT>
-inline int AudioProcess<ClockT, AudioStreamT>::difference_sync(
-    int w, int r, int dist, float* prev_buff[HISTORY_NUM_FRAMES], int frame_id, const float* buff) {
-    if (dist_backward(r, w, TBL) > dist && dist_forward(r, w, TBL) > dist) {
-        int orig_r = r;
-        r = move_index(r, -dist, TBL);
-
-        // Find r that gives best similarity between buff and prev_buff
-        int min_r = orig_r;
-        float min_md = std::numeric_limits<float>::infinity();
-        for (int i = 0; i < dist * 2 / HISTORY_SEARCH_GRANULARITY; ++i) {
-            float md = 0.f;
-            for (int b = 0; b < HISTORY_NUM_FRAMES; ++b) {
-                int cur_buf = (frame_id + b) % HISTORY_NUM_FRAMES;
-                // md += mix(.5f, 1.f, b/float(HISTORY_NUM_FRAMES)) * manhattan_dist(buff,
-                // prev_buff[cur_buf], r, TBL, HISTORY_BUFF_SZ);
-                md += manhattan_dist(buff, prev_buff[cur_buf], r, TBL, HISTORY_BUFF_SZ);
-            }
-            if (md < min_md) {
-                min_md = md;
-                min_r = r;
-            }
-            r = move_index(r, HISTORY_SEARCH_GRANULARITY, TBL);
+inline int AudioProcess<ClockT, AudioStreamT>::cross_correlation_sync(
+    int w, int r, int dist, float* prev_buff[HISTORY_NUM_FRAMES], int frame_id, const float* buff, float channel_max) {
+    // look through a range of dist samples centered at r
+    r = move_index(r, -dist / 2, TBL);
+    // Find r that gives best similarity between buff and prev_buff
+    int max_r = r;
+    float max_md = -std::numeric_limits<float>::infinity();
+    for (int i = 0; i < dist / HISTORY_SEARCH_GRANULARITY; ++i) {
+        float md = 0.f;
+        for (int b = 0; b < HISTORY_NUM_FRAMES; ++b) {
+            int cur_buf = (frame_id + b) % HISTORY_NUM_FRAMES;
+            md += reverse_dot_prod(buff, prev_buff[cur_buf], r, TBL, HISTORY_BUFF_SZ, channel_max);
         }
-
-        // Find out how far we've been shifted.
-        const int df = dist_forward(orig_r, min_r, TBL);
-        const int db = dist_backward(orig_r, min_r, TBL);
-        int diff;
-        if (df < db)
-            diff = df;
-        else
-            diff = -db;
-
-        // We want the pointer to be somewhere around where advanced_index put it. We ONLY want to
-        // make a small nudge left or right in order to increase the similarity between this frame
-        // and the previous. We do not want to move the index too far. The histogram of where the
-        // index is moved can be viewed by defining DIFFERENCE_SYNC_HISTOGRAM_LOG. The histogram
-        // shows that, most of the time the index is put either at the ends or somewhere near the
-        // center.
-        if (std::abs(diff) < dist - 1)
-            r = min_r;
-        else
-            r = orig_r;
-
-#ifdef DIFFERENCE_SYNC_HISTOGRAM_LOG
-        static int counts[2 * HISTORY_SEARCH_RANGE] = {};
-        if (diff < dist && diff >= -dist)
-            counts[diff + dist] += 1;
-        if (frame_id % 1000 == 0) {
-            for (int i = 0; i < dist * 2; i += HISTORY_SEARCH_GRANULARITY)
-                cout << counts[i] << ",";
-            cout << endl;
+        if (md > max_md) {
+            max_md = md;
+            max_r = r;
         }
-#endif
+        r = move_index(r, HISTORY_SEARCH_GRANULARITY, TBL);
     }
-    return r;
+    return max_r;
 }
 
 template <typename ClockT, typename AudioStreamT>

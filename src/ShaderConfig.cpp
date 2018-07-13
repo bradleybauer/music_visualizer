@@ -32,13 +32,13 @@ static AudioOptions parse_audio_options(rj::Document& user_conf) {
         throw runtime_error("Audio options must contain the wave_smooth option");
     if (!audio_options.HasMember("fft_sync"))
         throw runtime_error("Audio options must contain the fft_smooth option");
-    if (!audio_options.HasMember("diff_sync"))
-        throw runtime_error("Audio options must contain the diff_sync option");
+    if (!audio_options.HasMember("xcorr_sync"))
+        throw runtime_error("Audio options must contain the xcorr_sync option");
 
     rj::Value& fft_smooth = audio_options["fft_smooth"];
     rj::Value& wave_smooth = audio_options["wave_smooth"];
     rj::Value& fft_sync = audio_options["fft_sync"];
-    rj::Value& diff_sync = audio_options["diff_sync"];
+    rj::Value& xcorr_sync = audio_options["xcorr_sync"];
 
     if (!fft_smooth.IsNumber())
         throw runtime_error("fft_smooth must be a number between in the interval [0, 1]");
@@ -46,8 +46,8 @@ static AudioOptions parse_audio_options(rj::Document& user_conf) {
         throw runtime_error("wave_smooth must be a number between in the interval [0, 1]");
     if (!fft_sync.IsBool())
         throw runtime_error("fft_sync must be true or false");
-    if (!diff_sync.IsBool())
-        throw runtime_error("diff_sync must be true or false");
+    if (!xcorr_sync.IsBool())
+        throw runtime_error("xcorr_sync must be true or false");
 
     ao.fft_smooth = fft_smooth.GetFloat();
     if (ao.fft_smooth < 0 || ao.fft_smooth > 1)
@@ -58,7 +58,7 @@ static AudioOptions parse_audio_options(rj::Document& user_conf) {
         throw runtime_error("wave_smooth must be in the interval [0, 1]");
 
     ao.fft_sync = fft_sync.GetBool();
-    ao.diff_sync = diff_sync.GetBool();
+    ao.xcorr_sync = xcorr_sync.GetBool();
 
     return ao;
 }
@@ -331,7 +331,7 @@ ShaderConfig::ShaderConfig(const string& json_str) {
         mAudio_ops = parse_audio_options(user_conf);
     }
     else {
-        mAudio_ops.diff_sync = true;
+        mAudio_ops.xcorr_sync = true;
         mAudio_ops.fft_sync = true;
         mAudio_ops.fft_smooth = .75;
         mAudio_ops.wave_smooth = .75;
