@@ -18,16 +18,13 @@ using AudioStreamT = ProceduralAudioStream;
 
 #include "catch2/catch.hpp"
 
-static const int canvas_height = 400;
-static const int canvas_width = 1024;
-
-static float abs_diff_sum(vector<vector<float>>& previous_buffers, int frame_id) {
+static float correlation(vector<vector<float>>& previous_buffers, int frame_id) {
     float sum = 0.;
     const float* current_buffer = previous_buffers[frame_id % HISTORY_NUM_FRAMES].data();
     for (int b = 0; b < HISTORY_NUM_FRAMES; ++b) {
         const int cur_buf = (frame_id + b) % HISTORY_NUM_FRAMES;
         for (int i = 0; i < HISTORY_BUFF_SZ; ++i) {
-            sum += std::abs(previous_buffers[cur_buf][i] - current_buffer[i]);
+            sum += previous_buffers[cur_buf][i] * current_buffer[i];
         }
     }
     return sum;
@@ -55,15 +52,11 @@ static float test_for_audio_options(AudioOptions ao) {
         }
 	});
 
-	AudioProcess<fake_clock, AudioStreamT> ap(as);
-    ap.set_audio_options(ao);
-
-    // TODO bradley search : class of functions that always have inverses (injections?)
+	AudioProcess<fake_clock, AudioStreamT> ap(as, ao);
 
     /* Simulation notes
     The purpose is to simulate the behavior of the audio loop in a test environment.
-
-    Probability that stall time in system specific get_pcm function is x (then use uniform distribution & inverse CDF)
+    I thought it would be interesting to model the probability that the stall time in the system specific get_pcm function is x (then use uniform distribution & inverse CDF).
 
     On average the gfx loop accesses AudioData roughly every 16.7 ms. Considering that the average stall in get_pcm is
     about equal to the half of the time between gfx thread accesses we can simply step the audio thread twice in
@@ -80,28 +73,29 @@ static float test_for_audio_options(AudioOptions ao) {
         const AudioData& ad = ap.get_audio_data();
         std::copy(ad.audio_l, ad.audio_l + HISTORY_BUFF_SZ, previous_buffers[frame_id % HISTORY_NUM_FRAMES].data());
 
-        sum += abs_diff_sum(previous_buffers, frame_id);
+        sum += correlation(previous_buffers, frame_id);
 	}
-    std::cout << std::fixed << sum << std::endl;
     return sum;
 }
 
 TEST_CASE("Optimization performance test") {
     AudioOptions ao;
-    ao.diff_sync = false;
+    ao.xcorr_sync = false;
     ao.fft_sync = false;
     ao.wave_smooth = 1.0;
     ao.fft_smooth = 1.0;
 
-    const float basic_chaos_measure = test_for_audio_options(ao);
+    // none of the wave stabilization optims enabled
+    const float baseline_perf = test_for_audio_options(ao);
 
     ao.fft_sync = true;
-    const float fft_measure = test_for_audio_options(ao);
-    CHECK(basic_chaos_measure > fft_measure);
-    CHECK(fft_measure <= 2560882.000000); // regression tests, todo: could vary accross systems due to ffts
+    const float fft_perf = test_for_audio_options(ao);
+    CHECK(fft_perf > baseline_perf);
+    CHECK(fft_perf >= 810910);
 
-    ao.diff_sync = true;
-    const float diff_measure = test_for_audio_options(ao);
-    CHECK(basic_chaos_measure > diff_measure);
-    //CHECK(diff_measure <= 2498677.250000);
+    ao.xcorr_sync = true;
+    const float xcorr_perf = test_for_audio_options(ao);
+    CHECK(xcorr_perf > baseline_perf);
+    CHECK(xcorr_perf > fft_perf);
+    CHECK(xcorr_perf >= 850551);
 }

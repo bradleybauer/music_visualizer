@@ -23,6 +23,7 @@
     <ClCompile Include="src\AudioStreams\WindowsAudioStream.cpp" />
     <ClCompile Include="src\filesystem.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\noise.cpp" />
     <ClCompile Include="src\Renderer.cpp" />
     <ClCompile Include="src\ShaderConfig.cpp" />
     <ClCompile Include="src\ShaderPrograms.cpp" />
@@ -37,6 +38,7 @@
     <ClInclude Include="src\filesystem.h" />
     <ClInclude Include="src\FileWatcher.h" />
     <ClInclude Include="src\JsonFileReader.h" />
+    <ClInclude Include="src\noise.h" />
     <ClInclude Include="src\Renderer.h" />
     <ClInclude Include="src\ShaderConfig.h" />
     <ClInclude Include="src\ShaderPrograms.h" />

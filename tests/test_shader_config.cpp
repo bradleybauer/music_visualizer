@@ -39,7 +39,7 @@ TEST_CASE("non existant buffer in render_order") {
 		"audio_options":{
 			"audio_enabled":true,
 			"fft_sync": false,
-			"diff_sync": false,
+			"xcorr_sync": false,
 			"fft_smooth": 1,
 			"wave_smooth": 0
 		},
@@ -76,7 +76,7 @@ TEST_CASE("uniforms with the same name") {
 		"audio_options":{
 			"audio_enabled":true,
 			"fft_sync": false,
-			"diff_sync": false,
+			"xcorr_sync": false,
 			"fft_smooth": 1,
 			"wave_smooth": 0
 		},
@@ -114,7 +114,7 @@ TEST_CASE("more than one render_order object") {
 		"audio_options":{
 			"audio_enabled":true,
 			"fft_sync": false,
-			"diff_sync": false,
+			"xcorr_sync": false,
 			"fft_smooth": 1,
 			"wave_smooth": 0
 		},
@@ -152,7 +152,7 @@ TEST_CASE("more than one uniforms object") {
 		"audio_options":{
 			"audio_enabled":true,
 			"fft_sync": false,
-			"diff_sync": false,
+			"xcorr_sync": false,
 			"fft_smooth": 1,
 			"wave_smooth": 0
 		},
@@ -197,7 +197,7 @@ TEST_CASE("buffers with the same name") {
 		"audio_options":{
 			"audio_enabled":true,
 			"fft_sync": false,
-			"diff_sync": false,
+			"xcorr_sync": false,
 			"fft_smooth": 1,
 			"wave_smooth": 0
 		},
@@ -234,7 +234,7 @@ TEST_CASE("incorrect uniform value 1") {
 		"audio_options":{
 			"audio_enabled":true,
 			"fft_sync": false,
-			"diff_sync": false,
+			"xcorr_sync": false,
 			"fft_smooth": 1,
 			"wave_smooth": 0
 		},
@@ -271,7 +271,7 @@ TEST_CASE("incorrect uniform value 2") {
 		"audio_options":{
 			"audio_enabled":true,
 			"fft_sync": false,
-			"diff_sync": false,
+			"xcorr_sync": false,
 			"fft_smooth": 1,
 			"wave_smooth": 0
 		},
@@ -308,7 +308,7 @@ TEST_CASE("fft_smooth out of range") {
 		"audio_options":{
 			"audio_enabled":true,
 			"fft_sync": false,
-			"diff_sync": false,
+			"xcorr_sync": false,
 			"fft_smooth": 1.2,
 			"wave_smooth": 0
 		},
@@ -345,7 +345,7 @@ TEST_CASE("too many clear color values") {
 		"audio_options":{
 			"audio_enabled":true,
 			"fft_sync": false,
-			"diff_sync": false,
+			"xcorr_sync": false,
 			"fft_smooth": 1,
 			"wave_smooth": 0
 		},
@@ -382,7 +382,7 @@ TEST_CASE("empty buffer name") {
 		"audio_options":{
 			"audio_enabled":true,
 			"fft_sync": false,
-			"diff_sync": false,
+			"xcorr_sync": false,
 			"fft_smooth": 1,
 			"wave_smooth": 0
 		},
@@ -419,7 +419,7 @@ TEST_CASE("incorrect buffer.size 1") {
 		"audio_options":{
 			"audio_enabled":true,
 			"fft_sync": false,
-			"diff_sync": false,
+			"xcorr_sync": false,
 			"fft_smooth": 1,
 			"wave_smooth": 0
 		},
@@ -456,7 +456,7 @@ TEST_CASE("incorrect buffer.size 2") {
 		"audio_options":{
 			"audio_enabled": true,
 			"fft_sync": false,
-			"diff_sync": false,
+			"xcorr_sync": false,
 			"fft_smooth": 1,
 			"wave_smooth": 0
 		},
@@ -492,7 +492,7 @@ TEST_CASE("missing buffer.size") {
 		"audio_options":{
 			"audio_enabled":true,
 			"fft_sync": false,
-			"diff_sync": false,
+			"xcorr_sync": false,
 			"fft_smooth": 1,
 			"wave_smooth": 0
 		},
@@ -521,7 +521,7 @@ TEST_CASE("missing fft_sync option") {
 		},
 		"audio_options":{
 			"audio_enabled":true,
-			"diff_sync": false,
+			"xcorr_sync": false,
 			"fft_smooth": 1,
 			"wave_smooth": 0
 		},
@@ -567,7 +567,7 @@ TEST_CASE("test valid config 0") {
 		"audio_options":{
 			"audio_enabled":true,
 			"fft_sync": true,
-			"diff_sync": false,
+			"xcorr_sync": false,
 			"fft_smooth": 1,
 			"wave_smooth": 0
 		},
@@ -581,7 +581,7 @@ TEST_CASE("test valid config 0") {
 	mock_conf.mBlend = false;
 	mock_conf.mAudio_enabled = true;
 	mock_conf.mAudio_ops.fft_sync = true;
-	mock_conf.mAudio_ops.diff_sync = false;
+	mock_conf.mAudio_ops.xcorr_sync = false;
 	mock_conf.mAudio_ops.fft_smooth = 1.f;
 	mock_conf.mAudio_ops.wave_smooth = 0.f;
 	Buffer b;
@@ -630,7 +630,7 @@ TEST_CASE("test valid config 1") {
 		"audio_options":{
 			"audio_enabled":true,
 			"fft_sync": true,
-			"diff_sync": false,
+			"xcorr_sync": false,
 			"fft_smooth": 1,
 			"wave_smooth": 0
 		},
@@ -646,7 +646,7 @@ TEST_CASE("test valid config 1") {
 	mock_conf.mBlend = false;
 	mock_conf.mAudio_enabled = true;
 	mock_conf.mAudio_ops.fft_sync = true;
-	mock_conf.mAudio_ops.diff_sync = false;
+	mock_conf.mAudio_ops.xcorr_sync = false;
 	mock_conf.mAudio_ops.fft_smooth = 1.f;
 	mock_conf.mAudio_ops.wave_smooth = 0.f;
 	Uniform u;
@@ -691,7 +691,7 @@ TEST_CASE("test valid config 2") {
 		"audio_options":{
 			"audio_enabled":true,
 			"fft_sync": true,
-			"diff_sync": false,
+			"xcorr_sync": false,
 			"fft_smooth": 0.0,
 			"wave_smooth": 0.1
 		},
@@ -704,7 +704,7 @@ TEST_CASE("test valid config 2") {
 	mock_conf.mBlend = false;
 	mock_conf.mAudio_enabled = true;
 	mock_conf.mAudio_ops.fft_sync = true;
-	mock_conf.mAudio_ops.diff_sync = false;
+	mock_conf.mAudio_ops.xcorr_sync = false;
 	mock_conf.mAudio_ops.fft_smooth = .0f;
 	mock_conf.mAudio_ops.wave_smooth = .1f;
 	Buffer b;
@@ -758,7 +758,7 @@ TEST_CASE("test valid config 3") {
 		"audio_options":{
 			"audio_enabled":true,
 			"fft_sync": true,
-			"diff_sync": true,
+			"xcorr_sync": true,
 			"fft_smooth": 0.6,
 			"wave_smooth": 0.5
 		},
@@ -771,7 +771,7 @@ TEST_CASE("test valid config 3") {
 	mock_conf.mBlend = false;
 	mock_conf.mAudio_enabled = true;
 	mock_conf.mAudio_ops.fft_sync = true;
-	mock_conf.mAudio_ops.diff_sync = true;
+	mock_conf.mAudio_ops.xcorr_sync = true;
 	mock_conf.mAudio_ops.fft_smooth = .6f;
 	mock_conf.mAudio_ops.wave_smooth = .5f;
 
@@ -826,7 +826,7 @@ static std::ostream& operator<<(std::ostream& os, const Buffer& o) {
 
 static std::ostream& operator<<(std::ostream& os, const AudioOptions& o) {
 	os << std::boolalpha;
-	os << "diff_sync   : " << o.diff_sync << "\n";
+	os << "xcorr_sync   : " << o.xcorr_sync << "\n";
 	os << "fft_sync    : " << o.fft_sync << "\n";
 	os << "wave_smooth : " << o.wave_smooth << "\n";
 	os << "fft_smooth  : " << o.fft_smooth << "\n";
@@ -872,7 +872,7 @@ static std::ostream& operator<<(std::ostream& os, const ShaderConfig& o) {
 
 static bool operator==(const AudioOptions& l, const AudioOptions& o) {
 	return l.fft_sync == o.fft_sync &&
-		l.diff_sync == o.diff_sync &&
+		l.xcorr_sync == o.xcorr_sync &&
 		l.fft_smooth == o.fft_smooth &&
 		l.wave_smooth == o.wave_smooth;
 }
