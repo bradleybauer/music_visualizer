@@ -208,6 +208,7 @@ void Renderer::render() {
     frame_counter++;
 }
 
+// TODO make this not such a pain with the indices and stuff. I want this to be more automatic
 void Renderer::upload_uniforms(const Buffer& buff, const int buff_index) const {
     // Builtin uniforms
     glUniform2f(shaders.get_uniform_loc(buff_index, 0), window.mouse.x, window.mouse.y);
@@ -218,15 +219,17 @@ void Renderer::upload_uniforms(const Buffer& buff, const int buff_index) const {
     glUniform1i(shaders.get_uniform_loc(buff_index, 5), frame_counter);
     glUniform1f(shaders.get_uniform_loc(buff_index, 6), float(buff.geom_iters));
     int uniform_offset = 7;
-    for (int i = 0; i < 4; ++i) // Point samplers to texture units
+    // Point sound & frequency samplers to texture units
+    for (int i = 0; i < 4; ++i)
         glUniform1i(shaders.get_uniform_loc(buff_index, uniform_offset + i), i);
-    uniform_offset = ShaderPrograms::num_builtin_uniforms;
+    uniform_offset += 4;
 
-    // User's samplers
-    for (int i = 0; i < num_user_buffers; ++i) // Point samplers to texture units
+    // Point user's samplers to texture units
+    for (int i = 0; i < num_user_buffers; ++i)
         glUniform1i(shaders.get_uniform_loc(buff_index, uniform_offset + i), i);
-    uniform_offset += int(config.mBuffers.size());
+    uniform_offset += num_user_buffers;
 
+    // TODO remove this functionality? simplify
     // User's uniforms
     for (int i = 0; i < config.mUniforms.size(); ++i) {
         const std::vector<float>& uv = config.mUniforms[i].values;
