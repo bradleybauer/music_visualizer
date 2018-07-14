@@ -61,7 +61,7 @@ Renderer::Renderer(const ShaderConfig& config, const ShaderPrograms& shaders, co
         glDisable(GL_BLEND);
     }
 
-    num_user_buffers = config.mBuffers.size();
+    num_user_buffers = int(config.mBuffers.size());
 
     // Create framebuffers and textures
     for (int i = 0; i < num_user_buffers; ++i) {
@@ -224,7 +224,7 @@ void Renderer::upload_uniforms(const Buffer& buff, const int buff_index) const {
     // User's samplers
     for (int i = 0; i < num_user_buffers; ++i) // Point samplers to texture units
         glUniform1i(shaders.get_uniform_loc(buff_index, uniform_offset + i), i);
-    uniform_offset += config.mBuffers.size();
+    uniform_offset += int(config.mBuffers.size());
 
     // User's uniforms
     for (int i = 0; i < config.mUniforms.size(); ++i) {

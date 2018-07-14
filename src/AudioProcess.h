@@ -563,7 +563,7 @@ inline float AudioProcess<ClockT, AudioStreamT>::max_frequency(const complex<flo
     const float y1 = std::abs(f[k - 1]); // std:abs(complex) gives magnitudes
     const float y2 = std::abs(f[k]);
     const float y3 = std::abs(f[k + 1]);
-    const float d = (y3 - y1) / (2 * (2 * y2 - y1 - y3) + 0.001);
+    const float d = (y3 - y1) / (2 * (2 * y2 - y1 - y3) + 0.001f);
     const float kp = k + d;
     // dont let anything negative or close to zero through
     return std::max(kp * float(SRF) / float(FFTLEN), 10.f);

@@ -38,13 +38,13 @@ static float test_for_audio_options(AudioOptions ao) {
     float t = 0.;
 	AudioStreamT as([&](float* l, float* r, int s) {
         // set a frequency for this buffer's wave
-        freq = 2. * 3.1415926 / s * (1. + 2.*(.5 + .5*sin(freq_modulator)));
+        freq = 2.f * 3.1415926f / s * (1.f + 2.f*(.5f + .5f*sin(freq_modulator)));
 
         for (int i = 0; i < s; ++i) {
             //l[i] = r[i] = sin(t);
             //t += freq;
 
-            l[i] = r[i] = .5*sin(t) + (2.*fbm(t) - 1.);
+            l[i] = r[i] = .5f*sin(t) + (2.f*fbm(t) - 1.f);
             t += freq;
 
             //l[i] = r[i] = 2.*fbm(t) - 1.;
@@ -82,8 +82,8 @@ TEST_CASE("Optimization performance test") {
     AudioOptions ao;
     ao.xcorr_sync = false;
     ao.fft_sync = false;
-    ao.wave_smooth = 1.0;
-    ao.fft_smooth = 1.0;
+    ao.wave_smooth = 1.0f;
+    ao.fft_smooth = 1.0f;
 
     // none of the wave stabilization optims enabled
     const float baseline_perf = test_for_audio_options(ao);
