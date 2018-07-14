@@ -204,10 +204,6 @@ private:
 
     static inline float mix(float x, float y, float m);
 
-    // setting low mixer can lead to some interesting lissajous
-    static void renorm(float* buff, float& prev_max_amp, float mixer, float scale, int buff_size);
-    static void renorm(float* buff, float scale, int buff_size);
-
     // Adds the wavelength computed by sample_rate / frequency to r.
     // If w is within VL units in front of r, then adjust r so that this is no longer true.
     // w: index of the writer in the circular buffer
@@ -313,7 +309,7 @@ AudioProcess<ClockT, AudioStreamT>::AudioProcess(AudioStreamT& _audio_stream)
     // Holds a harmonic frequency of the dominant frequency of the audio.
     freql = 60.f;
     // we capture an image of the waveform at this rate
-    freqr = freql;
+    freqr = 60.f;
     // -/
 
     //- Wave Renormalizer
@@ -400,18 +396,12 @@ inline void AudioProcess<ClockT, AudioStreamT>::service_channel(int w,
 template <typename ClockT, typename AudioStreamT>
 inline void AudioProcess<ClockT, AudioStreamT>::step() {
     // TODO On windows this can prevent the app from closing if the music is paused.
-    // auto perf_timepoint = ClockT::now();
     audio_stream.get_next_pcm(audio_buff_l + writer, audio_buff_r + writer, ABL);
-    // double dt = (ClockT::now() - perf_timepoint).count() / 1e9;
-    // summmm += dt;
-    // cout << summmm/(frame_id_l +1)<< endl;
 
-    // fps(now);
     now = ClockT::now();
-    // We want to use next += dura(1/freq) in the loop below and not next = now + dura(1/freq)
-    // because ... TODO, BUT if now >> next, then we probably were stalled in
-    // audio_stream.get_next_pcm and should update the next times
-    if (now - next_l > chrono::milliseconds(17 * 4)) { // less than 60/2/2 fps
+
+    // if we fall below 15 fps
+    if (now - next_l > chrono::milliseconds(17 * 4)) {
         next_r = now;
         next_l = now;
         next_fft = now;
@@ -580,28 +570,10 @@ inline float AudioProcess<ClockT, AudioStreamT>::mix(float x, float y, float m) 
 }
 
 template <typename ClockT, typename AudioStreamT>
-inline void AudioProcess<ClockT, AudioStreamT>::renorm(
-    float* buff, float& prev_max_amp, float mixer, float scale, int buff_size) {
-    float new_max_amp = -16.f;
-    for (int i = 0; i < buff_size; ++i)
-        if (std::abs(buff[i]) > new_max_amp)
-            new_max_amp = std::abs(buff[i]);
-    prev_max_amp = mix(prev_max_amp, new_max_amp, mixer);
-    for (int i = 0; i < buff_size; ++i)
-        buff[i] /= (prev_max_amp + 0.001f) / scale;
-}
-
-template <typename ClockT, typename AudioStreamT>
-inline void AudioProcess<ClockT, AudioStreamT>::renorm(float* buff, float scale, int buff_size) {
-    for (int i = 0; i < buff_size; ++i)
-        buff[i] *= scale;
-}
-
-template <typename ClockT, typename AudioStreamT>
 inline int AudioProcess<ClockT, AudioStreamT>::advance_index(int w, int r, float freq, int tbl) {
     int wave_len = int(SR / freq + .5f);
     r = move_index(r, wave_len, tbl);
-    // if dist from r to w is < what is read by graphics system
+    // if dist from r to w is less than what is read by graphics system
     if (dist_forward(r, w, tbl) < VL) {
         int delta = adjust_reader(r, w, wave_len, tbl);
         r = move_index(r, delta, tbl);
