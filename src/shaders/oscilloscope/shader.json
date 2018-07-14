@@ -49,7 +49,7 @@
 	"audio_enabled":true,
 	"audio_options": {
 		"fft_sync":true,
-		"diff_sync":true,
+		"xcorr_sync":true,
 		"fft_smooth":0.5, // not implemented yet
 		"wave_smooth":0.8
 	},

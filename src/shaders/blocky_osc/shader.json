@@ -27,7 +27,7 @@
     "audio_enabled":true,
     "audio_options": {
         "fft_sync":true,
-        "diff_sync":true,
+        "xcorr_sync":true,
         "wave_smooth":0.7,
         "fft_smooth":0.0 // not implemented yet
     },

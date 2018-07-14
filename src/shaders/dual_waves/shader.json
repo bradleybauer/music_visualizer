@@ -9,6 +9,6 @@
 		"fft_smooth":0.0, // not implemented yet
 		"wave_smooth":0.7,
 		"fft_sync":true,
-		"diff_sync":true
+		"xcorr_sync":true
 	}
 }
