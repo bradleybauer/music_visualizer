@@ -74,13 +74,12 @@ int main(int argc, char* argv[]) {
 
 	Renderer renderer(*shader_config, *shader_programs, *window);
 
-    // TODO audio_process doesn't need to be a pointer now
 	//AudioStreamT audio_stream(); // Most Vexing Parse
 	AudioStreamT audio_stream;
-	AudioProcessT *audio_process = new AudioProcessT(audio_stream, shader_config->mAudio_ops);
-	std::thread audioThread = std::thread(&AudioProcess<chrono::steady_clock, AudioStreamT>::start, audio_process);
+    AudioProcessT audio_process{ audio_stream, shader_config->mAudio_ops };
+	std::thread audioThread = std::thread(&AudioProcess<chrono::steady_clock, AudioStreamT>::start, &audio_process);
     if (shader_config->mAudio_enabled)
-        audio_process->start_audio_system();
+        audio_process.start_audio_system();
 
     auto update_shader = [&]() {
         cout << "Updating shaders." << endl;
@@ -97,11 +96,11 @@ int main(int argc, char* argv[]) {
         }
         renderer = std::move(Renderer(*shader_config, *shader_programs, *window));
         if (shader_config->mAudio_enabled) {
-            audio_process->start_audio_system();
-            audio_process->set_audio_options(shader_config->mAudio_ops);
+            audio_process.start_audio_system();
+            audio_process.set_audio_options(shader_config->mAudio_ops);
         }
         else {
-            audio_process->pause_audio_system();
+            audio_process.pause_audio_system();
         }
 		cout << "Successfully updated shaders." << endl << endl;
 	};
@@ -110,14 +109,13 @@ int main(int argc, char* argv[]) {
 		if (watcher.files_changed())
 			update_shader();
 		auto now = steady_clock::now();
-        renderer.update(audio_process->get_audio_data());
+        renderer.update(audio_process.get_audio_data());
 		renderer.render();
 		window->swap_buffers();
 		window->poll_events();
 		std::this_thread::sleep_for(std::chrono::milliseconds(16) - (steady_clock::now() - now));
 	}
-	if (audio_process)
-		audio_process->exit_audio_system();
+    audio_process.exit_audio_system();
 	//audioThread.join(); // I would like to exit the program the right way, but sometimes this blocks due to the windows audio system.
 	exit(0);
 }
