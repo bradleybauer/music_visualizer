@@ -80,18 +80,23 @@ void Window::window_size_callback(int _width, int _height) {
 }
 
 void Window::cursor_position_callback(double xpos, double ypos) {
-	mouse.x = float(xpos);
-	mouse.y = height-float(ypos);
+    mouse.x = float(xpos);
+    mouse.y = height - float(ypos);
+    if (mouse.down) {
+        mouse.last_down_x = mouse.x;
+        mouse.last_down_y = mouse.y;
+    }
 }
 
 void Window::mouse_button_callback(int button, int action, int mods) {
-	// TODO
-	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
-		mouse.down = true;
-	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) 
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+        mouse.down = true;
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE)
 		mouse.down = false;
-	// if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) 
-	// if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) 
+    if (mouse.down) {
+        mouse.last_down_x = mouse.x;
+        mouse.last_down_y = mouse.y;
+    }
 }
 
 void Window::keyboard_callback(int key, int scancode, int action, int mods) {

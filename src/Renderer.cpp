@@ -212,11 +212,12 @@ void Renderer::upload_uniforms(const Buffer& buff, const int buff_index) const {
     // Builtin uniforms
     glUniform2f(shaders.get_uniform_loc(buff_index, 0), window.mouse.x, window.mouse.y);
     glUniform1i(shaders.get_uniform_loc(buff_index, 1), window.mouse.down);
-    glUniform2f(shaders.get_uniform_loc(buff_index, 2), window.width, window.height);
-    glUniform1f(shaders.get_uniform_loc(buff_index, 3), elapsed_time);
-    glUniform1i(shaders.get_uniform_loc(buff_index, 4), frame_counter);
-    glUniform1f(shaders.get_uniform_loc(buff_index, 5), float(buff.geom_iters));
-    int uniform_offset = 6;
+    glUniform2f(shaders.get_uniform_loc(buff_index, 2), window.mouse.last_down_x, window.mouse.last_down_y);
+    glUniform2f(shaders.get_uniform_loc(buff_index, 3), float(window.width), float(window.height));
+    glUniform1f(shaders.get_uniform_loc(buff_index, 4), elapsed_time);
+    glUniform1i(shaders.get_uniform_loc(buff_index, 5), frame_counter);
+    glUniform1f(shaders.get_uniform_loc(buff_index, 6), float(buff.geom_iters));
+    int uniform_offset = 7;
     for (int i = 0; i < 4; ++i) // Point samplers to texture units
         glUniform1i(shaders.get_uniform_loc(buff_index, uniform_offset + i), i);
     uniform_offset = ShaderPrograms::num_builtin_uniforms;

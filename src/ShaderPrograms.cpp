@@ -20,6 +20,7 @@ ShaderPrograms::ShaderPrograms(const ShaderConfig& config, filesys::path shader_
 	uniform_header << R"(
 		uniform vec2 iMouse;
 		uniform bool iMouseDown;
+		uniform vec2 iMouseLastDownPos;
 		uniform vec2 iRes;
 		uniform float iTime;
 		uniform int iFrame;
@@ -61,6 +62,7 @@ ShaderPrograms::ShaderPrograms(const ShaderConfig& config, filesys::path shader_
 		vector<GLint> uniform_locs;
 		uniform_locs.push_back(glGetUniformLocation(p, "iMouse"));
 		uniform_locs.push_back(glGetUniformLocation(p, "iMouseDown"));
+		uniform_locs.push_back(glGetUniformLocation(p, "iMouseLastDownPos"));
 		uniform_locs.push_back(glGetUniformLocation(p, "iRes"));
 		uniform_locs.push_back(glGetUniformLocation(p, "iTime"));
 		uniform_locs.push_back(glGetUniformLocation(p, "iFrame"));

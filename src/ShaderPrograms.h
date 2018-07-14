@@ -10,6 +10,7 @@
 // Uniforms
 // vec2      iMouse
 // bool      iMouseDown
+// vec2      iMouseLastDownPos
 // vec2      iRes
 // float     iTime
 // int       iFrame
