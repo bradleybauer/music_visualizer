@@ -8,9 +8,9 @@ void main () {
     dist *= dist;
 
     /*
-    c = vec4(clamp(.00075 / dist, 0., 1.));
-    // /*/
-    c = prev_col*.75 + vec4(clamp(.0002 / dist, 0., 1.));
+    c = vec4(clamp(.002 / dist, 0., 1.));
+    /*/
+    c = prev_col*.5 + vec4(clamp(.0005 / dist, 0., 1.));
     c = clamp(c, vec4(0), vec4(1.5));
     //*/
 }
