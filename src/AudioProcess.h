@@ -28,7 +28,6 @@ struct AudioData {
     float* audio_r;
     float* freq_l;
     float* freq_r;
-    bool thread_join;
     std::mutex mtx;
 };
 
@@ -87,7 +86,7 @@ static const int HISTORY_BUFF_SZ = VL;
 template <typename ClockT, typename AudioStreamT>
 class AudioProcess {
 public:
-    AudioProcess(AudioStreamT& _audio_stream);
+    AudioProcess(AudioStreamT&, AudioOptions);
     ~AudioProcess();
 
     void service_channel(int w,
@@ -103,29 +102,40 @@ public:
                          typename ClockT::time_point& next_t);
 
     void step();
-    int start() {
-        while (!audio_sink.thread_join)
-            step();
-        return 0;
+    void start() {
+        while (!exit_audio_system_flag) {
+            if (audio_system_paused) {
+                step();
+            }
+            else {
+                std::this_thread::sleep_for(chrono::milliseconds(500));
+            }
+        }
     }
-    void stop() {
-        audio_sink.thread_join = true;
+    void exit_audio_system() {
+        exit_audio_system_flag = true;
+    }
+    void pause_audio_system() {
+        audio_system_paused = false;
+    }
+    void start_audio_system() {
+        audio_system_paused = true;
     }
     AudioData& get_audio_data() {
         return audio_sink;
     }
-
     void set_audio_options(AudioOptions& ao) {
-        // TODO
         xcorr_sync = ao.xcorr_sync;
         fft_sync = ao.fft_sync;
         wave_smoother = ao.wave_smooth;
-        // TODO
+        // TODO should i have this option?
         // ao.fft_smooth;
     }
 
 private:
-    // EXPONENTIAL SMOOTHER
+    bool audio_system_paused = true;
+    bool exit_audio_system_flag = false;
+
     // Mixes the old buffer of audio with the new buffer of audio.
     float wave_smoother;
 
@@ -243,19 +253,27 @@ private:
 
 //- Constructor
 template <typename ClockT, typename AudioStreamT>
-AudioProcess<ClockT, AudioStreamT>::AudioProcess(AudioStreamT& _audio_stream)
+AudioProcess<ClockT, AudioStreamT>::AudioProcess(AudioStreamT& _audio_stream, AudioOptions audio_options)
     : audio_stream(_audio_stream), audio_sink() {
     if (audio_stream.get_sample_rate() != 48000) {
-        cout << "The AudioProcess is meant to consume 48000hz audio but the given AudioStream "
-             << "produces " << audio_stream.get_sample_rate() << "hz audio." << endl;
+        std::cout << "The AudioProcess is meant to consume 48000hz audio but the given AudioStream "
+             << "produces " << audio_stream.get_sample_rate() << "hz audio." << std::endl;
         exit(1);
     }
     if (audio_stream.get_max_buff_size() < ABL) {
-        cout << "AudioProcess needs at least " << ABL << " frames per call to get_next_pcm"
+        std::cout << "AudioProcess needs at least " << ABL << " frames per call to get_next_pcm"
              << " but the given AudioStream only provides " << audio_stream.get_max_buff_size()
-             << "." << endl;
+             << "." << std::endl;
         exit(1);
     }
+
+    xcorr_sync = audio_options.xcorr_sync;
+    fft_sync = audio_options.fft_sync;
+    wave_smoother = audio_options.wave_smooth;
+    // TODO
+    // ao.fft_smooth;
+
+    // TODO test using new w/o setting buffs to zero
 
     //- Internal audio buffers
     audio_buff_l = (float*)calloc(TBL, sizeof(float));
@@ -263,11 +281,11 @@ AudioProcess<ClockT, AudioStreamT>::AudioProcess(AudioStreamT& _audio_stream)
     // -/
 
     //- History buffers
-    if (diff_sync)
-        for (int i = 0; i < HISTORY_NUM_FRAMES; ++i) {
-            prev_buff_l[i] = (float*)calloc(HISTORY_BUFF_SZ, sizeof(float));
-            prev_buff_r[i] = (float*)calloc(HISTORY_BUFF_SZ, sizeof(float));
-        }
+    // TODO
+    for (int i = 0; i < HISTORY_NUM_FRAMES; ++i) {
+        prev_buff_l[i] = (float*)calloc(HISTORY_BUFF_SZ, sizeof(float));
+        prev_buff_r[i] = (float*)calloc(HISTORY_BUFF_SZ, sizeof(float));
+    }
     // -/
 
     //- Output buffers
@@ -322,7 +340,6 @@ AudioProcess<ClockT, AudioStreamT>::AudioProcess(AudioStreamT& _audio_stream)
 //- Destructor
 template <typename ClockT, typename AudioStreamT>
 inline AudioProcess<ClockT, AudioStreamT>::~AudioProcess() {
-    audio_sink.thread_join = true;
     free(audio_sink.audio_l);
     free(audio_sink.audio_r);
     free(audio_sink.freq_l);
