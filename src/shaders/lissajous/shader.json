@@ -1,4 +1,5 @@
 {
+    "shader_mode":"advanced",
     // Please use only valid glsl names for buffers and uniforms
     // Please do not specify options more than once
 

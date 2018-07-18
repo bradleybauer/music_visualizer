@@ -1,5 +1,5 @@
-in vec2 p;
+in vec2 geom_p;
 out vec4 c;
 void main() {
-    c=texture(iB, p);
+    c=texture(iB, geom_p);
 }

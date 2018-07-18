@@ -1,4 +1,4 @@
-in vec2 p;
+in vec2 geom_p;
 out vec4 c;
 
 float hash(float p) {
@@ -8,6 +8,6 @@ float hash(float p) {
 }
 
 void main () {
-    c = texture(ia, p);
+    c = texture(ia, geom_p);
     c.a = 1.;
 }

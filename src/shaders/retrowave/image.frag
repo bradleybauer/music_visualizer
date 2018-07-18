@@ -1,4 +1,4 @@
-in vec2 p;
+in vec2 geom_p;
 out vec4 c;
 
 float hash(float p) {
@@ -14,7 +14,7 @@ void main () {
     // todo parallelogram is neat but a diagonal high tech (possibly mini voronoi)
     // pattern might be cooler
 
-    vec2 uv = p;
+    vec2 uv = geom_p;
     uv.x *= iRes.x / iRes.y;
 
     // background
@@ -52,10 +52,10 @@ void main () {
     c = mix(bgmesh, c, smoothstep(.05, 1., length(c)));
 
     // vignette
-    c.rgb *= pow(16.*p.x*p.y*(1.-p.x)*(1.-p.y), .3);
+    c.rgb *= pow(16.*geom_p.x*geom_p.y*(1.-geom_p.x)*(1.-geom_p.y), .3);
 
     // a bit of grain
-    c *= 1. - .5*sqrt(hash(p.x*p.y+2.));
+    c *= 1. - .5*sqrt(hash(geom_p.x*geom_p.y+2.));
 
     c.a = 1.;
 }

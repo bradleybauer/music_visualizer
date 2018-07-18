@@ -1,5 +1,5 @@
 {
-
+        "shader_mode":"advanced",
 	// TODO implement these options
 	// interpolation -> default of gl_nearest
 	// edge_behaviour -> default of gl_repeat

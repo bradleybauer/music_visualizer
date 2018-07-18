@@ -1,4 +1,4 @@
-varying vec2 geom_p;
+in vec2 geom_p;
 out vec4 C;
 
 float dbox(vec3 p, vec3 dim) {
@@ -85,7 +85,7 @@ void main() {
     float away = 8.;
     float th = - iMouse.x / 80. + iTime / 10.; float cs = cos(th); float sn = sin(th);
     vec3 ro = away*vec3(cs, .5, sn);
-    vec3 ta = vec3(0);
+    vec3 ta = vec3(0,-.07,0);
     vec3 forward = normalize(ta - ro);
     vec3 up = vec3(0,1,0);
     vec3 right = vec3(-sn, 0., cs); // deriv of ro, which also is (-z,0,x)

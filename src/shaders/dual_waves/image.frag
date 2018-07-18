@@ -1,6 +1,8 @@
+in vec2 geom_p;
 out vec4 C;
 void main() {
-	vec2 U = gl_FragCoord.xy/iRes;
+	vec2 U = geom_p/iRes;
+
 	U.x/=2.;
 	U.y = 2.*U.y-1.;
 

@@ -1,4 +1,4 @@
-in vec2 p;
+in vec2 geom_p;
 out vec4 c;
 
 void main() {
@@ -6,7 +6,7 @@ void main() {
     const float bezel = .7;
 
     // read from texture at grid
-    vec2 uv = p;
+    vec2 uv = geom_p;
     uv.x *= iRes.x / iRes.y;
 
     vec2 grid = floor(uv * freq) / freq;
