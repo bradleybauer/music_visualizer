@@ -20,12 +20,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\AudioStreams\WavAudioStream.cpp" />
-    <ClCompile Include="..\src\filesystem.cpp" />
     <ClCompile Include="..\src\noise.cpp" />
     <ClCompile Include="..\src\ShaderConfig.cpp" />
     <ClCompile Include="fake_clock.cpp" />
     <ClCompile Include="test_audio_process.cpp" />
-    <ClCompile Include="test_filesystem.cpp" />
     <ClCompile Include="test_shader_config.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -11,7 +11,8 @@ using std::ifstream;
 #include <stdexcept>
 using std::runtime_error;
 
-#include "filesystem.h"
+#include <filesystem>
+namespace filesys = std::filesystem;
 #include "FileWatcher.h"
 
 #include "Window.h"

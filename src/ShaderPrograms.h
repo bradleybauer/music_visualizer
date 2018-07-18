@@ -2,7 +2,8 @@
 
 #include <vector>
 #include <string>
-#include "filesystem.h"
+#include <filesystem>
+namespace filesys = std::filesystem;
 
 #include <GL/glew.h>
 #include "ShaderConfig.h"

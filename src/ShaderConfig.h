@@ -3,8 +3,8 @@
 #include <string>
 #include <vector>
 #include <array>
-
-#include "filesystem.h"
+#include <filesystem>
+namespace filesys = std::filesystem;
 
 struct Buffer {
 	std::string name;

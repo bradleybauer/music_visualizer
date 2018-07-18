@@ -3,7 +3,8 @@
 #include <string>
 #include <sstream>
 #include <fstream>
-#include "filesystem.h"
+#include <filesystem>
+namespace filesys = std::filesystem;
 #include <stdexcept>
 
 class JsonFileReader {

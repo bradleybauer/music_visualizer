@@ -3,7 +3,8 @@
 #include <string>
 #include <chrono>
 
-#include "filesystem.h"
+#include <filesystem>
+namespace filesys = std::filesystem;
 
 #include "FileWatcher/FileWatcher.h"
 
