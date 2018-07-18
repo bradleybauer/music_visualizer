@@ -1,3 +1,12 @@
+#include <fstream>
+using std::ifstream;
+#include <sstream>
+using std::stringstream;
+#include <algorithm>
+using std::sort;
+#include <iostream>
+using std::cout;
+using std::endl;
 #include <string>
 using std::string;
 using std::to_string;
@@ -8,8 +17,9 @@ using std::vector;
 #include <cctype> // isalpha
 #include <stdexcept>
 using std::runtime_error;
+#include <filesystem>
+namespace filesys = std::filesystem;
 
-#include "JsonFileReader.h"
 #include "ShaderConfig.h"
 #include "rapidjson/document.h"
 #include "rapidjson/error/en.h"
@@ -17,8 +27,9 @@ namespace rj = rapidjson;
 
 // TODO throw for unknown configuration options
 
-static const string WINDOW_SZ_KEY("window_size");
-static const string AUDIO_NUM_FRAMES_KEY("audio_num_frames");
+static const string WINDOW_SIZE_OPTION("window_size");
+static const string EASY_SHADER_MODE_OPTION("easy");
+static const string ADVANCED_SHADER_MODE_OPTION("advanced");
 
 static AudioOptions parse_audio_options(rj::Document& user_conf) {
     AudioOptions ao;
@@ -26,48 +37,42 @@ static AudioOptions parse_audio_options(rj::Document& user_conf) {
     rj::Value& audio_options = user_conf["audio_options"];
     if (!audio_options.IsObject())
         throw runtime_error("Audio options must be a json object");
-    if (!audio_options.HasMember("fft_smooth"))
-        throw runtime_error("Audio options must contain the fft_smooth option");
-    if (!audio_options.HasMember("wave_smooth"))
-        throw runtime_error("Audio options must contain the wave_smooth option");
-    if (!audio_options.HasMember("fft_sync"))
-        throw runtime_error("Audio options must contain the fft_smooth option");
-    if (!audio_options.HasMember("xcorr_sync"))
-        throw runtime_error("Audio options must contain the xcorr_sync option");
 
-    rj::Value& fft_smooth = audio_options["fft_smooth"];
-    rj::Value& wave_smooth = audio_options["wave_smooth"];
-    rj::Value& fft_sync = audio_options["fft_sync"];
-    rj::Value& xcorr_sync = audio_options["xcorr_sync"];
-
-    if (!fft_smooth.IsNumber())
-        throw runtime_error("fft_smooth must be a number between in the interval [0, 1]");
-    if (!wave_smooth.IsNumber())
-        throw runtime_error("wave_smooth must be a number between in the interval [0, 1]");
-    if (!fft_sync.IsBool())
-        throw runtime_error("fft_sync must be true or false");
-    if (!xcorr_sync.IsBool())
-        throw runtime_error("xcorr_sync must be true or false");
-
-    ao.fft_smooth = fft_smooth.GetFloat();
-    if (ao.fft_smooth < 0 || ao.fft_smooth > 1)
-        throw runtime_error("fft_smooth must be in the interval [0, 1]");
-
-    ao.wave_smooth = wave_smooth.GetFloat();
-    if (ao.wave_smooth < 0 || ao.wave_smooth > 1)
-        throw runtime_error("wave_smooth must be in the interval [0, 1]");
-
-    ao.fft_sync = fft_sync.GetBool();
-    ao.xcorr_sync = xcorr_sync.GetBool();
+    if (audio_options.HasMember("fft_smooth")) {
+        rj::Value& fft_smooth = audio_options["fft_smooth"];
+        if (!fft_smooth.IsNumber())
+            throw runtime_error("fft_smooth must be a number between in the interval [0, 1]");
+        ao.fft_smooth = fft_smooth.GetFloat();
+        if (ao.fft_smooth < 0 || ao.fft_smooth > 1)
+            throw runtime_error("fft_smooth must be in the interval [0, 1]");
+    }
+    if (audio_options.HasMember("wave_smooth")) {
+        rj::Value& wave_smooth = audio_options["wave_smooth"];
+        if (!wave_smooth.IsNumber())
+            throw runtime_error("wave_smooth must be a number between in the interval [0, 1]");
+        ao.wave_smooth = wave_smooth.GetFloat();
+        if (ao.wave_smooth < 0 || ao.wave_smooth > 1)
+            throw runtime_error("wave_smooth must be in the interval [0, 1]");
+    }
+    if (audio_options.HasMember("fft_sync")) {
+        rj::Value& fft_sync = audio_options["fft_sync"];
+        if (!fft_sync.IsBool())
+            throw runtime_error("fft_sync must be true or false");
+        ao.fft_sync = fft_sync.GetBool();
+    }
+    if (audio_options.HasMember("xcorr_sync")) {
+        rj::Value& xcorr_sync = audio_options["xcorr_sync"];
+        if (!xcorr_sync.IsBool())
+            throw runtime_error("xcorr_sync must be true or false");
+        ao.xcorr_sync = xcorr_sync.GetBool();
+    }
 
     return ao;
 }
 
 static Buffer parse_image_buffer(rj::Document& user_conf) {
     Buffer image_buffer;
-    image_buffer.width = 0;
-    image_buffer.height = 0;
-    image_buffer.is_window_size = true;
+    image_buffer.name = "image";
 
     rj::Value& image = user_conf["image"];
     if (!image.IsObject())
@@ -92,10 +97,6 @@ static Buffer parse_image_buffer(rj::Document& user_conf) {
                 throw runtime_error("image.clear_color must be an array of 3 real numbers each between 0 and 1");
         }
     }
-    else {
-        for (int i = 0; i < 3; ++i)
-            image_buffer.clear_color[i] = 0.f;
-    }
 
     return image_buffer;
 }
@@ -117,10 +118,6 @@ static Buffer parse_buffer(rj::Value& buffer, string buffer_name, set<string>& b
     if (!buffer.IsObject())
         throw runtime_error("Buffer " + b.name + " is not a json object");
 
-    if (!buffer.HasMember("size"))
-        throw runtime_error(b.name + " does not contain the size option");
-    if (!buffer.HasMember("geom_iters"))
-        throw runtime_error(b.name + " does not contain the geom_iters option");
     if (buffer.HasMember("clear_color")) {
         rj::Value& b_clear_color = buffer["clear_color"];
         if (!b_clear_color.IsArray() || b_clear_color.Size() != 3) {
@@ -135,33 +132,34 @@ static Buffer parse_buffer(rj::Value& buffer, string buffer_name, set<string>& b
             //	b.clear_color[i] = b_clear_color[i].GetFloat()/256.f;
         }
     }
-    else {
-        for (int i = 0; i < 3; ++i)
-            b.clear_color[i] = 0.f;
+
+
+    if (!buffer.HasMember("size")) {
+        cout << "Buffer: " << b.name << " does not have a size option, assuming the size of the buffer to be the window size" << endl;
     }
-
-    rj::Value& b_size = buffer["size"];
-    rj::Value& b_geom_iters = buffer["geom_iters"];
-
-    if (b_size.IsArray() && b_size.Size() == 2) {
-        if (!b_size[0].IsInt() || !b_size[1].IsInt())
+    else {
+        rj::Value& b_size = buffer["size"];
+        if (b_size.IsArray() && b_size.Size() == 2) {
+            if (!b_size[0].IsInt() || !b_size[1].IsInt())
+                throw runtime_error(b.name + ".size must be an array of two positive integers");
+            b.width = b_size[0].GetInt();
+            b.height = b_size[1].GetInt();
+            b.is_window_size = false;
+        }
+        else if (!b_size.IsString() || b_size.GetString() != WINDOW_SIZE_OPTION) {
             throw runtime_error(b.name + ".size must be an array of two positive integers");
-        b.width = b_size[0].GetInt();
-        b.height = b_size[1].GetInt();
-        b.is_window_size = false;
-    }
-    else if (b_size.IsString() && b_size.GetString() == WINDOW_SZ_KEY) {
-        b.is_window_size = true;
-        b.height = 0;
-        b.width = 0;
-    }
-    else {
-        throw runtime_error(b.name + ".size must be an array of two positive integers");
+        }
     }
 
-    if (!b_geom_iters.IsInt() || b_geom_iters.GetInt() == 0)
-        throw runtime_error(b.name + ".geom_iters must be a positive integer");
-    b.geom_iters = b_geom_iters.GetInt();
+    if (!buffer.HasMember("geom_iters")) {
+        cout << "Buffer: " << b.name << " does not have a geom_iters option, assuming the number of times to execute geometry shader is 1" << endl;
+    }
+    else {
+        rj::Value& b_geom_iters = buffer["geom_iters"];
+        if (!b_geom_iters.IsInt() || b_geom_iters.GetInt() == 0)
+            throw runtime_error(b.name + ".geom_iters must be a positive integer");
+        b.geom_iters = b_geom_iters.GetInt();
+    }
 
     return b;
 }
@@ -285,16 +283,7 @@ static vector<Uniform> parse_uniforms(rj::Document& user_conf) {
     return uniform_vec;
 }
 
-ShaderConfig::ShaderConfig(const filesys::path& conf_file_path)
-    : ShaderConfig(JsonFileReader::read(conf_file_path)) {
-    // cannot take const path & because then an implicit conversion causes an infinite recursion. :D
-    // filesys::path has string->path implicit conversion constructors for convenience
-
-    // One fix is to declare the constructors explicit and to make the string constructor take a
-    // const ref so that the JsonFileReader rvalue reference can bind to it.
-}
-
-ShaderConfig::ShaderConfig(const string& json_str) {
+void ShaderConfig::parse_config_from_string(const std::string & json_str) {
     rj::Document user_conf;
     rj::ParseResult ok =
         user_conf.Parse<rj::kParseCommentsFlag | rj::kParseTrailingCommasFlag>(json_str.c_str());
@@ -312,10 +301,6 @@ ShaderConfig::ShaderConfig(const string& json_str) {
         mInitWinSize.width = window_size[0].GetInt();
         mInitWinSize.height = window_size[1].GetInt();
     }
-    else {
-        mInitWinSize.height = 400;
-        mInitWinSize.width = 400;
-    }
 
     if (user_conf.HasMember("audio_enabled")) {
         rj::Value& audio_enabled = user_conf["audio_enabled"];
@@ -323,34 +308,39 @@ ShaderConfig::ShaderConfig(const string& json_str) {
             throw runtime_error("audio_enabled must be true or false");
         mAudio_enabled = audio_enabled.GetBool();
     }
-    else {
-        mAudio_enabled = true;
-    }
 
     if (user_conf.HasMember("audio_options")) {
         mAudio_ops = parse_audio_options(user_conf);
     }
+
+    if (user_conf.HasMember("shader_mode")) {
+        if (!user_conf["shader_mode"].IsString())
+            throw runtime_error("shader_mode must be either \"easy\" or \"advanced\"");
+        if (user_conf["shader_mode"].GetString() == EASY_SHADER_MODE_OPTION) {
+            mSimpleMode = true;
+        }
+        else if (user_conf["shader_mode"].GetString() == ADVANCED_SHADER_MODE_OPTION) {
+            mSimpleMode = false;
+        }
+        else {
+            throw runtime_error("shader_mode must be either \"easy\" or \"advanced\"");
+        }
+    }
     else {
-        mAudio_ops.xcorr_sync = true;
-        mAudio_ops.fft_sync = true;
-        mAudio_ops.fft_smooth = .75;
-        mAudio_ops.wave_smooth = .75;
+        mSimpleMode = true;
     }
 
     if (user_conf.HasMember("blend")) {
         if (!user_conf["blend"].IsBool())
-            throw runtime_error("Invalid type for blend option");
+            throw runtime_error("blend must be true or false");
         mBlend = user_conf["blend"].GetBool();
-    }
-    else {
-        mBlend = false;
     }
 
     if (user_conf.HasMember("image")) {
         mImage = parse_image_buffer(user_conf);
     }
     else {
-        throw runtime_error("shader.json needs the image setting");
+        mImage.name = "image";
     }
 
     if (user_conf.HasMember("buffers")) {
@@ -362,4 +352,75 @@ ShaderConfig::ShaderConfig(const string& json_str) {
     if (user_conf.HasMember("uniforms")) {
         mUniforms = parse_uniforms(user_conf);
     }
+}
+
+void ShaderConfig::parse_simple_config(const filesys::path & shader_folder) {
+    // ignore mBuffers, mRender_order, and mImage options that have been parsed from json
+    if (mBuffers.size() != 0) {
+        cout << "Warning: ignoring \"buffers\" because shader_mode is set to " << EASY_SHADER_MODE_OPTION << endl;
+    }
+    mBuffers.clear();
+    mRender_order.clear();
+    mImage = Buffer{};
+
+    // parse file list to decide if frag files should have custom or default geometry shader
+    vector<string> frag_filenames;
+    for (auto & p : filesys::directory_iterator(shader_folder)) {
+        if (!p.is_regular_file())
+            continue;
+
+        const filesys::path &path = p.path();
+        if (path.stem().string() == "image")
+            continue;
+        if (path.extension().string() == ".frag")
+            frag_filenames.push_back(path.stem().string());
+    }
+    // simple mode renders in alphabetical order
+    sort(frag_filenames.begin(), frag_filenames.end(), std::greater<string>());
+
+    mBlend = false;
+
+    mImage.name = "image";
+    for (auto& buffer_name : frag_filenames) {
+        mRender_order.push_back(mBuffers.size());
+        Buffer b;
+        b.name = buffer_name;
+        mBuffers.push_back(b);
+    }
+}
+
+ShaderConfig::ShaderConfig(const filesys::path& shader_folder, const filesys::path& conf_file_path) {
+    if (filesys::exists(conf_file_path)) {
+        ifstream file(conf_file_path.string());
+        stringstream str;
+        str << file.rdbuf();
+        parse_config_from_string(str.str());
+    }
+    else {
+        mSimpleMode = true;
+    }
+
+    if (mSimpleMode) {
+        cout << "shader_mode set to simple" << endl;
+        parse_simple_config(shader_folder);
+    }
+
+    if (filesys::exists(filesys::path(shader_folder / (mImage.name + ".geom")))) {
+        mImage.uses_default_geometry_shader = false;
+    }
+    else if (mImage.geom_iters > 1) {
+        cout << "Warning: Buffer " << mImage.name << " is using default geometry shader and has geom_iters > 1 set. Performance could suffer." << endl;
+    }
+    for (Buffer& b : mBuffers) {
+        if (filesys::exists(filesys::path(shader_folder / (b.name + ".geom")))) {
+            b.uses_default_geometry_shader = false;
+        }
+        else if (b.geom_iters > 1) {
+            cout << "Warning: Buffer " << b.name << " is using default geometry shader and has geom_iters > 1 set. Performance could suffer." << endl;
+        }
+    }
+}
+
+ShaderConfig::ShaderConfig(const string& json_str) {
+    parse_config_from_string(json_str);
 }

@@ -32,8 +32,7 @@ using AudioStreamT = LinuxAudioStream;
 #endif
 using AudioProcessT = AudioProcess<steady_clock, AudioStreamT>;
 
-// TODO?
-// rename to shader player (like vmware player)
+// TODO rename to shader player (like vmware player) ?
 
 #if defined(WINDOWS) && defined(DEBUG)
 int WinMain() {
@@ -42,6 +41,7 @@ int main(int argc, char* argv[]) {
 #endif
 
 	filesys::path shader_folder("shaders");
+    // TODO should this be here or in ShaderConfig?
 	filesys::path shader_config_path = shader_folder / "shader.json";
 
 	FileWatcher watcher(shader_folder);
@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
 	Window *window = nullptr;
     while (!(shader_config && shader_programs && window)) {
         try {
-            shader_config = new ShaderConfig(shader_config_path);
+            shader_config = new ShaderConfig(shader_folder, shader_config_path);
             window = new Window(shader_config->mInitWinSize.width, shader_config->mInitWinSize.height);
             shader_programs = new ShaderPrograms(*shader_config, shader_folder);
         }
@@ -85,7 +85,7 @@ int main(int argc, char* argv[]) {
     auto update_shader = [&]() {
         cout << "Updating shaders." << endl;
         try {
-            ShaderConfig new_shader_config(shader_config_path);
+            ShaderConfig new_shader_config(shader_folder, shader_config_path);
             ShaderPrograms new_shader_programs(new_shader_config, shader_folder);
             *shader_config = new_shader_config;
             *shader_programs = std::move(new_shader_programs);

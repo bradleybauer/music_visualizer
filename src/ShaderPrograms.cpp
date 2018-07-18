@@ -53,9 +53,9 @@ ShaderPrograms::ShaderPrograms(const ShaderConfig& config, filesys::path shader_
     // make error message line numbers correspond to line numbers in my text editor
     uniform_header << "#line 0\n";
 
-	for (auto buff : config.mBuffers)
-		compile_buffer_shaders(shader_folder, buff.name, uniform_header.str());
-	compile_buffer_shaders(shader_folder, "image", uniform_header.str());
+	for (const Buffer& buff : config.mBuffers)
+		compile_buffer_shaders(shader_folder, buff.name, uniform_header.str(), buff.uses_default_geometry_shader);
+	compile_buffer_shaders(shader_folder, config.mImage.name, uniform_header.str(), config.mImage.uses_default_geometry_shader);
 
 	// get uniform locations for each program
 	for (auto p : mPrograms) {
@@ -168,7 +168,43 @@ bool ShaderPrograms::link_program(GLuint& pn, GLuint vs, GLuint gs, GLuint fs) {
 	return true;
 }
 
-void ShaderPrograms::compile_buffer_shaders(const filesys::path& shader_folder, const string& buff_name, const string& uniform_header) {
+static const std::string default_geom_shader = R"(
+layout(points) in;
+layout(triangle_strip, max_vertices = 6) out;
+out vec2 geom_p;
+void main() {
+    /* 1------3
+       | \    |
+       |   \  |
+       |     \|
+       0------2 */
+    const vec2 p0 = vec2(-1., -1.);
+    const vec2 p1 = vec2(-1., 1.);
+    gl_Position = vec4(p0, 0., 1.);
+    geom_p = p0 * .5 + .5;
+    EmitVertex(); // 0
+    gl_Position = vec4(p1, 0., 1.);
+    geom_p = p1 * .5 + .5;
+    EmitVertex(); // 1
+    gl_Position = vec4(-p1, 0., 1.);
+    geom_p = -p1 * .5 + .5;
+    EmitVertex(); // 2
+    EndPrimitive();
+
+    gl_Position = vec4(-p1, 0., 1.);
+    geom_p = -p1 * .5 + .5;
+    EmitVertex(); // 2
+    gl_Position = vec4(p1, 0., 1.);
+    geom_p = p1 * .5 + .5;
+    EmitVertex(); // 1
+    gl_Position = vec4(-p0, 0., 1.);
+    geom_p = -p0 * .5 + .5;
+    EmitVertex(); // 3
+    EndPrimitive();
+}
+)";
+
+void ShaderPrograms::compile_buffer_shaders(const filesys::path& shader_folder, const string& buff_name, const string& uniform_header, const bool uses_default_geometry_shader) {
 	cout << "Compiling shaders for buffer: " << buff_name << endl;
 
 	filesys::path filepath;
@@ -181,20 +217,25 @@ void ShaderPrograms::compile_buffer_shaders(const filesys::path& shader_folder, 
 		precision highp float;
 	)";
 
-	filepath = filesys::path(shader_folder / (buff_name + ".geom"));
-	if (! filesys::exists(filepath))
-		throw runtime_error("\tGeometry shader does not exist.");
-	if (! filesys::is_regular_file(filepath))
-		throw runtime_error("\t" + buff_name + ".geom is not a regular file.");
-	shader_file = std::ifstream(filepath.string());
-	if (! shader_file.is_open())
-		throw runtime_error("\tError opening geometry shader.");
-	geom_str << version_header;
-	geom_str << uniform_header;
-	geom_str << string("layout(points) in;\n #define iGeomIter (float(gl_PrimitiveIDIn)) \n");
-	geom_str << shader_file.rdbuf();
-	if (shader_file.is_open())
-		shader_file.close();
+    if (uses_default_geometry_shader) {
+        geom_str << default_geom_shader;
+    }
+    else {
+        filepath = filesys::path(shader_folder / (buff_name + ".geom"));
+        if (! filesys::exists(filepath))
+            throw runtime_error("\tGeometry shader does not exist.");
+        if (! filesys::is_regular_file(filepath))
+            throw runtime_error("\t" + buff_name + ".geom is not a regular file.");
+        shader_file = std::ifstream(filepath.string());
+        if (! shader_file.is_open())
+            throw runtime_error("\tError opening geometry shader.");
+        geom_str << version_header;
+        geom_str << uniform_header;
+        geom_str << string("layout(points) in;\n #define iGeomIter (float(gl_PrimitiveIDIn)) \n");
+        geom_str << shader_file.rdbuf();
+        if (shader_file.is_open())
+            shader_file.close();
+    }
 
 	filepath = filesys::path(shader_folder / (buff_name + ".frag"));
 	if (! filesys::exists(filepath))
