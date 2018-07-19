@@ -10,7 +10,7 @@ visualizers might look like when visualizing the same sound.
 
 <img width="400" height="200" src="example0.PNG"> <img width="400" height="200" src="example3.png"> <img width="400" height="200" src="example6.PNG">
 <img width="400" height="200" src="example1.png"> <img width="400" height="200" src="example4.png"> <img width="400" height="200" src="example7.PNG">
-<img width="400" height="200" src="example2.png"> <img width="400" height="200" src="example5.png"> <img width="400" height="200" src="example8.png">
+<img width="400" height="200" src="example2.png"> <img width="400" height="200" src="example5.png"> <img width="400" height="200" src="example8.PNG">
 
 # Usage
 
