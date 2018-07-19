@@ -1,5 +1,8 @@
 #include <iostream>
-using std::cout; using std::endl;
+using std::cout;
+using std::endl;
+#include <chrono>
+namespace chrono = std::chrono;
 #include <stdexcept>
 using std::runtime_error;
 
@@ -91,9 +94,13 @@ void WindowsAudioStream::get_next_pcm(float * buff_l, float * buff_r, int buff_s
 	// So we do not need to fill the frame_cache with anything here if we return here.
 	// We only need to fill the frame_cache with the frames we don't use after calling GetBuffer
 
-    bool timeout = false;
-    while (i < buff_size && !timeout) {
-        // TODO timeout here
+    auto start = chrono::steady_clock::now();
+    while (i < buff_size) {
+        if (chrono::steady_clock::now() - start > chrono::milliseconds(60)) {
+            std::fill(buff_l, buff_l + buff_size, 0.f);
+            std::fill(buff_r, buff_r + buff_size, 0.f);
+            break;
+        }
 
         CHECK(m_pCaptureClient->GetNextPacketSize(&packetLength));
         if (packetLength != 0) {

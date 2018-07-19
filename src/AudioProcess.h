@@ -298,7 +298,6 @@ inline AudioProcess<ClockT, AudioStreamT>::~AudioProcess() {
 
 template <typename ClockT, typename AudioStreamT>
 inline void AudioProcess<ClockT, AudioStreamT>::step() {
-    // TODO On windows this can prevent the app from closing if the music is paused.
     audio_stream.get_next_pcm(audio_buff_l + writer, audio_buff_r + writer, ABL);
     writer = move_index(writer, ABL, TBL);
 
@@ -342,8 +341,8 @@ inline void AudioProcess<ClockT, AudioStreamT>::step() {
             if (std::abs(sample_r) > max_amplitude_r)
                 max_amplitude_r = std::abs(sample_r);
 
-            sample_l = .66f * sample_l / channel_max_l;
-            sample_r = .66f * sample_r / channel_max_r;
+            sample_l = .66f * sample_l / (channel_max_l + 0.0001f);
+            sample_r = .66f * sample_r / (channel_max_r + 0.0001f);
 
             audio_sink.audio_l[i] = mix(audio_sink.audio_l[i], sample_l, wave_smoother);
             audio_sink.audio_r[i] = mix(audio_sink.audio_r[i], sample_r, wave_smoother);

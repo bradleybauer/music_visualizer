@@ -116,7 +116,9 @@ int main(int argc, char* argv[]) {
 		window->poll_events();
 		std::this_thread::sleep_for(std::chrono::microseconds(16666) - (steady_clock::now() - now));
 	}
+
     audio_process.exit_audio_system();
-	//audioThread.join(); // I would like to exit the program the right way, but sometimes this blocks due to the windows audio system.
-	exit(0);
+	audioThread.join();
+
+    return 0;
 }
