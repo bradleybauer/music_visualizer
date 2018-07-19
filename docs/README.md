@@ -8,15 +8,9 @@ visualizers might look like when visualizing the same sound.
 
 # Examples
 
-// TODO update video
-Here is a youtube video of the app displaying a waveform.<br>
-<a href="https://youtu.be/yxGM7H1RFRA">https://youtu.be/yxGM7H1RFRA</a>
-
-<p align="center">
-<img width="400" height="200" src="example0.PNG"> <img width="400" height="200" src="example3.png"> <img width="400" height="200" src="example6.PNG"><br/>
-<img width="400" height="200" src="example1.png"> <img width="400" height="200" src="example4.png"> <img width="400" height="200" src="example7.PNG"><br/>
-<img width="400" height="200" src="example2.png"> <img width="400" height="200" src="example5.png"> <img width="400" height="200" src="example8.png"><br/>
-</p>
+<img width="400" height="200" src="example0.PNG"> <img width="400" height="200" src="example3.png"> <img width="400" height="200" src="example6.PNG">
+<img width="400" height="200" src="example1.png"> <img width="400" height="200" src="example4.png"> <img width="400" height="200" src="example7.PNG">
+<img width="400" height="200" src="example2.png"> <img width="400" height="200" src="example5.png"> <img width="400" height="200" src="example8.png">
 
 # Usage
 
