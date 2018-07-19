@@ -476,70 +476,6 @@ TEST_CASE("incorrect buffer.size 2") {
 	}
 	CHECK(false);
 }
-TEST_CASE("missing buffer.size") {
-	string json_str = R"(
-	{
-		"image" : {
-			"geom_iters":1,
-			"clear_color":[0,0,0]
-		},
-		"buffers": {
-			"MyBuff": {
-				"geom_iters": 12,
-				"clear_color":[1, 1, 1]
-			}
-		},
-		"audio_options":{
-			"audio_enabled":true,
-			"fft_sync": false,
-			"xcorr_sync": false,
-			"fft_smooth": 1,
-			"wave_smooth": 0
-		},
-		"render_order":["MyBuff"],
-		"uniforms" : {
-			"this_is_my_uni": [1.0, 2.0, 3.0, 4.0]
-		}
-	}
-	)";
-
-	try {
-		ShaderConfig conf(json_str);
-	}
-	catch (runtime_error& msg) {
-		CHECK(true);
-		return;
-	}
-	CHECK(false);
-}
-TEST_CASE("missing fft_sync option") {
-	string json_str = R"(
-	{
-		"image" : {
-			"geom_iters":1,
-			"clear_color":[0,0,0]
-		},
-		"audio_options":{
-			"audio_enabled":true,
-			"xcorr_sync": false,
-			"fft_smooth": 1,
-			"wave_smooth": 0
-		},
-		"uniforms" : {
-			"this_is_my_uni": [1.0, 2.0, 3.0, 4.0]
-		}
-	}
-	)";
-
-	try {
-		ShaderConfig conf(json_str);
-	}
-	catch (runtime_error& msg) {
-		CHECK(true);
-		return;
-	}
-	CHECK(false);
-}
 TEST_CASE("test valid config 0") {
 	string json_str = R"(
 	{
@@ -577,13 +513,14 @@ TEST_CASE("test valid config 0") {
 
 	ShaderConfig mock_conf;
 	mock_conf.mInitWinSize.width = 400;
-	mock_conf.mInitWinSize.height = 400;
+	mock_conf.mInitWinSize.height = 300;
 	mock_conf.mBlend = false;
 	mock_conf.mAudio_enabled = true;
 	mock_conf.mAudio_ops.fft_sync = true;
 	mock_conf.mAudio_ops.xcorr_sync = false;
 	mock_conf.mAudio_ops.fft_smooth = 1.f;
 	mock_conf.mAudio_ops.wave_smooth = 0.f;
+    mock_conf.mImage.name = "image";
 	Buffer b;
 	b.name = string("x");
 	b.geom_iters = 3;
@@ -642,13 +579,14 @@ TEST_CASE("test valid config 1") {
 
 	ShaderConfig mock_conf;
 	mock_conf.mInitWinSize.width = 400;
-	mock_conf.mInitWinSize.height = 400;
+	mock_conf.mInitWinSize.height = 300;
 	mock_conf.mBlend = false;
 	mock_conf.mAudio_enabled = true;
 	mock_conf.mAudio_ops.fft_sync = true;
 	mock_conf.mAudio_ops.xcorr_sync = false;
 	mock_conf.mAudio_ops.fft_smooth = 1.f;
 	mock_conf.mAudio_ops.wave_smooth = 0.f;
+    mock_conf.mImage.name = "image";
 	Uniform u;
 	u.name = string("this_is_my_uni");
 	u.values = { 1.f, 2.f, 3.f, 4.f };
@@ -707,6 +645,7 @@ TEST_CASE("test valid config 2") {
 	mock_conf.mAudio_ops.xcorr_sync = false;
 	mock_conf.mAudio_ops.fft_smooth = .0f;
 	mock_conf.mAudio_ops.wave_smooth = .1f;
+    mock_conf.mImage.name = "image";
 	Buffer b;
 	b.name = string("MyBuff");
 	b.geom_iters = 12;
@@ -767,13 +706,14 @@ TEST_CASE("test valid config 3") {
 	)";
 	ShaderConfig mock_conf;
 	mock_conf.mInitWinSize.width = 400;
-	mock_conf.mInitWinSize.height = 400;
+	mock_conf.mInitWinSize.height = 300;
 	mock_conf.mBlend = false;
 	mock_conf.mAudio_enabled = true;
 	mock_conf.mAudio_ops.fft_sync = true;
 	mock_conf.mAudio_ops.xcorr_sync = true;
 	mock_conf.mAudio_ops.fft_smooth = .6f;
 	mock_conf.mAudio_ops.wave_smooth = .5f;
+    mock_conf.mImage.name = "image";
 
 	Buffer b;
 	b.name = string("A");

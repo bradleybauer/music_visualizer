@@ -91,11 +91,11 @@ TEST_CASE("Optimization performance test") {
     ao.fft_sync = true;
     const float fft_perf = test_for_audio_options(ao);
     CHECK(fft_perf > baseline_perf);
-    CHECK(fft_perf >= 810910);
+    CHECK(fft_perf >= 809800);
 
     ao.xcorr_sync = true;
     const float xcorr_perf = test_for_audio_options(ao);
     CHECK(xcorr_perf > baseline_perf);
     CHECK(xcorr_perf > fft_perf);
-    CHECK(xcorr_perf >= 850551);
+    CHECK(xcorr_perf >= 850400);
 }
