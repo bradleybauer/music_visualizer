@@ -26,6 +26,9 @@ namespace filesys = std::filesystem;
 namespace rj = rapidjson;
 
 // TODO throw for unknown configuration options
+// TODO check for valid glsl names for buffers and uniforms
+// TODO fail if options are given more than once
+
 
 static const string WINDOW_SIZE_OPTION("window_size");
 static const string EASY_SHADER_MODE_OPTION("easy");

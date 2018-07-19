@@ -8,130 +8,33 @@ visualizers might look like when visualizing the same sound.
 
 # Examples
 
+// TODO update video
 Here is a youtube video of the app displaying a waveform.<br>
 <a href="https://youtu.be/yxGM7H1RFRA">https://youtu.be/yxGM7H1RFRA</a>
 
 <p align="center">
-  <img src="example6.PNG" />
+<img width="400" height="200" src="example0.PNG"> <img width="400" height="200" src="example3.png"> <img width="400" height="200" src="example6.PNG"><br/>
+<img width="400" height="200" src="example1.png"> <img width="400" height="200" src="example4.png"> <img width="400" height="200" src="example7.PNG"><br/>
+<img width="400" height="200" src="example2.png"> <img width="400" height="200" src="example5.png"> <img width="400" height="200" src="example8.png"><br/>
 </p>
-
-<p align="center">
-  <img src="example7.PNG" />
-</p>
-
-<p align="center">
-  <img src="example0.PNG" />
-</p>
-
-<p align="center">
-  <img src="example3.png" />
-</p>
-
-<p align="center">
-  <img src="example1.png" />
-</p>
-
-<p align="center">
-  <img src="example2.png" />
-</p>
-
-<p align="center">
-  <img src="example4.png" />
-</p>
-
-<p align="center">
-  <img src="example5.png" />
-</p>
-
 
 # Usage
 
-Warning - this section describes unimplemented features (shadertoy like default behavior).
-
-To visualize sound that plays to the system default audio output
-
-	Turn on music -> Run the app
-
-If you want to dig into the app's shader code or write your own shaders then read on.
-
-I intend to provide a shadertoy like experience by default. What this means is that the user writes a .frag file that renders to a fullscreen quad (actually a window sized quad). If the user wants multipass buffers, then multiple .frag files should be written. The name of a buffer is the file name of the frag file without the .frag extension. The contents of a buffer are available in all buffer shaders as i[buffer name here]. So if the buffers A.frag and a B.frag exist, then B can access the contents of A by doing texture(iA, pos);.
+The program is meant to feel like using shadertoy. What this means is that the user writes a .frag file that renders to a fullscreen quad (actually a window sized quad). If the user wants multipass buffers, then multiple .frag files should be written. The name of a buffer is the file name of the frag file without the .frag extension. The contents of a buffer are available in all buffer shaders as i[buffer name here]. So if the buffers A.frag and a B.frag exist, then B can access the contents of A by doing texture(iA, pos);.
 
 Every shader must contain an image.frag file, just like shadertoy.
 
 Code for a shader should be located in a folder named shaders that is in the same directory as the executable. Subdirectories of shaders/ can also contain code but that code will not be considered a part of the currently rendered shader.
 
-A shadertoy like shader might expect the following folder layout
+A shadertoy like shader might have the following folder layout
 
-	executable
+	shader_viewer.exe
 	shaders/
 		image.frag
 		buffA.frag
 		buffB.frag
 
-If the user modifies the current shader's files while the app is running, then the app will load the changes, recompile the shaders, and render the new shaders if everything compiled correctly.
-
-More advanced usage is supported by giving the user access to geometry shaders. The user could render a glittery sphere, for example, using only geometry shaders and a very simple frag shader. To do this the user would write a geometry shader, say buffname.geom, which would be executed a number of times and on each execution would output a triangle or quad to be shaded by a buffname.frag. The geometry shader knows which execution it is currently on and so can decide where to place the output geometry (and how to apply a perspective transform) so that a sphere is generated.
-
-The size of each framebuffer can also be configured so that unnecessary compute can be avoided. For example, shader games could be implemented where there is a state buffer and a separate rendering buffer. The state framebuffer could be of size 2x100, if for instance the user is simulating a hundred 2D balls moving around. The geometry shader would execute once and draw a full buffer quad. The fragment shader would then shade each pixel in this quad where a pixel is one of the two coordinates for one of the one hundred 2D balls.. Another approach would have the geometry shader output two one-pixel sized quads (or triangles?). The geometry shader could do all the work of updating each ball's state and pass the new state to an 'assignment' fragment shader to be written into the framebuffer. In this case the geometry shader would execute 100 times.
-
-A shader using geometry shaders might expect this folder layout
-
-	executable
-	shaders/
-		image.frag
-		buffA.frag
-		buffA.geom
-		shader.json
-
-# Configuration
-
-If you provide .geom shaders or want to change certain options, then you should have a shader.json file in shaders/.
-
-Here is a list of available options that can be set in shader.json:
-
-	initial window size
-
-	image buffer geometry iterations
-	image buffer clear color
-
-	buffer name
-	buffer size
-	buffer geometry iterations
-	buffer clear color
-
-	render order of buffers
-
-	whether to blend geometry drawn into a framebuffer
-
-	whether the audio system is enabled
-	whether the audio fft sync is enabled
-	whether the audio diff sync is enabled
-	whether the fft output is smoothed
-	whether the waveform is smoothed
-
-	a list of values available in all shaders as uniforms
-
-if no shader.json is provided, then the default values are assumed.
-
-See [here](../src/shaders/oscilloscope/shader.json) for more detail.
-
-# Default behavior
-
-Not implemented yet
-
-	if there is no shader.json then ignore all geometry files (provide warning if there are geometry files)
-
-	if there is no buffname.geom for a buffname.frag file, then buffname.frag draws a fullscreen (window sized) quad
-
-	if there is a shader.json with buffer options (size or geom_iters) set for buffname but there is no buffname.geom then take default options for size and geom_iters (provide warning)
-
-	if there is a shader.json then
-	  if no buffname.geom_iters -> buffname.geom_iters = 1
-	  if no buffname.buffer_size -> buffname.buffer_size = "window_size", buffname.geom_iters = 1 (overrides user's geom_iters)
-
-	...
-
-See [here](../src/shaders/oscilloscope/shader.json) for more detail.
+See [here](advanced.md) for details on how to configure the rendering process.
 
 # Building
 
@@ -150,14 +53,6 @@ and on Windows 10 with Visual Studio 2017:
 ```
 build the x64 Release configuration
 ```
-
-# TODO
-
-buffers should have GL_LINEAR/GL_NEAREST and GL_CLAMP/GL_REPEAT options
-
-Would it be worthwhile to print current settings to the terminal window?
-Log time to console?
-clearly separate new console log from previous console logs?
 
 # Thanks To
 
