@@ -4,7 +4,7 @@
 	// interpolation -> default of gl_nearest
 	// edge_behaviour -> default of gl_repeat
 
-	"initial_window_size":[500,250],
+	"initial_window_size":[500,400],
 	// Please use only valid glsl names for buffers and uniforms
 	// Please do not specify options more than once
 

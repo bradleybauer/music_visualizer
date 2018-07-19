@@ -17,10 +17,10 @@ void main() {
 	}
 
 	float al = texture(iA, geom_p).r;
-	al *= 5.;
+	al *= 4.;
 	vec4 new_color = mix(bg, fg, al);
 	vec4 old_color = texture(iB, geom_p);
 
-	c = mix(new_color, old_color, .8);
+	c = mix(new_color, old_color, .83);
 	c.a = 1.; // Replaces color
 }
