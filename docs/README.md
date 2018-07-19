@@ -4,7 +4,7 @@ Welcome to the project page for my music visualizer :)
 Here is a comparison between what my app looks like and what other music
 visualizers might look like when visualizing the same sound.
 
-![](anim.gif)
+![](/docs/anim.gif)
 
 # Examples
 
@@ -28,7 +28,7 @@ A shadertoy like shader might have the following folder layout
 		buffA.frag
 		buffB.frag
 
-See [here](advanced.md) for details on how to configure the rendering process.
+See [here](/docs/advanced.md) for details on how to configure the rendering process.
 
 # Building
 
