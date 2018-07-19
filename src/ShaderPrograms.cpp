@@ -218,6 +218,8 @@ void ShaderPrograms::compile_buffer_shaders(const filesys::path& shader_folder, 
 	)";
 
     if (uses_default_geometry_shader) {
+        geom_str << version_header;
+        geom_str << uniform_header;
         geom_str << default_geom_shader;
     }
     else {
