@@ -16,14 +16,14 @@ void main() {
 		return;
 	}
 
-        float smoother = .2;
-
 	float al = texture(iA, geom_p).r;
-        if (geom_p > .5)
-            al *= 2.;
-	vec4 new_color = 3.*mix(bg, fg, al);
+
+        if (geom_p.y > .5)
+            al *= 1.3;
+
+	vec4 new_color = 5.*mix(bg, fg, al);
 	vec4 old_color = texture(iB, geom_p);
 
-	c = mix(old_color, new_color, smoother);
+	c = mix(old_color, new_color, .1);
 	c.a = 1.; // Replaces color
 }
