@@ -36,5 +36,6 @@ private:
 	int num_user_buffers;
 	std::vector<int> buffers_last_drawn;
 	std::vector<GLuint> fbos; // n * num_user_buffs
-	std::vector<GLuint> texs; // 2n * num_user_buffs
+	std::vector<GLuint> fbo_textures; // 2n * num_user_buffs
+	std::vector<GLuint> audio_textures; // 2n * num_user_buffs
 };

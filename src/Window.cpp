@@ -44,27 +44,6 @@ Window::Window(int _width, int _height) : width(_width), height(_height), size_c
 	cout << "OpenGL version supported "<< version << endl;
 
 	glfwSwapInterval(0);
-	//glGetIntegerv(GL_MAX_GEOMETRY_OUTPUT_VERTICES, &max_output_vertices);
-	//glEnable(GL_DEPTH_TEST); // maybe allow as option so that geom shaders are more useful
-	glDisable(GL_DEPTH_TEST);
-
-	// Required by gl but unused.
-	GLuint vao;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-
-	// Generate audio textures
-	for (int i = 0; i < 4; ++i) {
-		GLuint tex;
-		glGenTextures(1, &tex);
-		glActiveTexture(GL_TEXTURE0 + i);
-		glBindTexture(GL_TEXTURE_1D, tex);
-		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, VISUALIZER_BUFSIZE, 0, GL_RED, GL_FLOAT, NULL);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
-	}
 }
 
 Window::~Window() {

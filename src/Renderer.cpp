@@ -25,19 +25,28 @@ void GLAPIENTRY MessageCallback(GLenum source,
 // TODO buffer.size option is ShaderConfig is not rendered correctly, rendering to half res and then upscaling in image.frag doesn't work as expected
 
 Renderer& Renderer::operator=(Renderer&& o) {
-    glDeleteFramebuffers(num_user_buffers, fbos.data());
+    glDeleteFramebuffers(fbos.size(), fbos.data());
     // The default window's fbo is now bound
-    glDeleteTextures(2 * num_user_buffers, texs.data());
-    // Textures in texs are unboud from their targets
+
+    glDeleteTextures(fbo_textures.size(), fbo_textures.data());
+    // Textures in fbo_textures are unboud from their targets
+
+    glDeleteTextures(audio_textures.size(), audio_textures.data());
 
     fbos = std::move(o.fbos);
-    texs = std::move(o.texs);
+    fbo_textures = std::move(o.fbo_textures);
+    audio_textures = std::move(o.audio_textures);
     buffers_last_drawn = std::move(o.buffers_last_drawn);
     num_user_buffers = o.num_user_buffers;
     frame_counter = o.frame_counter;
+
     o.fbos.clear();
-    o.texs.clear();
+    o.fbo_textures.clear();
+    o.audio_textures.clear();
+    o.buffers_last_drawn.clear();
     o.num_user_buffers = 0;
+    o.frame_counter = 0;
+
     return *this;
 }
 
@@ -62,6 +71,15 @@ Renderer::Renderer(const ShaderConfig& config, const ShaderPrograms& shaders, co
     else {
         glDisable(GL_BLEND);
     }
+
+	//glGetIntegerv(GL_MAX_GEOMETRY_OUTPUT_VERTICES, &max_output_vertices);
+	//glEnable(GL_DEPTH_TEST); // maybe allow as option so that geom shaders are more useful
+	glDisable(GL_DEPTH_TEST);
+
+	// Required by gl but unused.
+	GLuint vao;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
 
     num_user_buffers = int(config.mBuffers.size());
 
@@ -99,11 +117,25 @@ Renderer::Renderer(const ShaderConfig& config, const ShaderPrograms& shaders, co
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex1, 0);
 
-        texs.push_back(tex1);
-        texs.push_back(tex2);
+        fbo_textures.push_back(tex1);
+        fbo_textures.push_back(tex2);
         fbos.push_back(fbo);
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	// Generate audio textures
+	for (int i = 0; i < 4; ++i) {
+		GLuint tex;
+		glGenTextures(1, &tex);
+		glActiveTexture(GL_TEXTURE0 + i);
+		glBindTexture(GL_TEXTURE_1D, tex);
+		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, VISUALIZER_BUFSIZE, 0, GL_RED, GL_FLOAT, NULL);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
+        audio_textures.push_back(tex);
+	}
 
     start_time = std::chrono::steady_clock::now();
 }
@@ -111,11 +143,13 @@ Renderer::Renderer(const ShaderConfig& config, const ShaderPrograms& shaders, co
 Renderer::~Renderer() {
     // revert opengl state
 
-    glDeleteFramebuffers(num_user_buffers, fbos.data());
+    glDeleteFramebuffers(fbos.size(), fbos.data());
     // The default window's fbo is now bound
 
-    glDeleteTextures(2 * num_user_buffers, texs.data());
-    // Textures in texs are unboud from their targets
+    glDeleteTextures(fbo_textures.size(), fbo_textures.data());
+    // Textures in fbo_textures are unboud from their targets
+
+    glDeleteTextures(audio_textures.size(), audio_textures.data());
 }
 
 void Renderer::update(AudioData& data) {
@@ -156,9 +190,9 @@ void Renderer::update() {
                 width = window.width;
                 height = window.height;
             }
-            glBindTexture(GL_TEXTURE_2D, texs[2 * i]);
+            glBindTexture(GL_TEXTURE_2D, fbo_textures[2 * i]);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-            glBindTexture(GL_TEXTURE_2D, texs[2 * i + 1]);
+            glBindTexture(GL_TEXTURE_2D, fbo_textures[2 * i + 1]);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
         }
         frame_counter = 0;
@@ -185,9 +219,9 @@ void Renderer::render() {
         shaders.use_program(r);
         upload_uniforms(buff, r);
         glActiveTexture(GL_TEXTURE0 + r);
-        glBindTexture(GL_TEXTURE_2D, texs[2 * r + buffers_last_drawn[r]]);
+        glBindTexture(GL_TEXTURE_2D, fbo_textures[2 * r + buffers_last_drawn[r]]);
         glBindFramebuffer(GL_FRAMEBUFFER, fbos[r]);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texs[2 * r + (buffers_last_drawn[r] + 1) % 2], 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_textures[2 * r + (buffers_last_drawn[r] + 1) % 2], 0);
         glViewport(0, 0, width, height);
         glClearColor(buff.clear_color[0], buff.clear_color[1], buff.clear_color[2], 1.f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -195,7 +229,7 @@ void Renderer::render() {
         buffers_last_drawn[r] += 1;
         buffers_last_drawn[r] %= 2;
         // bind most recently drawn texture to texture unit r so other buffers can use it
-        glBindTexture(GL_TEXTURE_2D, texs[2 * r + buffers_last_drawn[r]]);
+        glBindTexture(GL_TEXTURE_2D, fbo_textures[2 * r + buffers_last_drawn[r]]);
     }
 
     // Render image
