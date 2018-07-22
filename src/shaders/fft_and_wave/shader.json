@@ -50,8 +50,8 @@
 	"audio_options": {
 		"fft_sync":true,
 		"xcorr_sync":true,
-		"fft_smooth":0.8,
-		"wave_smooth":0.6
+		 "fft_smooth":0.8,
+		"wave_smooth":0.7
 	},
 
 	// Useful for setting colors from external scripts.

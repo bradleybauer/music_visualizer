@@ -22,6 +22,8 @@ void GLAPIENTRY MessageCallback(GLenum source,
 
 // TODO add a previously rendered uniform so that a single buffer can be repetitvely applied
 
+// TODO buffer.size option is ShaderConfig is not rendered correctly, rendering to half res and then upscaling in image.frag doesn't work as expected
+
 Renderer& Renderer::operator=(Renderer&& o) {
     glDeleteFramebuffers(num_user_buffers, fbos.data());
     // The default window's fbo is now bound

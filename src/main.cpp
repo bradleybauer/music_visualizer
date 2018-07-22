@@ -76,8 +76,8 @@ int main(int argc, char* argv[]) {
 	Renderer renderer(*shader_config, *shader_programs, *window);
 
 	//AudioStreamT audio_stream(); // Most Vexing Parse
-	AudioStreamT audio_stream;
-    AudioProcessT audio_process{ audio_stream, shader_config->mAudio_ops };
+    AudioStreamT audio_stream;
+    AudioProcessT audio_process{audio_stream, shader_config->mAudio_ops};
 	std::thread audioThread = std::thread(&AudioProcess<chrono::steady_clock, AudioStreamT>::start, &audio_process);
     if (shader_config->mAudio_enabled)
         audio_process.start_audio_system();

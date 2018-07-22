@@ -17,10 +17,13 @@ void main() {
 	}
 
 	float al = texture(iA, geom_p).r;
-	al *= 4.;
-	vec4 new_color = mix(bg, fg, al);
+
+        if (geom_p.y > .5)
+            al *= 1.3;
+
+	vec4 new_color = 5.*mix(bg, fg, al);
 	vec4 old_color = texture(iB, geom_p);
 
-	c = mix(new_color, old_color, .83);
+	c = mix(old_color, new_color, .1);
 	c.a = 1.; // Replaces color
 }

@@ -47,24 +47,47 @@ void quad(vec2 P0, vec2 P1, float thickness) {
 	EndPrimitive();
 }
 
+float sample_freq(float x) {
+    return max(-1., .1*log(8.*texture(iFreqR, .5*pow(x * (1.-.13) + .13, 3.)).r) - .5);
+}
+
+float smooth_freq(float x) {
+    float sum = 0.;
+    const float width = 6.;
+    for (float i = -width; i <= width; i+=1.) {
+        sum += sample_freq(x + i / iNumGeomIters);
+    }
+    return sum / (2. * width + 1.);
+}
+
+float smooth_wave(float x) {
+    float sum = 0.;
+    const float width = 7.;
+    for (float i = - width; i <= width; i += 1.)
+        sum += .55 * texture(iSoundR, x + i / iNumGeomIters).r + .5;
+    return sum / (2. * width + 1.);
+}
+
 void main() {
 	float t0 = (iGeomIter+0)/iNumGeomIters;
 	float t1 = (iGeomIter+1)/iNumGeomIters;
 
-	width = .006;
-	intensity = .4;
-	min_intensity = .3;
+	width = .007;
+	intensity = .15;
+	min_intensity = .0;
 
-	float sr0 = texture(iSoundR, t0).r * .5 - .5;
-	float sr1 = texture(iSoundR, t1).r * .5 - .5;
-	float sl0 = texture(iSoundL, t0).r * .5 + .5;
-	float sl1 = texture(iSoundL, t1).r * .5 + .5;
+	float f0 = smooth_freq(t0);
+	float f1 = smooth_freq(t1);
+	float sr0 = smooth_wave(t0);
+	float sr1 = smooth_wave(t1);
+
         t0 = t0 * 2. - 1.;
         t1 = t1 * 2. - 1.;
-	vec2 P0 = vec2(t0, sr0);
-	vec2 P1 = vec2(t1, sr1);
+	vec2 P0 = vec2(t0, f0);
+	vec2 P1 = vec2(t1, f1);
 	quad(P0, P1, width);
-	vec2 P2 = vec2(t0, sl0);
-	vec2 P3 = vec2(t1, sl1);
-	quad(P2, P3, width);
+
+	P0.y = sr0;
+	P1.y = sr1;
+	quad(P0, P1, width);
 }
