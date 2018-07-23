@@ -23,7 +23,7 @@ static float correlation(vector<vector<float>>& previous_buffers, int frame_id) 
     const float* current_buffer = previous_buffers[frame_id % HISTORY_NUM_FRAMES].data();
     for (int b = 0; b < HISTORY_NUM_FRAMES; ++b) {
         const int cur_buf = (frame_id + b) % HISTORY_NUM_FRAMES;
-        for (int i = 0; i < HISTORY_BUFF_SZ; ++i) {
+        for (int i = 0; i < HISTORY_BUFF_SIZE; ++i) {
             sum += previous_buffers[cur_buf][i] * current_buffer[i];
         }
     }
@@ -31,7 +31,7 @@ static float correlation(vector<vector<float>>& previous_buffers, int frame_id) 
 }
 
 static float test_for_audio_options(AudioOptions ao) {
-    vector<vector<float>> previous_buffers(HISTORY_NUM_FRAMES, vector<float>(HISTORY_BUFF_SZ, 0));
+    vector<vector<float>> previous_buffers(HISTORY_NUM_FRAMES, vector<float>(HISTORY_BUFF_SIZE, 0));
 
     float freq_modulator = 0.;
     float freq = 0.;
@@ -71,7 +71,7 @@ static float test_for_audio_options(AudioOptions ao) {
 		fake_clock::advance(avg_get_pcm_stall_time);
 
         const AudioData& ad = ap.get_audio_data();
-        std::copy(ad.audio_l, ad.audio_l + HISTORY_BUFF_SZ, previous_buffers[frame_id % HISTORY_NUM_FRAMES].data());
+        std::copy(ad.audio_l, ad.audio_l + HISTORY_BUFF_SIZE, previous_buffers[frame_id % HISTORY_NUM_FRAMES].data());
 
         sum += correlation(previous_buffers, frame_id);
 	}
