@@ -1,6 +1,7 @@
 .vs
 
 build
+build_result
 
 libs/ffts/*
 libs/rapidjson/*

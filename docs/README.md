@@ -40,7 +40,9 @@ Then to build on Ubuntu
 ```
 sudo apt install cmake libglfw3-dev libglew-dev libpulse-dev
 cd music_visualizer
-mkdir build; cd build; cmake ..; make -j4
+mkdir build
+mkdir build_result
+cd build && cmake .. && make -j4 && mv main ../build_result/music_visualizer && cp -r ../src/shaders ../build_result/shaders
 ```
 
 and on Windows 10 with Visual Studio 2017:
