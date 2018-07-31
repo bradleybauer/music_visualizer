@@ -2,21 +2,24 @@
 
 #include <vector>
 
-#include "Window.h"
 #include "ShaderConfig.h"
-#include "ShaderPrograms.h"
+#include "Window.h"
 
 #include "AudioProcess.h"
 
+class ShaderPrograms;
+
 class Renderer {
+    friend class ShaderPrograms; // for uploading uniform values
 public:
-	Renderer(const ShaderConfig& config, const ShaderPrograms& shaders, const Window& window);
+	Renderer(const ShaderConfig& config, const Window& window);
 	Renderer& operator=(Renderer&& o);
 	~Renderer();
 
 	void update(AudioData &data);
 	void update();
 	void render();
+    void set_programs(const ShaderPrograms* shaders);
 
 private:
 	Renderer(Renderer&) = delete;
@@ -24,7 +27,7 @@ private:
 	Renderer& operator=(Renderer& o) = delete;
 
 	const ShaderConfig& config;
-	const ShaderPrograms& shaders;
+	const ShaderPrograms* shaders;
 	const Window& window;
 
 	void upload_uniforms(const Buffer& buff, const int buff_index) const;
@@ -39,3 +42,5 @@ private:
 	std::vector<GLuint> fbo_textures; // 2n * num_user_buffs
 	std::vector<GLuint> audio_textures; // 2n * num_user_buffs
 };
+
+#include "ShaderPrograms.h"

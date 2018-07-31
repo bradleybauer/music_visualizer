@@ -5,7 +5,7 @@ using std::endl;
 #include <string>
 using std::string;
 #include <chrono>
-using steady_clock = std::chrono::steady_clock;
+using ClockT = std::chrono::steady_clock;
 #include <fstream>
 using std::ifstream;
 #include <stdexcept>
@@ -29,9 +29,10 @@ using AudioStreamT = WindowsAudioStream;
 #include "AudioStreams/LinuxAudioStream.h"
 using AudioStreamT = LinuxAudioStream;
 #endif
-using AudioProcessT = AudioProcess<steady_clock, AudioStreamT>;
+using AudioProcessT = AudioProcess<ClockT, AudioStreamT>;
 
 // TODO rename to shader player (like vmware player) ?
+// TODO adding builtin uniforms should be as easy as adding an entry to a list
 
 #if defined(WINDOWS) && defined(DEBUG)
 int WinMain() {
@@ -47,12 +48,16 @@ int main(int argc, char* argv[]) {
 
 	ShaderConfig *shader_config = nullptr;
 	ShaderPrograms *shader_programs = nullptr;
+    Renderer* renderer = nullptr;
 	Window *window = nullptr;
+    // TODO extract to get_valid_config(&, &, &, &)
     while (!(shader_config && shader_programs && window)) {
         try {
             shader_config = new ShaderConfig(shader_folder, shader_config_path);
             window = new Window(shader_config->mInitWinSize.width, shader_config->mInitWinSize.height);
-            shader_programs = new ShaderPrograms(*shader_config, shader_folder);
+            renderer = new Renderer(*shader_config, *window);
+            shader_programs = new ShaderPrograms(*shader_config, *renderer, *window, shader_folder);
+            renderer->set_programs(shader_programs);
         }
         catch (runtime_error &msg) {
             cout << msg.what() << endl;
@@ -61,9 +66,11 @@ int main(int argc, char* argv[]) {
 			delete shader_config;
 			delete shader_programs;
 			delete window;
+			delete renderer;
 			shader_config = nullptr;
 			shader_programs = nullptr;
 			window = nullptr;
+            renderer = nullptr;
 
             while (!watcher.files_changed()) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -72,12 +79,10 @@ int main(int argc, char* argv[]) {
     }
 	cout << "Successfully compiled shaders." << endl;
 
-	Renderer renderer(*shader_config, *shader_programs, *window);
-
 	//AudioStreamT audio_stream(); // Most Vexing Parse
     AudioStreamT audio_stream;
     AudioProcessT audio_process{audio_stream, shader_config->mAudio_ops};
-	std::thread audio_thread = std::thread(&AudioProcess<chrono::steady_clock, AudioStreamT>::start, &audio_process);
+	std::thread audio_thread = std::thread(&AudioProcess<ClockT, AudioStreamT>::start, &audio_process);
     if (shader_config->mAudio_enabled)
         audio_process.start_audio_system();
 
@@ -85,16 +90,18 @@ int main(int argc, char* argv[]) {
         cout << "Updating shaders." << endl;
         try {
             ShaderConfig new_shader_config(shader_folder, shader_config_path);
-            ShaderPrograms new_shader_programs(new_shader_config, shader_folder);
+            Renderer new_renderer(new_shader_config, *window);
+            ShaderPrograms new_shader_programs(new_shader_config, new_renderer, *window, shader_folder);
             *shader_config = new_shader_config;
             *shader_programs = std::move(new_shader_programs);
+            *renderer = std::move(new_renderer);
+            renderer->set_programs(shader_programs);
         }
         catch (runtime_error &msg) {
             cout << msg.what() << endl;
             cout << "Failed to update shaders." << endl << endl;
             return;
         }
-        renderer = std::move(Renderer(*shader_config, *shader_programs, *window));
         if (shader_config->mAudio_enabled) {
             audio_process.start_audio_system();
             audio_process.set_audio_options(shader_config->mAudio_ops);
@@ -108,12 +115,12 @@ int main(int argc, char* argv[]) {
 	while (window->is_alive()) {
 		if (watcher.files_changed())
 			update_shader();
-		auto now = steady_clock::now();
-        renderer.update(audio_process.get_audio_data());
-		renderer.render();
+		auto now = ClockT::now();
+        renderer->update(audio_process.get_audio_data());
+		renderer->render();
 		window->swap_buffers();
 		window->poll_events();
-		std::this_thread::sleep_for(std::chrono::microseconds(16666) - (steady_clock::now() - now));
+		std::this_thread::sleep_for(std::chrono::microseconds(16666) - (ClockT::now() - now));
 	}
 
     audio_process.exit_audio_system();

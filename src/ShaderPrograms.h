@@ -2,41 +2,37 @@
 
 #include <vector>
 #include <string>
+#include <functional>
 #include "filesystem.h"
 
 #include <GL/glew.h>
 #include "ShaderConfig.h"
+#include "Renderer.h"
+#include "Window.h"
 
-// Uniforms
-// vec2      iMouse
-// bool      iMouseDown
-// vec2      iMouseLastDownPos
-// vec2      iRes
-// float     iTime
-// int       iFrame
-// float     iNumGeomIters
-// sampler1D iSoundR   texture_unit 0
-// sampler1D iSoundL   texture_unit 1
-// sampler1D iFreqR    texture_unit 2
-// sampler1D iFreqL    texture_unit 3
-//
-// n samplers for n user buffers in config.mBuffers
-// n uniforms for n user uniforms in config.mUniforms
-//
 // Programs
 // program for buffer n is in mPrograms[n]
 // program for image shader is in mPrograms.back()
 
 class ShaderPrograms {
 public:
-    const int num_builtin_uniforms = 11;
-
-	ShaderPrograms(const ShaderConfig& config, const filesys::path& shader_folder);
+	ShaderPrograms(const ShaderConfig& config,
+        const Renderer& renderer,
+        const Window& window,
+        const filesys::path& shader_folder);
 	ShaderPrograms& operator=(ShaderPrograms&&);
 	~ShaderPrograms();
 
 	void use_program(int i) const;
+    //void upload_uniforms(const Buffer& buff, const int buff_index) const;
 	GLint get_uniform_loc(int program_i, int uniform_i) const;
+
+    struct uniform_info {
+        std::string type;
+        std::string name;
+        std::function<void(const int, const Buffer&)> update;
+    };
+    std::vector<uniform_info> builtin_uniforms;
 
 private:
 	ShaderPrograms(ShaderPrograms&) = delete;

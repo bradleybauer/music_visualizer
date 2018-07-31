@@ -12,34 +12,41 @@ using std::stringstream;
 #include <stdexcept>
 using std::runtime_error;
 
-#include "ShaderConfig.h"
 #include "ShaderPrograms.h"
 
-ShaderPrograms::ShaderPrograms(const ShaderConfig& config, const filesys::path& shader_folder) {
-	stringstream uniform_header;
-	uniform_header << R"(
-		uniform vec2 iMouse;
-		uniform bool iMouseDown;
-		uniform vec2 iMouseLastDownPos;
-		uniform vec2 iRes;
-		uniform float iTime;
-		uniform int iFrame;
-		uniform float iNumGeomIters;
-		uniform sampler1D iSoundR;
-		uniform sampler1D iSoundL;
-		uniform sampler1D iFreqR;
-		uniform sampler1D iFreqL;
+ShaderPrograms::ShaderPrograms(const ShaderConfig& config,
+                               const Renderer& renderer,
+                               const Window& window,
+                               const filesys::path& shader_folder) {
+    #define lambda [&](const int p, const Buffer& b)
+    builtin_uniforms = {
+        {"vec2","iMouse",         lambda{ glUniform2f(get_uniform_loc(p, 0), window.mouse.x, window.mouse.y); }},
+        {"bool","iMouseDown",     lambda{ glUniform1i(get_uniform_loc(p, 1), window.mouse.down); } },
+        {"vec2","iMouseDownPos",  lambda{ glUniform2f(get_uniform_loc(p, 2), window.mouse.last_down_x, window.mouse.last_down_y); }},
+        {"vec2","iRes",           lambda{ glUniform2f(get_uniform_loc(p, 3), window.width, window.height); }},
+        {"float","iTime",         lambda{ glUniform1f(get_uniform_loc(p, 4), renderer.elapsed_time); }},
+        {"int","iFrame",          lambda{ glUniform1i(get_uniform_loc(p, 5), renderer.frame_counter); }},
+        {"float","iNumGeomIters", lambda{ glUniform1f(get_uniform_loc(p, 6), float(b.geom_iters)); }},
+        {"sampler1D", "iSoundR",  lambda{ glUniform1i(get_uniform_loc(p, 7), 0); }}, // texture_unit 0
+        {"sampler1D", "iSoundL",  lambda{ glUniform1i(get_uniform_loc(p, 8), 1); }}, // texture_unit 1
+        {"sampler1D", "iFreqR",   lambda{ glUniform1i(get_uniform_loc(p, 9), 2); }}, // texture_unit 2
+        {"sampler1D", "iFreqL",   lambda{ glUniform1i(get_uniform_loc(p, 10), 3); }} // texture_unit 3
+    };
+    #undef lambda
 
-		#define iResolution iRes
-	)";
+	stringstream uniform_header;
+    for (const uniform_info& uniform : builtin_uniforms) {
+        uniform_header << "uniform " << uniform.type << " " << uniform.name << ";\n";
+    }
+    uniform_header << "#define iResolution iRes\n";
 
 	// Put samplers for user buffers in header
-	for (auto buff : config.mBuffers) {
-		uniform_header << "uniform sampler2D i" << buff.name << ";\n";
+	for (const Buffer& b : config.mBuffers) {
+		uniform_header << "uniform sampler2D i" << b.name << ";\n";
 	}
 
 	// Put user's uniforms in header
-	for (auto uniform : config.mUniforms) {
+	for (const Uniform& uniform : config.mUniforms) {
 		string type;
 		if (uniform.values.size() == 1) // ShaderConfig ensures size is in [1,4]
 			type = "float";
@@ -48,32 +55,22 @@ ShaderPrograms::ShaderPrograms(const ShaderConfig& config, const filesys::path& 
 
 		uniform_header << "uniform " << type << " " << uniform.name << ";\n";
 	}
-	uniform_header << "\n";
 
     // make error message line numbers correspond to line numbers in my text editor
     uniform_header << "#line 0\n";
 
-	for (const Buffer& buff : config.mBuffers)
-		compile_buffer_shaders(shader_folder, buff.name, uniform_header.str(), buff.uses_default_geometry_shader);
+	for (const Buffer& b : config.mBuffers)
+		compile_buffer_shaders(shader_folder, b.name, uniform_header.str(), b.uses_default_geometry_shader);
 	compile_buffer_shaders(shader_folder, config.mImage.name, uniform_header.str(), config.mImage.uses_default_geometry_shader);
 
 	// get uniform locations for each program
-	for (auto p : mPrograms) {
+	for (GLuint p : mPrograms) {
 		vector<GLint> uniform_locs;
-		uniform_locs.push_back(glGetUniformLocation(p, "iMouse"));
-		uniform_locs.push_back(glGetUniformLocation(p, "iMouseDown"));
-		uniform_locs.push_back(glGetUniformLocation(p, "iMouseLastDownPos"));
-		uniform_locs.push_back(glGetUniformLocation(p, "iRes"));
-		uniform_locs.push_back(glGetUniformLocation(p, "iTime"));
-		uniform_locs.push_back(glGetUniformLocation(p, "iFrame"));
-		uniform_locs.push_back(glGetUniformLocation(p, "iNumGeomIters"));
-		uniform_locs.push_back(glGetUniformLocation(p, "iSoundR"));
-		uniform_locs.push_back(glGetUniformLocation(p, "iSoundL"));
-		uniform_locs.push_back(glGetUniformLocation(p, "iFreqR"));
-		uniform_locs.push_back(glGetUniformLocation(p, "iFreqL"));
-		for (auto b : config.mBuffers)
+        for (const uniform_info& u : builtin_uniforms)
+            uniform_locs.push_back(glGetUniformLocation(p, u.name.c_str()));
+		for (const Buffer& b : config.mBuffers)
 			uniform_locs.push_back(glGetUniformLocation(p, ("i" + b.name).c_str()));
-		for (auto u : config.mUniforms)
+		for (const Uniform& u : config.mUniforms)
 			uniform_locs.push_back(glGetUniformLocation(p, u.name.c_str()));
 		mUniformLocs.push_back(std::move(uniform_locs));
 	}
@@ -273,3 +270,4 @@ void ShaderPrograms::compile_buffer_shaders(const filesys::path& shader_folder, 
 
 	mPrograms.push_back(program);
 }
+

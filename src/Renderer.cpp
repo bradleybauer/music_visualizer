@@ -39,6 +39,7 @@ Renderer& Renderer::operator=(Renderer&& o) {
     buffers_last_drawn = std::move(o.buffers_last_drawn);
     num_user_buffers = o.num_user_buffers;
     frame_counter = o.frame_counter;
+    elapsed_time = o.elapsed_time;
 
     o.fbos.clear();
     o.fbo_textures.clear();
@@ -46,12 +47,13 @@ Renderer& Renderer::operator=(Renderer&& o) {
     o.buffers_last_drawn.clear();
     o.num_user_buffers = 0;
     o.frame_counter = 0;
+    o.elapsed_time = 0;
 
     return *this;
 }
 
-Renderer::Renderer(const ShaderConfig& config, const ShaderPrograms& shaders, const Window& window)
-    : config(config), shaders(shaders), window(window), frame_counter(0), num_user_buffers(0), buffers_last_drawn(config.mBuffers.size(), 0) {
+Renderer::Renderer(const ShaderConfig& config, const Window& window)
+    : config(config), window(window), frame_counter(0), num_user_buffers(0), buffers_last_drawn(config.mBuffers.size(), 0) {
 #ifdef _DEBUG
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(MessageCallback, 0);
@@ -98,7 +100,11 @@ Renderer::Renderer(const ShaderConfig& config, const ShaderPrograms& shaders, co
         glActiveTexture(GL_TEXTURE0 + i);
         glGenTextures(1, &tex1);
         glBindTexture(GL_TEXTURE_2D, tex1);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
+        glTexImage2D(GL_TEXTURE_2D, // which binding point on the current active texture
+                     0,
+                     GL_RGBA32F, // how is the data stored on the gfx card
+                     width, height, 0,
+                     GL_RGBA, GL_FLOAT, nullptr); // describes how the data is stored on the cpu
         // TODO parameterize wrap behavior
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -217,7 +223,7 @@ void Renderer::render() {
             width = window.width;
             height = window.height;
         }
-        shaders.use_program(r);
+        shaders->use_program(r);
         upload_uniforms(buff, r);
         glActiveTexture(GL_TEXTURE0 + r);
         glBindTexture(GL_TEXTURE_2D, fbo_textures[2 * r + buffers_last_drawn[r]]);
@@ -234,7 +240,7 @@ void Renderer::render() {
     }
 
     // Render image
-    shaders.use_program(num_user_buffers);
+    shaders->use_program(num_user_buffers);
     const Buffer& buff = config.mImage;
     upload_uniforms(config.mImage, num_user_buffers);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -245,44 +251,37 @@ void Renderer::render() {
     frame_counter++;
 }
 
-// TODO make this not such a pain with the indices and stuff. I want this to be more automatic
+void Renderer::set_programs(const ShaderPrograms* progs) {
+    shaders = progs;
+}
+
 void Renderer::upload_uniforms(const Buffer& buff, const int buff_index) const {
     // Builtin uniforms
-    glUniform2f(shaders.get_uniform_loc(buff_index, 0), window.mouse.x, window.mouse.y);
-    glUniform1i(shaders.get_uniform_loc(buff_index, 1), window.mouse.down);
-    glUniform2f(shaders.get_uniform_loc(buff_index, 2), window.mouse.last_down_x, window.mouse.last_down_y);
-    // TODO iRes should be window resolution, iBuffRes should be buffer resolution
-    glUniform2f(shaders.get_uniform_loc(buff_index, 3), float(window.width), float(window.height));
-    glUniform1f(shaders.get_uniform_loc(buff_index, 4), elapsed_time);
-    glUniform1i(shaders.get_uniform_loc(buff_index, 5), frame_counter);
-    glUniform1f(shaders.get_uniform_loc(buff_index, 6), float(buff.geom_iters));
-    int uniform_offset = 7;
-    // Point sound & frequency samplers to texture units
-    for (int i = 0; i < 4; ++i)
-        glUniform1i(shaders.get_uniform_loc(buff_index, uniform_offset + i), i);
-    uniform_offset += 4;
+    for (const auto& u : shaders->builtin_uniforms)
+        u.update(buff_index, buff);
+    int uniform_offset = shaders->builtin_uniforms.size();
 
     // Point user's samplers to texture units
     for (int i = 0; i < num_user_buffers; ++i)
-        glUniform1i(shaders.get_uniform_loc(buff_index, uniform_offset + i), i);
+        glUniform1i(shaders->get_uniform_loc(buff_index, uniform_offset + i), i);
     uniform_offset += num_user_buffers;
 
-    // TODO remove this functionality? simplify
+    // TODO remove this functionality? simplify.
     // User's uniforms
     for (int i = 0; i < config.mUniforms.size(); ++i) {
         const std::vector<float>& uv = config.mUniforms[i].values;
         switch (uv.size()) {
         case 1:
-            glUniform1f(shaders.get_uniform_loc(buff_index, uniform_offset + i), uv[0]);
+            glUniform1f(shaders->get_uniform_loc(buff_index, uniform_offset + i), uv[0]);
             break;
         case 2:
-            glUniform2f(shaders.get_uniform_loc(buff_index, uniform_offset + i), uv[0], uv[1]);
+            glUniform2f(shaders->get_uniform_loc(buff_index, uniform_offset + i), uv[0], uv[1]);
             break;
         case 3:
-            glUniform3f(shaders.get_uniform_loc(buff_index, uniform_offset + i), uv[0], uv[1], uv[2]);
+            glUniform3f(shaders->get_uniform_loc(buff_index, uniform_offset + i), uv[0], uv[1], uv[2]);
             break;
         case 4:
-            glUniform4f(shaders.get_uniform_loc(buff_index, uniform_offset + i), uv[0], uv[1], uv[2], uv[3]);
+            glUniform4f(shaders->get_uniform_loc(buff_index, uniform_offset + i), uv[0], uv[1], uv[2], uv[3]);
             break;
         }
     }
