@@ -72,14 +72,14 @@ Renderer::Renderer(const ShaderConfig& config, const ShaderPrograms& shaders, co
         glDisable(GL_BLEND);
     }
 
-	//glGetIntegerv(GL_MAX_GEOMETRY_OUTPUT_VERTICES, &max_output_vertices);
-	//glEnable(GL_DEPTH_TEST); // maybe allow as option so that geom shaders are more useful
-	glDisable(GL_DEPTH_TEST);
+    //glGetIntegerv(GL_MAX_GEOMETRY_OUTPUT_VERTICES, &max_output_vertices);
+    //glEnable(GL_DEPTH_TEST); // maybe allow as option so that geom shaders are more useful
+    glDisable(GL_DEPTH_TEST);
 
-	// Required by gl but unused.
-	GLuint vao;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
+    // Required by gl but unused.
+    GLuint vao;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
 
     num_user_buffers = int(config.mBuffers.size());
 
@@ -98,18 +98,19 @@ Renderer::Renderer(const ShaderConfig& config, const ShaderPrograms& shaders, co
         glActiveTexture(GL_TEXTURE0 + i);
         glGenTextures(1, &tex1);
         glBindTexture(GL_TEXTURE_2D, tex1);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-        // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
+        // TODO parameterize wrap behavior
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         glGenTextures(1, &tex2);
         glGenTextures(1, &tex2);
         glBindTexture(GL_TEXTURE_2D, tex2);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-        // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -123,19 +124,19 @@ Renderer::Renderer(const ShaderConfig& config, const ShaderPrograms& shaders, co
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	// Generate audio textures
-	for (int i = 0; i < 4; ++i) {
-		GLuint tex;
-		glGenTextures(1, &tex);
-		glActiveTexture(GL_TEXTURE0 + i);
-		glBindTexture(GL_TEXTURE_1D, tex);
-		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, VISUALIZER_BUFSIZE, 0, GL_RED, GL_FLOAT, NULL);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
+    // Generate audio textures
+    for (int i = 0; i < 4; ++i) {
+        GLuint tex;
+        glGenTextures(1, &tex);
+        glActiveTexture(GL_TEXTURE0 + i);
+        glBindTexture(GL_TEXTURE_1D, tex);
+        glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, VISUALIZER_BUFSIZE, 0, GL_RED, GL_FLOAT, nullptr);
+        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         audio_textures.push_back(tex);
-	}
+    }
 
     start_time = std::chrono::steady_clock::now();
 }
@@ -191,9 +192,9 @@ void Renderer::update() {
                 height = window.height;
             }
             glBindTexture(GL_TEXTURE_2D, fbo_textures[2 * i]);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
             glBindTexture(GL_TEXTURE_2D, fbo_textures[2 * i + 1]);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
         }
         frame_counter = 0;
         start_time = std::chrono::steady_clock::now();
@@ -250,6 +251,7 @@ void Renderer::upload_uniforms(const Buffer& buff, const int buff_index) const {
     glUniform2f(shaders.get_uniform_loc(buff_index, 0), window.mouse.x, window.mouse.y);
     glUniform1i(shaders.get_uniform_loc(buff_index, 1), window.mouse.down);
     glUniform2f(shaders.get_uniform_loc(buff_index, 2), window.mouse.last_down_x, window.mouse.last_down_y);
+    // TODO iRes should be window resolution, iBuffRes should be buffer resolution
     glUniform2f(shaders.get_uniform_loc(buff_index, 3), float(window.width), float(window.height));
     glUniform1f(shaders.get_uniform_loc(buff_index, 4), elapsed_time);
     glUniform1i(shaders.get_uniform_loc(buff_index, 5), frame_counter);

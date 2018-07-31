@@ -15,7 +15,7 @@ using std::runtime_error;
 #include "ShaderConfig.h"
 #include "ShaderPrograms.h"
 
-ShaderPrograms::ShaderPrograms(const ShaderConfig& config, filesys::path shader_folder) {
+ShaderPrograms::ShaderPrograms(const ShaderConfig& config, const filesys::path& shader_folder) {
 	stringstream uniform_header;
 	uniform_header << R"(
 		uniform vec2 iMouse;

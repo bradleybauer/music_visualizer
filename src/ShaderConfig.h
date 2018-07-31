@@ -3,13 +3,7 @@
 #include <string>
 #include <vector>
 #include <array>
-#ifdef WINDOWS
-#include <filesystem>
-namespace filesys = std::filesystem;
-#else
-#include <experimental/filesystem>
-namespace filesys = std::experimental::filesystem;
-#endif
+#include "filesystem.h"
 
 struct Buffer {
     std::string name;

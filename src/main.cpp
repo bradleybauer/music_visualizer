@@ -11,13 +11,7 @@ using std::ifstream;
 #include <stdexcept>
 using std::runtime_error;
 
-#ifdef WINDOWS
-#include <filesystem>
-namespace filesys = std::filesystem;
-#else
-#include <experimental/filesystem>
-namespace filesys = std::experimental::filesystem;
-#endif
+#include "filesystem.h"
 #include "FileWatcher.h"
 
 #include "Window.h"

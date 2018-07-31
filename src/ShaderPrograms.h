@@ -2,13 +2,7 @@
 
 #include <vector>
 #include <string>
-#ifdef WINDOWS
-#include <filesystem>
-namespace filesys = std::filesystem;
-#else
-#include <experimental/filesystem>
-namespace filesys = std::experimental::filesystem;
-#endif
+#include "filesystem.h"
 
 #include <GL/glew.h>
 #include "ShaderConfig.h"
@@ -35,8 +29,9 @@ namespace filesys = std::experimental::filesystem;
 
 class ShaderPrograms {
 public:
-	static const int num_builtin_uniforms = 10;
-	ShaderPrograms(const ShaderConfig& config, filesys::path shader_folder);
+	const int num_builtin_uniforms = builtin_uniforms.size();
+
+	ShaderPrograms(const ShaderConfig& config, const filesys::path& shader_folder);
 	ShaderPrograms& operator=(ShaderPrograms&&);
 	~ShaderPrograms();
 
