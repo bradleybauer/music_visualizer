@@ -18,7 +18,7 @@
 	// In addition to drawing an image buffer you can define other buffers to draw here
 	// Available as iBuffName in all shaders.
 	"buffers": {
-		"A": {
+		"a": {
 			// Buffer will have the same size as the window size
 			"size": "window_size",
 			// How many times the geometry shader will execute
@@ -38,7 +38,7 @@
 	// Every buffer has access to the most recent output of all other buffers
 	// No buffer has access to the output of the image buffer
 	// Default is the order the buffers are declared in buffers
-	"render_order":["A", "B"],
+	"render_order":["a", "B"],
 
 	// Do you want glEnable(GL_BLEND) ?
 	// blend func (srcAlpha, 1-srcAlpha)

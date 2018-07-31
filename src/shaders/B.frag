@@ -16,7 +16,7 @@ void main() {
 		return;
 	}
 
-	float al = texture(iA, geom_p).r;
+	float al = texture(ia, geom_p).r;
 
         if (geom_p.y > .5)
             al *= 1.3;

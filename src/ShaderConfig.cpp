@@ -17,8 +17,6 @@ using std::vector;
 #include <cctype> // isalpha
 #include <stdexcept>
 using std::runtime_error;
-#include <filesystem>
-namespace filesys = std::filesystem;
 
 #include "ShaderConfig.h"
 #include "rapidjson/document.h"
@@ -369,7 +367,7 @@ void ShaderConfig::parse_simple_config(const filesys::path & shader_folder) {
     // parse file list to decide if frag files should have custom or default geometry shader
     vector<string> frag_filenames;
     for (auto & p : filesys::directory_iterator(shader_folder)) {
-        if (!p.is_regular_file())
+        if (!filesys::is_regular_file(p))
             continue;
 
         const filesys::path &path = p.path();

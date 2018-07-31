@@ -3,8 +3,13 @@
 #include <string>
 #include <chrono>
 
+#ifdef WINDOWS
 #include <filesystem>
 namespace filesys = std::filesystem;
+#else
+#include <experimental/filesystem>
+namespace filesys = std::experimental::filesystem;
+#endif
 
 #include "FileWatcher/FileWatcher.h"
 
@@ -40,7 +45,7 @@ public:
 		shaders_changed = true;
 		last_event_time = std::chrono::steady_clock::now();
 	}
-	
+
 	bool files_changed() {
 		if (shaders_changed) {
 			shaders_changed = false;

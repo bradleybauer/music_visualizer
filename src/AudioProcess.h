@@ -7,10 +7,18 @@ namespace chrono = std::chrono;
 #include <limits> // numeric_limits<T>::infinity()
 #include <mutex>
 #include <complex>
+#include <thread>
 using std::complex;
 #include <algorithm>
 #include <numeric>
+
+#ifdef WINDOWS
+#define HAVE_PAR_ALGS
+#endif
+
+#ifdef HAVE_PAR_ALGS
 #include <execution>
+#endif
 
 #include "AudioStreams/AudioStream.h"
 #include "ShaderConfig.h" // AudioOptions
@@ -58,12 +66,16 @@ static const int VL = VISUALIZER_BUFSIZE;
 // over 48000hz data and they are surprisingly similar. I couldn't tell a difference really. I've
 // also compared resampling with ffmpeg to my current naive impl. Hard to notice a difference.
 
+#ifdef HAVE_PAR_ALGS
 // Cross correlation sync options
 // store the n most recent buffers sent to the visualizer (stores contents of visualizer buffer).
-static const int HISTORY_NUM_FRAMES = 60;
-
+static const int HISTORY_NUM_FRAMES = 50;
 // search an interval of samples centered around the current read index (r) for the maximum cross correlation.
 static const int HISTORY_SEARCH_RANGE = 128;
+#else
+static const int HISTORY_NUM_FRAMES = 9;
+static const int HISTORY_SEARCH_RANGE = 32;
+#endif
 
 static const int HISTORY_SEARCH_GRANULARITY = 4;
 
@@ -479,7 +491,11 @@ int AudioProcess<ClockT, AudioStreamT>::cross_correlation_sync(
     std::iota(indices.begin(), indices.end(), 0);
 
     // Find r that gives best similarity between buff and history_buff
+#ifdef HAVE_PAR_ALGS
     std::for_each(std::execution::par_unseq, indices.begin(), indices.end(),
+#else
+    std::for_each(indices.begin(), indices.end(),
+#endif
         [&](const int i) {
         const int local_r = (r_begin + i * HISTORY_SEARCH_GRANULARITY) % TBL;
         float dot = 0.f;

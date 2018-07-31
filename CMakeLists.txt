@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.3)
 project(main)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++11 -D_REENTRANT -DLINUX")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++17 -D_REENTRANT -DLINUX")
 
 set(SOURCE_FILES
     src/main.cpp
@@ -11,8 +11,6 @@ set(SOURCE_FILES
     src/Renderer.cpp
     src/AudioStreams/LinuxAudioStream.cpp
     src/AudioStreams/WavAudioStream.cpp
-    src/AudioStreams/ProceduralAudioStream.cpp
-    src/filesystem.cpp
 )
 
 include_directories(
@@ -29,5 +27,5 @@ add_executable(main ${SOURCE_FILES})
 
 LINK_DIRECTORIES(/usr/lib/x86_64-linux-gnu/)
 
-TARGET_LINK_LIBRARIES(main glfw GLEW GLU GL pulse-simple pulse pthread ${CMAKE_SOURCE_DIR}/build/libs/ffts/libffts.a ${CMAKE_SOURCE_DIR}/build/libs/SimpleFileWatcher/libSimpleFileWatcher.a)
+TARGET_LINK_LIBRARIES(main glfw GLEW GLU GL pulse-simple pulse pthread ${CMAKE_SOURCE_DIR}/build/libs/ffts/libffts.a ${CMAKE_SOURCE_DIR}/build/libs/SimpleFileWatcher/libSimpleFileWatcher.a stdc++fs)
 
