@@ -29,7 +29,7 @@
 
 class ShaderPrograms {
 public:
-	const int num_builtin_uniforms = builtin_uniforms.size();
+    const int num_builtin_uniforms = 11;
 
 	ShaderPrograms(const ShaderConfig& config, const filesys::path& shader_folder);
 	ShaderPrograms& operator=(ShaderPrograms&&);

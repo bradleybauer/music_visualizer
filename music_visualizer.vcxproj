@@ -34,6 +34,7 @@
     <ClInclude Include="src\AudioStreams\ProceduralAudioStream.h" />
     <ClInclude Include="src\AudioStreams\WavAudioStream.h" />
     <ClInclude Include="src\AudioStreams\WindowsAudioStream.h" />
+    <ClInclude Include="src\filesystem.h" />
     <ClInclude Include="src\FileWatcher.h" />
     <ClInclude Include="src\noise.h" />
     <ClInclude Include="src\Renderer.h" />
