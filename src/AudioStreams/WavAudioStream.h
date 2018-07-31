@@ -1,12 +1,6 @@
 #include "AudioStream.h"
 
-#ifdef WINDOWS
-#include <filesystem>
-namespace filesys = std::filesystem;
-#else
-#include <experimental/filesystem>
-namespace filesys = std::experimental::filesystem;
-#endif
+#include "filesystem.h"
 
 class WavAudioStream : public AudioStream {
 public:
