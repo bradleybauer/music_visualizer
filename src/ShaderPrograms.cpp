@@ -30,7 +30,8 @@ ShaderPrograms::ShaderPrograms(const ShaderConfig& config,
         {"sampler1D", "iSoundR",  lambda{ glUniform1i(get_uniform_loc(p, 7), 0); }}, // texture_unit 0
         {"sampler1D", "iSoundL",  lambda{ glUniform1i(get_uniform_loc(p, 8), 1); }}, // texture_unit 1
         {"sampler1D", "iFreqR",   lambda{ glUniform1i(get_uniform_loc(p, 9), 2); }}, // texture_unit 2
-        {"sampler1D", "iFreqL",   lambda{ glUniform1i(get_uniform_loc(p, 10), 3); }} // texture_unit 3
+        {"sampler1D", "iFreqL",   lambda{ glUniform1i(get_uniform_loc(p, 10), 3); }}, // texture_unit 3
+        {"vec2", "iBuffRes",      lambda{ glUniform2f(get_uniform_loc(p, 11), float(b.width), float(b.height)); }}
     };
     #undef lambda
 

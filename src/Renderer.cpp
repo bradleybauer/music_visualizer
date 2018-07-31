@@ -3,6 +3,7 @@ using std::cout;
 using std::endl;
 #include <chrono>
 namespace chrono = std::chrono;
+using ClockT = std::chrono::steady_clock;
 
 #include "Renderer.h"
 
@@ -89,12 +90,10 @@ Renderer::Renderer(const ShaderConfig& config, const Window& window)
     for (int i = 0; i < num_user_buffers; ++i) {
         GLuint tex1, tex2, fbo;
 
-        const Buffer& buff = config.mBuffers[i];
-        int width = buff.width;
-        int height = buff.height;
+        Buffer buff = config.mBuffers[i];
         if (buff.is_window_size) {
-            width = window.width;
-            height = window.height;
+            buff.width = window.width;
+            buff.height = window.height;
         }
 
         glActiveTexture(GL_TEXTURE0 + i);
@@ -103,7 +102,7 @@ Renderer::Renderer(const ShaderConfig& config, const Window& window)
         glTexImage2D(GL_TEXTURE_2D, // which binding point on the current active texture
                      0,
                      GL_RGBA32F, // how is the data stored on the gfx card
-                     width, height, 0,
+                     buff.width, buff.height, 0,
                      GL_RGBA, GL_FLOAT, nullptr); // describes how the data is stored on the cpu
         // TODO parameterize wrap behavior
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -114,7 +113,7 @@ Renderer::Renderer(const ShaderConfig& config, const Window& window)
         glGenTextures(1, &tex2);
         glGenTextures(1, &tex2);
         glBindTexture(GL_TEXTURE_2D, tex2);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, buff.width, buff.height, 0, GL_RGBA, GL_FLOAT, nullptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -144,7 +143,7 @@ Renderer::Renderer(const ShaderConfig& config, const Window& window)
         audio_textures.push_back(tex);
     }
 
-    start_time = std::chrono::steady_clock::now();
+    start_time = ClockT::now();
 }
 
 Renderer::~Renderer() {
@@ -190,20 +189,18 @@ void Renderer::update() {
     if (window.size_changed) {
         // Resize textures for window sized buffers
         for (int i = 0; i < config.mBuffers.size(); ++i) {
-            const Buffer& buff = config.mBuffers[i];
-            int width = buff.width;
-            int height = buff.height;
+            Buffer buff = config.mBuffers[i];
             if (buff.is_window_size) {
-                width = window.width;
-                height = window.height;
+                buff.width = window.width;
+                buff.height = window.height;
             }
             glBindTexture(GL_TEXTURE_2D, fbo_textures[2 * i]);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, buff.width, buff.height, 0, GL_RGBA, GL_FLOAT, nullptr);
             glBindTexture(GL_TEXTURE_2D, fbo_textures[2 * i + 1]);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, buff.width, buff.height, 0, GL_RGBA, GL_FLOAT, nullptr);
         }
         frame_counter = 0;
-        start_time = std::chrono::steady_clock::now();
+        start_time = ClockT::now();
         // for (int& bld : buffers_last_drawn) {
         //     bld = 0;
         // }
@@ -211,17 +208,15 @@ void Renderer::update() {
 }
 
 void Renderer::render() {
-    auto now = std::chrono::steady_clock::now();
+    auto now = ClockT::now();
     elapsed_time = (now - start_time).count() / 1e9f;
 
     // Render buffers
     for (const int r : config.mRender_order) {
-        const Buffer& buff = config.mBuffers[r];
-        int width = buff.width;
-        int height = buff.height;
+        Buffer buff = config.mBuffers[r];
         if (buff.is_window_size) {
-            width = window.width;
-            height = window.height;
+            buff.width = window.width;
+            buff.height = window.height;
         }
         shaders->use_program(r);
         upload_uniforms(buff, r);
@@ -229,7 +224,7 @@ void Renderer::render() {
         glBindTexture(GL_TEXTURE_2D, fbo_textures[2 * r + buffers_last_drawn[r]]);
         glBindFramebuffer(GL_FRAMEBUFFER, fbos[r]);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_textures[2 * r + (buffers_last_drawn[r] + 1) % 2], 0);
-        glViewport(0, 0, width, height);
+        glViewport(0, 0, buff.width, buff.height);
         glClearColor(buff.clear_color[0], buff.clear_color[1], buff.clear_color[2], 1.f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glDrawArrays(GL_POINTS, 0, buff.geom_iters);
@@ -241,10 +236,14 @@ void Renderer::render() {
 
     // Render image
     shaders->use_program(num_user_buffers);
-    const Buffer& buff = config.mImage;
-    upload_uniforms(config.mImage, num_user_buffers);
+    Buffer buff = config.mImage;
+    if (buff.is_window_size) {
+        buff.width = window.width;
+        buff.height = window.height;
+    }
+    upload_uniforms(buff, num_user_buffers);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, window.width, window.height);
+    glViewport(0, 0, buff.width, buff.height);
     glClearColor(buff.clear_color[0], buff.clear_color[1], buff.clear_color[2], 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDrawArrays(GL_POINTS, 0, buff.geom_iters);
