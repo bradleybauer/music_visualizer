@@ -15,6 +15,7 @@ set(SOURCE_FILES
 
 include_directories(
     .
+    src
     libs/ffts/include/
     libs/rapidjson/include/
     libs/SimpleFileWatcher/include/
