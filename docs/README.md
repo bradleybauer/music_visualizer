@@ -30,6 +30,26 @@ A shadertoy like shader might have the following folder layout
 
 See [here](/docs/advanced.md) for details on how to configure the rendering process.
 
+Here is a list of uniforms available in all buffers
+```
+vec2 iMouse;
+bool iMouseDown;     // whether left mouse button is down, in range [0, iRes]
+vec2 iMouseDownPos;  // position of mouse when left mouse button was pressed down
+vec2 iRes;           // resolution of window
+vec2 iBuffRes;       // resolution of currently rendering buffer
+float iTime;
+int iFrame;
+float iNumGeomIters; // how many times the geometry shader executed, useful for advanced mode rendering
+sampler1D iSoundR;   // audio data, each element is in the range [-1, 1]
+sampler1D iSoundL;
+sampler1D iFreqR;    // each element is >= zero for frequency data, you many need to scale this in shader
+sampler1D iFreqL;
+
+// Samplers for your buffers, for example
+sampler2D iMyBuff;
+// Constant uniforms specified in shader.json, for example
+uniform vec4 color_set_by_script;
+```
 # Building
 
 First get the sources
@@ -42,13 +62,22 @@ sudo apt install cmake libglfw3-dev libglew-dev libpulse-dev
 cd music_visualizer
 mkdir build
 mkdir build_result
-cd build && cmake .. && make -j4 && mv main ../build_result/music_visualizer && cp -r ../src/shaders ../build_result/shaders
+cd build
+cmake ..
+&& make -j4
+&& mv main ../build_result/music_visualizer
+&& cp -r ../src/shaders ../build_result/shaders
 ```
-
 and on Windows 10 with Visual Studio 2017:
 ```
 build the x64 Release configuration
 ```
+
+# Contact
+
+Feel free to use the issues page as a general communication channel.
+
+You can also message me on reddit at /u/xdaimon
 
 # Thanks To
 
