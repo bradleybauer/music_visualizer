@@ -43,3 +43,6 @@ src/shaders/conformal_map/
 src/shaders/my_path_trace/
 
 src/shaders/pathbackup/
+/visualizer.srctrlbm
+/visualizer.srctrldb
+/visualizer.srctrlprj
