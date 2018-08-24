@@ -7,12 +7,14 @@
 
 struct Buffer {
     std::string name;
-	int width = 0;
-	int height = 0;
-	bool is_window_size = true;
+    int width = 0;
+    int height = 0;
+    bool is_window_size = true;
     bool uses_default_geometry_shader = true;
-	int geom_iters = 1;
-    std::array<float, 3> clear_color = {0.f,0.f,0.f};
+    int geom_iters = 1;
+    std::array<float, 3> clear_color;
+    // Enables building w/ g++-5
+    Buffer() { clear_color = {0}; }
 };
 
 struct Uniform {

@@ -52,11 +52,11 @@ uniform vec4 color_set_by_script;
 ```
 # Building
 
-First get the sources
+First get the sources:
 ```
 git clone --recursive https://github.com/xdaimon/music_visualizer.git
 ```
-Then to build on Ubuntu
+Then to build on Ubuntu with gcc version >= 5.5:
 ```
 sudo apt install cmake libglfw3-dev libglew-dev libpulse-dev
 cd music_visualizer
