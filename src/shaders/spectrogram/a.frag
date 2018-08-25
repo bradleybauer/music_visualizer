@@ -2,7 +2,7 @@ in vec2 geom_p;
 out vec4 c;
 void main () {
     if (gl_FragCoord.x >= iRes.x-1) {
-        float freq = log(1. + texture(iFreqL, (exp2(geom_p.y / 1.5) - 1.) ).r);
+        float freq = log(1. + 10.*texture(iFreqL, (exp2(geom_p.y / 1.5) - 1.) ).r);
         c = vec4(freq);
     }
     else {

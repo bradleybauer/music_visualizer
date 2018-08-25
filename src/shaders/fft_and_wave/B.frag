@@ -1,6 +1,3 @@
-in vec2 geom_p;
-out vec4 c;
-
 //vec4 bg = .9*vec4(52./256., 9./256., 38./256., 1.);
 //vec4 fg = 1.1*vec4(1.,195./256.,31./256.,1.);
 
@@ -9,6 +6,9 @@ out vec4 c;
 
 vec4 fg = vec4(1);
 vec4 bg = vec4(0);
+
+in vec2 geom_p;
+out vec4 c;
 
 void main() {
 	if (iFrame == 0) {

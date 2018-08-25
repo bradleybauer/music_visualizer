@@ -40,16 +40,16 @@ int WinMain() {
 int main(int argc, char* argv[]) {
 #endif
 
-	filesys::path shader_folder("shaders");
+    filesys::path shader_folder("shaders");
     // TODO should this be here or in ShaderConfig?
-	filesys::path shader_config_path = shader_folder / "shader.json";
+    filesys::path shader_config_path = shader_folder / "shader.json";
 
-	FileWatcher watcher(shader_folder);
+    FileWatcher watcher(shader_folder);
 
-	ShaderConfig *shader_config = nullptr;
-	ShaderPrograms *shader_programs = nullptr;
+    ShaderConfig *shader_config = nullptr;
+    ShaderPrograms *shader_programs = nullptr;
     Renderer* renderer = nullptr;
-	Window *window = nullptr;
+    Window *window = nullptr;
     // TODO extract to get_valid_config(&, &, &, &)
     while (!(shader_config && shader_programs && window)) {
         try {
@@ -62,14 +62,14 @@ int main(int argc, char* argv[]) {
         catch (runtime_error &msg) {
             cout << msg.what() << endl;
 
-			// something failed so reset state
-			delete shader_config;
-			delete shader_programs;
-			delete window;
-			delete renderer;
-			shader_config = nullptr;
-			shader_programs = nullptr;
-			window = nullptr;
+            // something failed so reset state
+            delete shader_config;
+            delete shader_programs;
+            delete window;
+            delete renderer;
+            shader_config = nullptr;
+            shader_programs = nullptr;
+            window = nullptr;
             renderer = nullptr;
 
             while (!watcher.files_changed()) {
@@ -77,12 +77,12 @@ int main(int argc, char* argv[]) {
             }
         }
     }
-	cout << "Successfully compiled shaders." << endl;
+    cout << "Successfully compiled shaders." << endl;
 
-	//AudioStreamT audio_stream(); // Most Vexing Parse
+    //AudioStreamT audio_stream(); // Most Vexing Parse
     AudioStreamT audio_stream;
     AudioProcessT audio_process{audio_stream, shader_config->mAudio_ops};
-	std::thread audio_thread = std::thread(&AudioProcess<ClockT, AudioStreamT>::start, &audio_process);
+    std::thread audio_thread = std::thread(&AudioProcess<ClockT, AudioStreamT>::start, &audio_process);
     if (shader_config->mAudio_enabled)
         audio_process.start_audio_system();
 
@@ -109,22 +109,22 @@ int main(int argc, char* argv[]) {
         else {
             audio_process.pause_audio_system();
         }
-		cout << "Successfully updated shaders." << endl << endl;
-	};
+        cout << "Successfully updated shaders." << endl << endl;
+    };
 
-	while (window->is_alive()) {
-		if (watcher.files_changed())
-			update_shader();
-		auto now = ClockT::now();
+    while (window->is_alive()) {
+        if (watcher.files_changed())
+            update_shader();
+        auto now = ClockT::now();
         renderer->update(audio_process.get_audio_data());
-		renderer->render();
-		window->swap_buffers();
-		window->poll_events();
-		std::this_thread::sleep_for(std::chrono::microseconds(16666) - (ClockT::now() - now));
-	}
+        renderer->render();
+        window->swap_buffers();
+        window->poll_events();
+        std::this_thread::sleep_for(std::chrono::microseconds(16666) - (ClockT::now() - now));
+    }
 
     audio_process.exit_audio_system();
-	audio_thread.join();
+    audio_thread.join();
 
     return 0;
 }

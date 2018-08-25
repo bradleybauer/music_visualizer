@@ -1,3 +1,6 @@
+vec4 fg = vec4(1,0,0,0);
+vec4 bg = vec4(0);
+
 in vec2 geom_p;
 out vec4 C;
 
@@ -40,7 +43,7 @@ float get_freq(vec2 x) {
     x *= .2;
     float fl = tx(iFreqL, x.x);
     float fr = tx(iFreqR, x.y);
-    return .2*sqrt(fl*fr);
+    return 6.*sqrt(fl*fr);
 }
 
 float plane(vec3 p, vec3 pb1, vec3 pb2, vec3 pn, vec2 bound) {
@@ -80,7 +83,7 @@ void main() {
 
     uv /= 2.;
 
-    C = vec4(0);
+    C = bg;
 
     float away = 8.;
     float th = - iMouse.x / 80. + iTime / 10.; float cs = cos(th); float sn = sin(th);
@@ -102,7 +105,7 @@ void main() {
         p = ro+rd*t;
         float d = map(p);
         if (d < .005) {
-            C = vec4(.5+3.*p.y);
+            C = 7.*(p.y+.07) * fg;
             break;
         }
         else if (tri_min(abs(p) - box_dim) > 0.) {

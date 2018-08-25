@@ -1,3 +1,6 @@
+vec4 fg = vec4(0,1,1,1);
+vec4 bg = vec4(0);
+
 in vec2 geom_p;
 out vec4 c;
 
@@ -15,10 +18,7 @@ void main() {
     float separation = step(bezel, 1. - abs(uv.x - .5));
     separation *= step(bezel, 1. - abs(uv.y - .5));
 
-    vec4 pink = vec4(1);
-    vec4 bg = vec4(0);
-
     grid.x *= iRes.y / iRes.x;
     float x = texture(ia, grid).r;
-    c = mix(bg, pink, x) * separation;
+    c = mix(bg, fg, x) * separation;
 }

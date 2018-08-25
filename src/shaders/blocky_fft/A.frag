@@ -1,4 +1,11 @@
+const vec4 fg = vec4(1);
+const vec4 bg = vec4(0);
+
+in float is_background;
 out vec4 c;
 void main() {
-    c=vec4(1);
+    if (is_background)
+        c = fg;
+    else
+        c = bg;
 }

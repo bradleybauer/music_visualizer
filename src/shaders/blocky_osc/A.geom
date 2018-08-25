@@ -1,6 +1,7 @@
 layout(triangle_strip, max_vertices=24) out;
 
 out vec2 P;
+out float is_background;
 
 void quad(vec2 p, float thickness, float height) {
 	/*
@@ -46,6 +47,11 @@ void main() {
 
 	vec2 p = vec2(n*2.-1., s0);
 
+        is_background = 1.;
+        if (iGeomIter < 1.)
+            quad(vec2(-1, 0), 2., 2.);
+
+        is_background = 0.;
 	float height = abs(s0-s1);
 	quad(p, width, height);
 }

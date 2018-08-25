@@ -25,7 +25,7 @@ struct Uniform {
 struct AudioOptions {
 	bool fft_sync = true;
 	bool xcorr_sync = true;
-    float fft_smooth = .8f;
+    float fft_smooth = 1.f;
 	float wave_smooth = .8f;
 };
 

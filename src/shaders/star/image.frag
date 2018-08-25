@@ -1,9 +1,3 @@
-float f(float x) {
-	x /= 3.;
-	return .3*texture(iFreqL, x).r;
-}
-
-#define SPIRAL
 
 out vec4 C;
 
@@ -15,6 +9,13 @@ out vec4 C;
 
 vec4 fg = vec4(1);
 vec4 bg = vec4(0);
+
+float f(float x) {
+    x /= 4.;
+    return .3*texture(iFreqL, x).r;
+}
+
+#define SPIRAL
 
 void main() {
 	if (iFrame == 0) {
@@ -70,6 +71,8 @@ void main() {
 	float v = f(fish_school);
 	v = log(v+1.);
 	v *= smoothstep(0.,0.08,len*(fish_school));
+        // fish is a bit limp on linux so boost it up some
+        v *= 50.;
 #else
 	// Pixel distance to fish
 	float fish_dist = 1.-len*(.8+fish_jump+fish);
@@ -86,8 +89,10 @@ void main() {
 	float v = f(fish_school);
 	v = log(2.*v+1.);
 	v *= smoothstep(0.,.07, len*(.8+fish));
+        // fish is a bit limp on linux so boost it up some
+        v *= 65.;
 #endif
 
-	C = mix(bg, fg, v);
+	C = mix(bg, fg, smoothstep(0.,1.,v));
 	C.a = 1.;
 }

@@ -1,6 +1,5 @@
 layout(triangle_strip, max_vertices=24) out;
 
-const float EPS = 1E-6;
 out float width;
 out float intensity;
 out float min_intensity;

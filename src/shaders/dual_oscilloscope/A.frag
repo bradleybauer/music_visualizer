@@ -1,4 +1,3 @@
-const float EPS = 1E-6;
 const float TAU = 6.283185307179586;
 const float TAUR = 2.5066282746310002;
 const float SQRT2 = 1.4142135623730951;

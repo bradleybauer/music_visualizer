@@ -1,5 +1,7 @@
 #pragma once
 
+// TODO ifdef a scalar on the fft frequency because fft amplitude is much smaller on linux than on windows
+
 #include <iostream>
 #include <chrono>
 namespace chrono = std::chrono;
