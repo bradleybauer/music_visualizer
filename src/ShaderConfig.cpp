@@ -376,8 +376,14 @@ void ShaderConfig::parse_simple_config(const filesys::path & shader_folder) {
         if (path.extension().string() == ".frag")
             frag_filenames.push_back(path.stem().string());
     }
+
     // simple mode renders in alphabetical order
-    sort(frag_filenames.begin(), frag_filenames.end(), std::greater<string>());
+    auto compare_lowercase = [](string l, string r) {
+        for (char& c : l) c = tolower(c);
+        for (char& c : r) c = tolower(c);
+        return l < r;
+    };
+    sort(frag_filenames.begin(), frag_filenames.end(), compare_lowercase);
 
     mBlend = false;
 

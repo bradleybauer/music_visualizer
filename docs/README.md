@@ -14,9 +14,11 @@ visualizers might look like when visualizing the same sound.
 
 # Usage
 
-The program is meant to feel like using shadertoy. What this means is that the user writes a .frag file that renders to a fullscreen quad (actually a window sized quad). If the user wants multipass buffers, then multiple .frag files should be written. The name of a buffer is the file name of the frag file without the .frag extension. The contents of a buffer are available in all buffer shaders as i[buffer name here]. So if the buffers A.frag and a B.frag exist, then B can access the contents of A by doing texture(iA, pos);.
+The program is meant to feel like using shadertoy. The user writes a .frag file that renders to a screen sized quad. If the user wants multipass buffers, then multiple .frag files should be written. The name of a buffer is the file name of the frag file without the .frag extension. A buffer's output is available in all buffers as i{Filename w/o extension}. So if the files A.frag and B.frag exist, then buffer B can access the contents of buffer A by doing texture(iA, pos);.
 
 Every shader must contain an image.frag file, just like shadertoy.
+
+Buffers are rendered in alphabetical order and image.frag is always rendered last. If two buffers have the same name but different case, such as A.frag and a.frag, then the render order is unspecified. Do not use non ascii characters in file names ( I use tolower in the code to alphabetize the buffer file list ).
 
 Code for a shader should be located in a folder named shaders that is in the same directory as the executable. Subdirectories of shaders/ can also contain code but that code will not be considered a part of the currently rendered shader.
 
@@ -28,7 +30,7 @@ A shadertoy like shader might have the following folder layout
 		buffA.frag
 		buffB.frag
 
-See [here](/docs/advanced.md) for details on how to configure the rendering process.
+See [here](/docs/advanced.md) for details on how to configure the rendering process ( clear colors, render size, render order, render same buffer multiple times, geometry shaders, audio system toggle ).
 
 Here is a list of uniforms available in all buffers
 ```
@@ -47,6 +49,7 @@ sampler1D iFreqL;
 
 // Samplers for your buffers, for example
 sampler2D iMyBuff;
+
 // Constant uniforms specified in shader.json, for example
 uniform vec4 color_set_by_script;
 ```
