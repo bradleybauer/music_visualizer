@@ -50,7 +50,7 @@
 	"audio_options": {
 		"fft_sync":true,
 		"xcorr_sync":true,
-		"fft_smooth":0.8,
+		"fft_smooth":1.0,
 		"wave_smooth":0.6
 	},
 
