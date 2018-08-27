@@ -14,7 +14,9 @@ visualizers might look like when visualizing the same sound.
 
 # Usage
 
-The program is meant to feel like using shadertoy. The user writes a .frag file that renders to a screen sized quad. If the user wants multipass buffers, then multiple .frag files should be written. The name of a buffer is the file name of the frag file without the .frag extension. A buffer's output is available in all buffers as i{Filename w/o extension}. So if the files A.frag and B.frag exist, then buffer B can access the contents of buffer A by doing texture(iA, pos);.
+The user writes a .frag file that renders to a window sized quad. If the user wants multipass buffers, then multiple .frag files should be written. When a frag file is saved the app automatically reloads the changes. If the frag file compiles correctly, then the changes are presented to the user otherwise the app ignores the changes.
+
+The name of a buffer is the file name of the frag file without the .frag extension. A buffer's output is available in all buffers as i{Filename w/o extension}. So if the files A.frag and B.frag exist, then buffer B can access the contents of buffer A by doing texture(iA, pos);.
 
 Every shader must contain an image.frag file, just like shadertoy.
 
