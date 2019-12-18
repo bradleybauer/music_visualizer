@@ -1,4 +1,4 @@
-vec4 fg = vec4(1,0,0,0);
+vec4 fg = vec4(1);
 vec4 bg = vec4(0);
 
 in vec2 geom_p;

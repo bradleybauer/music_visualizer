@@ -28,28 +28,22 @@ void quad(vec2 P0, vec2 P1, float thickness) {
     dir = normalize(dir);
     vec2 norm = vec2(-dir.y, dir.x);
 
-    uvl = vec3(dl+thickness, -thickness, dl);
     gl_Position = vec4(P0+(-dir-norm)*thickness, 0., 1.);
     EmitVertex(); // 0
 
-    uvl = vec3(dl+thickness, thickness, dl);
     gl_Position = vec4(P0+(-dir+norm)*thickness, 0., 1.);
     EmitVertex(); // 1
 
-    uvl = vec3(-thickness, -thickness, dl);
     gl_Position = vec4(P1+(dir-norm)*thickness, 0., 1.);
     EmitVertex(); // 2
     EndPrimitive();
 
-    uvl = vec3(-thickness, -thickness, dl);
     gl_Position = vec4(P1+(dir-norm)*thickness, 0., 1.);
     EmitVertex(); // 2
 
-    uvl = vec3(dl+thickness, thickness, dl);
     gl_Position = vec4(P0+(-dir+norm)*thickness, 0., 1.);
     EmitVertex(); // 1
 
-    uvl = vec3(-thickness, thickness, dl);
     gl_Position = vec4(P1+(dir+norm)*thickness, 0., 1.);
     EmitVertex(); // 3
     EndPrimitive();
@@ -71,12 +65,12 @@ void main() {
 	// SQRT
 	// vec2 p = vec2(n*2.-1., .5*sqrt(f));
 
-	// NORMAL FFT
-	// p = vec2(n*2.-1., .5*f-1.);
-
         float height = .5;
 
-        is_background = 0.;
+        is_background = 1.;
+        if (iGeomIter < 1.)
+            quad(vec2(-1, -1), vec2(1,1), 2.);
 
-        quad(vec2(p.x + width / 2., -1.), vec2(p.x + width, p.y), width / 2.);
+        is_background = 0.;
+        quad(vec2(p.x + width / 2., -1.), vec2(p.x + width / 2., p.y), width / 2.);
 }
