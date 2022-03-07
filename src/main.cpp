@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
 
     filesys::path shader_folder("shaders");
     if (argc > 1) {
-       shader_folder = filesys::path(argv[1]);
+        shader_folder = filesys::path(argv[1]);
     }
 
     // TODO should this be here or in ShaderConfig?
