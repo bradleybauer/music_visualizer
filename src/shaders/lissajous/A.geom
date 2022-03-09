@@ -50,9 +50,9 @@ void main() {
     float t0 = (iGeomIter+0)/iNumGeomIters;
     float t1 = (iGeomIter+1)/iNumGeomIters;
 
-    width = .01;
-    intensity = .2;
-    min_intensity = .1;
+    width = .003;
+    intensity = 1;
+    min_intensity = .75;
 
     float sl0 = texture(iSoundL, t0).r;
     float sl1 = texture(iSoundL, t1).r;

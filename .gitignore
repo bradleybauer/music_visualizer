@@ -46,3 +46,5 @@ src/shaders/pathbackup/
 /visualizer.srctrlbm
 /visualizer.srctrldb
 /visualizer.srctrlprj
+
+enc_temp_folder

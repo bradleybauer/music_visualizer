@@ -71,8 +71,8 @@ void main() {
 	float v = f(fish_school);
 	v = log(v+1.);
 	v *= smoothstep(0.,0.08,len*(fish_school));
-        // fish is a bit limp on linux so boost it up some
-        v *= 50.;
+  // fish is a bit limp on linux so boost it up some
+  v *= 10.;
 #else
 	// Pixel distance to fish
 	float fish_dist = 1.-len*(.8+fish_jump+fish);
@@ -89,10 +89,11 @@ void main() {
 	float v = f(fish_school);
 	v = log(2.*v+1.);
 	v *= smoothstep(0.,.07, len*(.8+fish));
-        // fish is a bit limp on linux so boost it up some
-        v *= 65.;
+  // fish is a bit limp on linux so boost it up some
+  v *= 10.;
 #endif
 
 	C = mix(bg, fg, smoothstep(0.,1.,v));
 	C.a = 1.;
 }
+

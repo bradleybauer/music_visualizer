@@ -104,15 +104,16 @@ void main() {
     for (i = 0.; i < 128.; i+=1.) {
         p = ro+rd*t;
         float d = map(p);
-        if (d < .005) {
-            C = 7.*(p.y+.07) * fg;
+        if (d < .003) {
+            C = 2.7*(p.y+.07) * fg;
             break;
         }
         else if (tri_min(abs(p) - box_dim) > 0.) {
             //C = vec4(1.,0,0,1);
             break;
         }
-        t += d*.15;
+        t += d*.1;
     }
     //C = vec4(float(i > 100.));
 }
+

@@ -72,7 +72,7 @@ void main() {
     float t0 = (iGeomIter+0)/iNumGeomIters;
     float t1 = (iGeomIter+1)/iNumGeomIters;
 
-    width = .007;
+    width = .005;
     intensity = .15;
     min_intensity = .0;
 
@@ -92,3 +92,5 @@ void main() {
     P1 = vec2(t1, sr1);;
     quad(P0, P1, width);
 }
+
+
