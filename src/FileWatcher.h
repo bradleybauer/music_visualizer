@@ -26,7 +26,7 @@ public:
 	{
 		if (FW::Action::Delete == action)
 			return;
-		if (dir != "shaders")
+		if (dir != shader_folder)
 			return;
 		std::string extension = filesys::path(filename_str).extension().string();
 		if (extension != ".json" && extension != ".geom" && extension != ".frag")
