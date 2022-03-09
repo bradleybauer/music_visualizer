@@ -96,7 +96,9 @@ void WindowsAudioStream::get_next_pcm(float * buff_l, float * buff_r, int buff_s
 
     auto start = chrono::steady_clock::now();
     while (i < buff_size) {
-        if (chrono::steady_clock::now() - start > chrono::milliseconds(60)) {
+
+		// TODOFPS
+        if (chrono::steady_clock::now() - start > chrono::milliseconds(144)) {
             std::fill(buff_l, buff_l + buff_size, 0.f);
             std::fill(buff_r, buff_r + buff_size, 0.f);
             break;

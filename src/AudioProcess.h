@@ -301,7 +301,8 @@ void AudioProcess<ClockT, AudioStreamT>::step() {
     writer = move_index(writer, ABL, TBL);
 
     const auto now_time = ClockT::now();
-    if (now_time - next_time > chrono::milliseconds(60)) {
+    // TODOFPS fps should be obtained from somewhere else
+    if (now_time - next_time > chrono::milliseconds(144)) {
         next_time = now_time - chrono::milliseconds(1);
     }
 
@@ -379,7 +380,8 @@ void AudioProcess<ClockT, AudioStreamT>::step() {
         audio_sink.mtx.unlock();
 
         frame_id++;
-        next_time += dura(1 / 60.f);
+        // TODOFPS
+        next_time += dura(1 / 144.f);
     }
 }
 

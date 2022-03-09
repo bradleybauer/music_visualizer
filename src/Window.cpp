@@ -14,6 +14,7 @@ Window::Window(int _width, int _height) : width(_width), height(_height), size_c
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	//glfwWindowHint(GLFW_DECORATED, false);
 
+	//glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_FALSE);
 	window = glfwCreateWindow(width, height, "Music Visualizer", NULL, NULL);
 	if (window == NULL) throw runtime_error("GLFW window creation failed.");
 

@@ -40,6 +40,14 @@ int WinMain() {
 int main(int argc, char* argv[]) {
 #endif
 
+    // TODO add no system window border/title bar option?
+    // TODO add stay on top of all other windows option?
+    // TODO could i use some kind of neural net to maximize temporal consistency but also minimize difference between displayed signal and actual signal?
+
+    // TODO find a better way to get a decent fps
+    //      fps is also used in AudioProcess.h. Search the project for TODOFPS.
+    static const int fps = 144;
+
     filesys::path shader_folder("shaders");
     // TODO should this be here or in ShaderConfig?
     filesys::path shader_config_path = shader_folder / "shader.json";
@@ -112,15 +120,20 @@ int main(int argc, char* argv[]) {
         cout << "Successfully updated shaders." << endl << endl;
     };
 
+    auto lastFrameTime = ClockT::now();
+    auto frameRateDuration = std::chrono::microseconds(int64_t(1 / 144.0 * 1000000));
     while (window->is_alive()) {
-        if (watcher.files_changed())
-            update_shader();
         auto now = ClockT::now();
-        renderer->update(audio_process.get_audio_data());
-        renderer->render();
-        window->swap_buffers();
-        window->poll_events();
-        std::this_thread::sleep_for(std::chrono::microseconds(16666) - (ClockT::now() - now));
+        if ((now - lastFrameTime) > frameRateDuration) {
+            if (watcher.files_changed())
+                update_shader();
+            auto now = ClockT::now();
+            renderer->update(audio_process.get_audio_data());
+            renderer->render();
+            window->swap_buffers();
+            window->poll_events();
+            lastFrameTime = now;
+        }
     }
 
     audio_process.exit_audio_system();

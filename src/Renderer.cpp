@@ -210,6 +210,8 @@ void Renderer::update() {
 void Renderer::render() {
     auto now = ClockT::now();
     elapsed_time = (now - start_time).count() / 1e9f;
+    //if (elapsed_time > 0)
+    //    cout << (frame_counter / elapsed_time) << "  " << frame_counter << "   " << elapsed_time << endl;
 
     // Render buffers
     for (const int r : config.mRender_order) {
