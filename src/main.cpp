@@ -49,6 +49,10 @@ int main(int argc, char* argv[]) {
     static const int fps = 144;
 
     filesys::path shader_folder("shaders");
+    if (argc > 1) {
+        shader_folder = filesys::path(argv[1]);
+    }
+
     // TODO should this be here or in ShaderConfig?
     filesys::path shader_config_path = shader_folder / "shader.json";
 
