@@ -55,6 +55,13 @@ sampler2D iMyBuff;
 // Constant uniforms specified in shader.json, for example
 uniform vec4 color_set_by_script;
 ```
+
+By default, the program uses the shader defined in the `shaders` directory (relative to the current working directory). You can override this by providing a different directory as the first argument, e.g.
+```
+cd build_result
+./music_visualizer shaders/retrowave
+```
+
 # Building
 
 First get the sources:
